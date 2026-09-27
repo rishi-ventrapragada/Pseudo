@@ -2,7 +2,7 @@
 
 A personal, privacy-first AI desktop assistant for Windows. Screen content will be understood and redacted locally before anything reaches a cloud model.
 
-**Status:** Phase 1 (Foundations). See [PRD.md](PRD.md) section 6 for the current milestone.
+**Status:** Phase 1 (Foundations) complete. Phase 2 not started. See [PRD.md](PRD.md) section 5 for the phase plan.
 
 ## Setup (PowerShell)
 
