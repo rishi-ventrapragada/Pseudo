@@ -2,7 +2,7 @@
 
 Owner: Sai Rishi Ventrapragada
 Repo: https://github.com/rishi-ventrapragada/Pseudo
-Status: Phase 1 (Foundations) - not started
+Status: Phase 1 (Foundations) - complete. Phase 2 not started.
 Last updated: 2026-09-27
 
 ## 1. What Pseudo is
@@ -48,7 +48,7 @@ See ARCHITECTURE.md. These later phases may change once the owner understands th
 
 | Phase | Name | Outcome |
 |---|---|---|
-| **1** | **Foundations (current)** | Owner understands LLM APIs, tool calling, and the agent loop by building a mini agent from scratch. |
+| 1 | Foundations (complete) | Owner understands LLM APIs, tool calling, and the agent loop by building a mini agent from scratch. |
 | 2 | First MCP server | `pseudo_hands` with `list_open_windows`, plugged into Hermes. |
 | 3 | Reading and acting | UI Automation tree reader, `focus_window`, approval gate. |
 | 4 | Privacy layer | Local OCR + redaction (Presidio) + blocked-apps list. |
