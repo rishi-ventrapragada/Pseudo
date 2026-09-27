@@ -86,9 +86,12 @@ Pseudo/
     02_one_tool.py      single tool call, every step printed
     03_agent_loop.py    the loop above
     agent_tools.py      list_files / read_file / write_file + sandbox check
+    agent_tool_schemas.py the three tool schemas: all the model ever sees of the tools
     sandbox/            the only folder the agent may touch (.gitkeep)
   tests/
+    conftest.py         shared fixtures: temp sandbox, decoy outside folder, fake approvers
     test_agent_tools.py sandbox escape, read/write behavior
+    test_sandbox.py     sandbox escape tests (../, absolute paths, Windows names, links)
   docs/
     learn/              lesson files written by Claude Code, one per milestone
   pseudo_hands/         created empty with a README placeholder; used in Phase 2
