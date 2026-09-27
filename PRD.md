@@ -64,7 +64,7 @@ Four milestones. Each lives in `playground/`, is small, and ends with a lesson f
 - **Done when:** `python playground/00_check_setup.py` prints Python version, confirms the venv is active, and confirms `.env` is readable without printing the key.
 
 ### M1: Talk to a model
-- `01a_raw_http.py`: call a free model with a plain HTTP request (httpx), no SDK, so the owner sees it is just an API.
+- `01a_raw_http.py`: call a free model with a plain HTTP request (httpx2), no SDK, so the owner sees it is just an API.
 - `01b_sdk.py`: same call through the `openai` SDK pointed at an OpenAI-compatible free provider.
 - `01c_memory.py`: a terminal chat that keeps history in a Python list, plus a flag to disable history so the owner sees the model forget.
 - **Done when:** all three run; the owner can explain why the model "forgets" without the history list.

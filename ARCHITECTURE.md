@@ -99,7 +99,7 @@ Pseudo/
 
 | Library | Why |
 |---|---|
-| httpx | Raw HTTP in M1a, to show a model call is just a POST request. |
+| httpx2 | Raw HTTP in M1a, to show a model call is just a POST request. Maintained successor to httpx, and the HTTP client the openai SDK itself uses. |
 | openai | Standard SDK; works with any OpenAI-compatible endpoint (Groq, OpenRouter, Gemini's compat endpoint, Hermes' API server, Ollama). Learning it once transfers everywhere. |
 | python-dotenv | Loads `.env`. |
 | pytest | Tests for the tool functions in M3. |

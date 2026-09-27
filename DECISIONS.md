@@ -34,7 +34,7 @@ First build a mini agent from scratch (LLM call, tool calling, agent loop) befor
 *Why:* understanding the loop makes everything later readable instead of magic.
 
 ### D9. No agent frameworks in Phase 1
-Raw `httpx` and `openai` SDK only.
+Raw `httpx2` and `openai` SDK only.
 
 ### D10. Provider-agnostic config
 Model endpoint, key, and name live in `.env`. Code uses the OpenAI-compatible API shape.
