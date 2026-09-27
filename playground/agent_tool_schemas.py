@@ -49,7 +49,7 @@ WRITE_FILE_SCHEMA = {
     "type": "function",
     "function": {
         "name": "write_file",
-        "description": "Create a text file in the sandbox, or replace an existing file's entire content. The user must approve every write; if they deny it, nothing is written. To change a file, read it first, then write the complete new content.",
+        "description": "Create a text file in the sandbox, or replace an existing file's entire content. Calling this automatically asks the user to approve the write; if they deny it, nothing is written. To change a file, read it first, then write the complete new content.",
         "parameters": {
             "type": "object",
             "properties": {
