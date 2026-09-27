@@ -77,7 +77,7 @@ Pseudo/
   requirements.txt
   .env.example          template, committed
   .env                  real keys, NEVER committed
-  .gitignore            .venv/, .env, __pycache__/, playground/sandbox/*
+  .gitignore            .venv/, .env, __pycache__/, .pytest_cache/, playground/sandbox/*
   playground/
     00_check_setup.py
     01a_raw_http.py     plain HTTP call to the model
@@ -90,7 +90,7 @@ Pseudo/
     sandbox/            the only folder the agent may touch (.gitkeep)
   tests/
     conftest.py         shared fixtures: temp sandbox, decoy outside folder, fake approvers
-    test_agent_tools.py sandbox escape, read/write behavior
+    test_agent_tools.py tool behavior, approval gate, schema contract
     test_sandbox.py     sandbox escape tests (../, absolute paths, Windows names, links)
   docs/
     learn/              lesson files written by Claude Code, one per milestone
