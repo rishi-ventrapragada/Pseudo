@@ -7,6 +7,9 @@
 # Python bytecode cache, regenerated automatically
 __pycache__/
 
+# pytest's own cache (remembers failed tests between runs)
+.pytest_cache/
+
 # The agent's sandbox: whatever the agent writes stays local.
 # The .gitkeep line keeps the empty folder itself in git.
 playground/sandbox/*

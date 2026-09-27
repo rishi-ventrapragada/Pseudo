@@ -11,3 +11,6 @@ openai==3.19.2
 # M2: IANA timezone data (e.g. "Asia/Tokyo"). Windows doesn't ship it,
 # so Python's zoneinfo needs this package to look timezones up.
 tzdata==2026.4
+
+# M3: test runner for the file tools and the sandbox (tests/)
+pytest==9.1.1
