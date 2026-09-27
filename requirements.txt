@@ -1,3 +1,9 @@
 # Pinned with == so every install gets the exact same versions.
 # Each milestone adds the libraries it needs when it needs them.
 python-dotenv==1.2.3
+
+# M1: raw HTTP client for 01a (the openai SDK uses it internally too)
+httpx2==2.13.1
+
+# M1: official SDK for any OpenAI-compatible API (01b, 01c)
+openai==3.19.2
