@@ -91,7 +91,6 @@ Pseudo/
     test_agent_tools.py sandbox escape, read/write behavior
   docs/
     learn/              lesson files written by Claude Code, one per milestone
-    journal.md          the owner's own notes, written by the owner
   pseudo_hands/         created empty with a README placeholder; used in Phase 2
 ```
 

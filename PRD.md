@@ -84,7 +84,6 @@ Four milestones. Each lives in `playground/`, is small, and ends with a lesson f
 
 ### Phase 1 exit criteria
 - All four milestones done, committed, and each has a lesson file.
-- Owner has written his own summary in `docs/journal.md` for each milestone.
 - Owner can draw the agent loop from memory.
 
 ## 7. Out of scope for Phase 1

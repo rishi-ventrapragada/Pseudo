@@ -8,7 +8,7 @@ Format: each decision has a status (LOCKED, LEANING, OPEN), the reason, and what
 For the owner's personal project only (not the team's SIH submission). Nod to pseudonymization.
 
 ### D2. Learning-first build
-Claude Code builds; the owner learns from each milestone via lesson files and his own journal before moving on. A milestone isn't done until the owner can explain it.
+Claude Code builds; the owner learns from each milestone via lesson files before moving on. A milestone isn't done until the owner can explain it.
 *Why:* the owner is new to agents and doesn't want to follow a plan he doesn't understand.
 
 ### D3. Zero budget
