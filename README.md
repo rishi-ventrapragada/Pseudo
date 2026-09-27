@@ -24,12 +24,3 @@ python playground/00_check_setup.py
 ```
 
 `.env` is gitignored. Never commit it and never paste its contents anywhere.
-
-## Docs
-
-| File | What it is |
-|---|---|
-| [PRD.md](PRD.md) | What Pseudo is, constraints, phase plan, milestone scope |
-| [ARCHITECTURE.md](ARCHITECTURE.md) | Long-term design and the Phase 1 folder structure |
-| [DECISIONS.md](DECISIONS.md) | Decision log (locked, leaning, open) |
-| [CLAUDE.md](CLAUDE.md) | Rules Claude Code follows in this repo |
