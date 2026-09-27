@@ -1,0 +1,13 @@
+# Virtual environment: rebuilt from requirements.txt, never committed (like node_modules)
+.venv/
+
+# Real secrets. Only .env.example (the template) is committed.
+.env
+
+# Python bytecode cache, regenerated automatically
+__pycache__/
+
+# The agent's sandbox: whatever the agent writes stays local.
+# The .gitkeep line keeps the empty folder itself in git.
+playground/sandbox/*
+!playground/sandbox/.gitkeep

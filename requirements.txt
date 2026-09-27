@@ -1,0 +1,3 @@
+# Pinned with == so every install gets the exact same versions.
+# Each milestone adds the libraries it needs when it needs them.
+python-dotenv==1.2.3
