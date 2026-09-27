@@ -118,6 +118,8 @@ The tokens sent per call grew 466 → 502 → 603 → 690 → 777 → 901: every
 
 **Escape attempts:** asked to read a decoy file outside the sandbox, the model refused **on its own** twice, without calling a tool. That's nice, but **a model's caution is not a security boundary**. It can be talked around, and a different model might not refuse. So the tool was tested directly with the exact paths: `read_file("..\..\..\..\Users\...\decoy.txt")`, the absolute path, `../../.env`, and `list_files("../..")` all returned `Error: '...' is outside the sandbox`.
 
+> **Note (rule added after M3): the `../../.env` check is now banned.** Tests and checks must never read, open, or target real secrets, even in a local call with no model involved. If the check itself had a bug, the real key is exactly what would leak. Use decoy files instead, like the fake `secret.txt` that `tests/conftest.py` puts in the `outside` folder.
+
 **429** (a fake one, injected by a test script):
 ```
 --- RATE LIMITED (429): waiting 2 s, as the server asked (wait 1 of 3) ---
