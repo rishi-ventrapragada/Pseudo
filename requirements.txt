@@ -7,3 +7,7 @@ httpx2==2.13.1
 
 # M1: official SDK for any OpenAI-compatible API (01b, 01c)
 openai==3.19.2
+
+# M2: IANA timezone data (e.g. "Asia/Tokyo"). Windows doesn't ship it,
+# so Python's zoneinfo needs this package to look timezones up.
+tzdata==2026.4
