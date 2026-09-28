@@ -7,7 +7,7 @@ Two parts: the long-term target (so every step has context) and the Phase 1 stru
 ```
           voice / hotkey / typed prompt
                        |
-             [ Pseudo Face ]  resizable overlay + local voice
+             [ Pseudo Face ]  Hermes Desktop for now; own web UI + voice later
                        |       (talks to Hermes via its local API)
                        v
              [ Hermes Agent ]  brain: reasoning, memory, skills,
@@ -94,7 +94,7 @@ Pseudo/
     test_sandbox.py     sandbox escape tests (../, absolute paths, Windows names, links)
   docs/
     learn/              lesson files written by Claude Code, one per milestone
-  pseudo_hands/         created empty with a README placeholder; used in Phase 2
+  pseudo_hands/         Phase 2: see "Phase 2: pseudo_hands" below
 ```
 
 ### Libraries (Phase 1)
@@ -117,3 +117,20 @@ Nothing else. No agent frameworks (LangChain etc.) in Phase 1: the point is to s
 ### Privacy in Phase 1
 
 Only text the owner types (and files inside `playground/sandbox/`) is sent to the model. Nothing from the screen, no personal files.
+
+## 3. Phase 2: pseudo_hands
+
+```
+pseudo_hands/
+  core/                 plain Python; never imports MCP or Hermes (D11)
+    windows.py          list_open_windows(): Windows API -> clean list of dicts
+    blocked_apps.py     load the blocked list, mask blocked windows (D6)
+    blocked_apps.txt    owner-editable list of .exe names
+  show_windows.py       thin CLI demo (M4)
+  mcp_server.py         thin MCP wrapper (M5)
+```
+
+| Library | Why |
+|---|---|
+| pywin32 | Python wrappers for the Windows API (EnumWindows, window titles, process ids). pywinauto (Phase 3) is built on it too. |
+| psutil | Turns a process id into an app name ("Code.exe"). |
