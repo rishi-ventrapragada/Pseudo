@@ -14,3 +14,9 @@ tzdata==2026.4
 
 # M3: test runner for the file tools and the sandbox (tests/)
 pytest==9.1.1
+
+# M4: Python wrappers for the Windows API (list windows, titles, process ids)
+pywin32==312
+
+# M4: turns a process id into an app name (e.g. 4120 -> "Code.exe")
+psutil==7.2.2
