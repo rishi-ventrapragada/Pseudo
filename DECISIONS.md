@@ -98,6 +98,10 @@ Memory is a dedicated, Obsidian-compatible markdown vault: plain `.md` files tha
 ### L7. Routines
 Saved from a successful run, preferring scripts over recorded clicks.
 
+### L8. What the owner types is sent to the model unredacted
+Text the owner types to Pseudo goes to Groq as typed, by design: redacting it would break tasks that need the real values, such as a name to search for or a number to fill in. Only screen content is redacted, in `pseudo_hands` core before it leaves the laptop (D6).
+*Would change if:* pasted screen content in typed messages turns out to be common enough to need its own check.
+
 ## OPEN
 
 - O1. Whether Pseudo's coding mode goes through Hermes or a separate coding agent.
