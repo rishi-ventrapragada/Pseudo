@@ -12,6 +12,7 @@ like the one Node always runs for you.
 """
 
 import ast
+import itertools
 import json
 import sys
 from pathlib import Path
@@ -27,6 +28,7 @@ from pseudo_hands.mcp_server import LIST_OPEN_WINDOWS_DESCRIPTION, server
 REPO_ROOT = Path(__file__).resolve().parent.parent
 PSEUDO_HANDS = REPO_ROOT / "pseudo_hands"
 SECRET_TITLE = "Vault: bank PIN 4321"
+HANDLES = itertools.count(101)  # (M10) every fake window gets its own handle, so its own id
 
 
 @pytest.fixture
@@ -35,7 +37,8 @@ def anyio_backend() -> str:
 
 
 def fake(title: str, app: str | None, focused: bool = False) -> RawWindow:
-    return RawWindow(title=title, app=app, visible=True, cloaked=False, focused=focused)
+    return RawWindow(title=title, app=app, visible=True, cloaked=False, focused=focused,
+                     handle=next(HANDLES), process_id=4000)
 
 
 def everything_sent(result) -> str:
@@ -75,8 +78,8 @@ async def test_masking_still_holds_through_mcp(desktop) -> None:
     async with Client(server) as client:
         result = await client.call_tool("list_open_windows", {})
     assert result.structured_content["result"] == [
-        {"title": RESTRICTED, "app": RESTRICTED, "focused": True},
-        {"title": RESTRICTED, "app": RESTRICTED, "focused": False},
+        {"id": None, "title": RESTRICTED, "app": RESTRICTED, "focused": True},
+        {"id": None, "title": RESTRICTED, "app": RESTRICTED, "focused": False},
     ]
     sent = everything_sent(result)
     assert "4321" not in sent and "Vault" not in sent and "KeePass" not in sent
@@ -141,7 +144,7 @@ async def test_real_server_over_stdio_smoke() -> None:
     assert names == ["list_open_windows", "read_active_window"]
     assert result.is_error is False
     windows = result.structured_content["result"]
-    assert all(set(w) == {"title", "app", "focused"} for w in windows)
+    assert all(set(w) == {"id", "title", "app", "focused"} for w in windows)
     assert all(isinstance(w["focused"], bool) for w in windows)
     focused_count = sum(w["focused"] for w in windows)
     assert focused_count <= 1

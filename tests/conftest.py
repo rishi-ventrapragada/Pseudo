@@ -12,7 +12,8 @@ parameter, like beforeEach in Jest, but only for the tests that want it):
                see exactly those fake windows, with a test blocked list that
                holds only KeePass.exe. The real desktop is never read.
                Title redaction is a pass-through here unless a test also asks
-               for real_redaction (M8).
+               for real_redaction (M8). Each test gets a fresh id registry
+               (M10), so the first listed window is always "w1".
 """
 
 import sys
@@ -26,7 +27,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "playground"))
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 import agent_tools  # noqa: E402  (has to come after the sys.path lines above)
-from pseudo_hands.core import blocked_apps, windows  # noqa: E402
+from pseudo_hands.core import blocked_apps, window_ids, windows  # noqa: E402
 from pseudo_hands.core.windows import RawWindow  # noqa: E402
 
 
@@ -83,6 +84,7 @@ def desktop(monkeypatch: pytest.MonkeyPatch, tmp_path: Path):
 
     # Redaction off by default, so M4/M5 tests test blocking alone; M8 tests add `real_redaction`.
     monkeypatch.setattr(windows, "redact", lambda title: title)
+    monkeypatch.setattr(window_ids, "registry", window_ids.WindowIds())  # (M10) ids start at w1
 
     def set_windows(fakes: list[RawWindow]) -> None:
         monkeypatch.setattr(windows, "read_all_windows", lambda: fakes)

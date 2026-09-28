@@ -10,10 +10,13 @@ Privacy is applied HERE, before anything is returned (DECISIONS.md D6):
   1. windows of blocked apps come back as "[restricted app]" (blocked_apps.py, M4)
   2. every other title goes through the local redactor (redactor.py, M8), and
      a title the redactor can't process comes back as "[title withheld]", never raw.
+(M10) Each window also gets a short id for focus_window(). Blocked apps and
+Pseudo's own windows (the approval popup, D14) get None: nothing to point at.
 """
 
 import ctypes
 import ctypes.wintypes
+import os
 from dataclasses import dataclass
 from typing import TypedDict
 
@@ -22,6 +25,7 @@ import pywintypes
 import win32gui
 import win32process
 
+from pseudo_hands.core import window_ids
 from pseudo_hands.core.blocked_apps import RESTRICTED, load_blocked_apps, mask_if_blocked
 from pseudo_hands.core.redactor import RedactionError, redact
 
@@ -32,6 +36,7 @@ TITLE_WITHHELD = "[title withheld]"
 class Window(TypedDict):
     """One open window, as a model will see it. Plain types, so it becomes JSON as-is."""
 
+    id: str | None  # (M10) "w3", for focus_window(); None = this window can't be acted on
     title: str
     app: str
     focused: bool
@@ -47,6 +52,7 @@ class RawWindow:
     cloaked: bool
     focused: bool
     handle: int = 0  # (M9) Windows' id for the window, so a reader can open exactly this one
+    process_id: int = 0  # (M10) which running program owns it; tells a reused handle apart
 
 
 def is_cloaked(handle: int) -> bool:
@@ -71,6 +77,25 @@ def app_name(process_id: int) -> str | None:
         return None
 
 
+def read_window(handle: int, focused: int) -> RawWindow | None:
+    """Everything about one window, or None if it no longer exists. (M10: focus.py uses this too.)"""
+    if not win32gui.IsWindow(handle):
+        return None
+    try:
+        _thread_id, process_id = win32process.GetWindowThreadProcessId(handle)
+        return RawWindow(
+            title=win32gui.GetWindowText(handle),
+            app=app_name(process_id),
+            visible=bool(win32gui.IsWindowVisible(handle)),
+            cloaked=is_cloaked(handle),
+            focused=handle == focused,
+            handle=handle,
+            process_id=process_id,
+        )
+    except pywintypes.error:  # the window closed while we were looking at it
+        return None
+
+
 def read_all_windows() -> list[RawWindow]:
     """Ask Windows for every top-level window, front-most first (the "z-order")."""
     handles: list[int] = []
@@ -81,22 +106,8 @@ def read_all_windows() -> list[RawWindow]:
 
     win32gui.EnumWindows(remember, None)  # calls remember() once per window
     focused = win32gui.GetForegroundWindow()
-
-    windows = []
-    for handle in handles:
-        try:
-            _thread_id, process_id = win32process.GetWindowThreadProcessId(handle)
-            windows.append(RawWindow(
-                title=win32gui.GetWindowText(handle),
-                app=app_name(process_id),
-                visible=bool(win32gui.IsWindowVisible(handle)),
-                cloaked=is_cloaked(handle),
-                focused=handle == focused,
-                handle=handle,
-            ))
-        except pywintypes.error:  # the window closed while we were looking at it
-            continue
-    return windows
+    windows = [read_window(handle, focused) for handle in handles]
+    return [window for window in windows if window is not None]
 
 
 def is_user_window(window: RawWindow) -> bool:
@@ -124,7 +135,10 @@ def list_open_windows() -> list[Window]:
         if not is_user_window(raw):
             continue
         title, app = mask_if_blocked(raw.title, raw.app, blocked)
+        window_id = None
         if title != RESTRICTED:  # blocked apps' titles never even reach the redactor
             title = safe_title(title)
-        result.append({"title": title, "app": app, "focused": raw.focused})
+            if raw.process_id != os.getpid():  # D14: never an id for Pseudo's own windows
+                window_id = window_ids.registry.id_for(raw.handle, raw.process_id)
+        result.append({"id": window_id, "title": title, "app": app, "focused": raw.focused})
     return result
