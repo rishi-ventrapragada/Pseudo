@@ -82,6 +82,15 @@ async def test_masking_still_holds_through_mcp(desktop) -> None:
 
 
 @pytest.mark.anyio
+async def test_redaction_holds_through_mcp(desktop, real_redaction) -> None:
+    desktop([fake("Call +91 98765 43210 - Notepad", "notepad.exe", focused=True)])
+    async with Client(server) as client:
+        result = await client.call_tool("list_open_windows", {})
+    assert result.structured_content["result"][0]["title"].startswith("Call [IN_PHONE]")
+    assert "98765" not in everything_sent(result)
+
+
+@pytest.mark.anyio
 async def test_a_missing_list_fails_closed_through_mcp(desktop, monkeypatch: pytest.MonkeyPatch,
                                                        tmp_path: Path) -> None:
     desktop([fake(SECRET_TITLE, "notepad.exe")])
