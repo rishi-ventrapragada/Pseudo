@@ -132,4 +132,4 @@ The result is **D15**: Pseudo's brain becomes its own loop.
 
 - **M14** turns the M3 loop into `pseudo_brain`: an **MCP client** of the same `pseudo_hands` server Hermes used, calling Groq directly with no fallbacks, handling 429s visibly and saving session history.
 - **M15** adds a React window (Tauri or Electron) on top, through a local server.
-- Until M14 replaces it, the `pseudo` profile stays hardened (Pseudo's tools only, no auto-titles, no Bot Mode protocol). One route remains open: an auxiliary side-call after a 429 can still reach Nous through the root login.
+- The `pseudo` profile was hardened first (Pseudo's tools only, no auto-titles, no Bot Mode protocol). The Nous route through the root login couldn't be closed from inside the profile, so the `pseudo_hands` server was then **disabled** in the `pseudo` profile (`enabled: false`, after a backup). `hermes -p pseudo mcp list` shows it `✗ disabled`, so no Pseudo data can reach Hermes at all until the profile is retired.

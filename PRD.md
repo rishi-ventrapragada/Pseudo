@@ -181,7 +181,7 @@ Goal: use Pseudo day to day, not just through `hermes -p pseudo` in a terminal. 
   - every Desktop session gets 12 Desktop-only tools, and one of them, `read_window_below`, returns the raw title of the window behind Desktop, skipping blocked apps and the redactor. No profile setting removes it (accepted as a hard failure);
   - a Desktop question would cost about 16-17K input tokens per call, and Groq allows 8K per minute;
   - auxiliary side-calls can fall back to Nous, whose login every profile inherits from the root.
-  These findings led to D15. The `pseudo` profile was hardened (Pseudo's tools only, no auto-titles, no Bot Mode protocol) until M14 replaces it.
+  These findings led to D15. The `pseudo` profile was hardened (Pseudo's tools only, no auto-titles, no Bot Mode protocol), and its `pseudo_hands` server is now **disabled** (`enabled: false`), so no Pseudo data reaches Hermes until the profile is retired.
 
 ### M14: pseudo_brain, Pseudo's own loop
 - `pseudo_brain/`: the M3 loop grown into Pseudo's brain (D15). It is an MCP client of `pseudo_hands` (the same stdio server Hermes used) and talks to Groq through the OpenAI-compatible API (D10).
