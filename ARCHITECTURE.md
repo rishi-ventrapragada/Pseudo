@@ -22,6 +22,7 @@ Two parts: the long-term target (so every step has context) and the Phase 1 stru
                         redactor (emails, phones, names, passwords, cards)
                        |
      [ Approval gate ]  delete/overwrite, send, submit/pay, install/run
+                        native Windows popup shown by pseudo_hands (D13)
                        |
      clean text only -> cloud model (free tier)
 ```
@@ -126,12 +127,17 @@ pseudo_hands/
     windows.py          list_open_windows(): Windows API -> clean list of dicts
     blocked_apps.py     load the blocked list, mask blocked windows (D6)
     blocked_apps.txt    owner-editable list of .exe names
+    redactor.py         redact(text): Presidio + spaCy, fail closed (M7)
+    india_recognizers.py  +91 phone, Aadhaar, PAN, UPI, long-number patterns (M7)
+    redaction_terms.txt   owner's private terms (gitignored; .example committed) (M7)
   show_windows.py       thin CLI demo (M4)
   mcp_server.py         thin MCP wrapper (M5)
 ```
 
 | Library | Why |
 |---|---|
-| pywin32 | Python wrappers for the Windows API (EnumWindows, window titles, process ids). pywinauto (Phase 3) is built on it too. |
+| pywin32 | Python wrappers for the Windows API (EnumWindows, window titles, process ids). pywinauto (Phase 4) is built on it too. |
 | psutil | Turns a process id into an app name ("Code.exe"). |
 | mcp | Official MCP Python SDK: MCPServer for pseudo_hands, Client for its tests. |
+| presidio-analyzer / presidio-anonymizer | Microsoft's open-source PII detection and masking; runs fully locally. |
+| spaCy + en_core_web_sm | The small English language model Presidio uses to spot names and places. |
