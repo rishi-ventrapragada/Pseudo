@@ -2,8 +2,8 @@
 
 Owner: Sai Rishi Ventrapragada
 Repo: https://github.com/rishi-ventrapragada/Pseudo
-Status: Phase 1 (Foundations) - complete. Phase 2 not started.
-Last updated: 2026-09-27
+Status: Phase 1 (Foundations) - complete. Phase 2 (First MCP server) in progress: M4.
+Last updated: 2026-09-28
 
 ## 1. What Pseudo is
 
@@ -40,7 +40,7 @@ If (2) fails, the milestone is not done.
 
 - **Brain:** Hermes Agent (Nous Research, open source, already installed on the owner's machine) handles reasoning, memory, skills, scheduling, and coding.
 - **Pseudo Hands:** an MCP server exposing Windows tools (window list, UI Automation tree, local OCR, click/type) with a local privacy/redaction layer and an approval gate for risky actions.
-- **Pseudo Face:** a resizable always-on-top overlay plus local voice (wake word, speech-to-text, text-to-speech).
+- **Pseudo Face:** Hermes Desktop for now. Later, possibly a custom web UI (React + Tauri or Electron) talking to Pseudo's Python core through a local server, plus local voice.
 
 See ARCHITECTURE.md. These later phases may change once the owner understands the foundations. Do not build any of them in Phase 1.
 
@@ -52,7 +52,7 @@ See ARCHITECTURE.md. These later phases may change once the owner understands th
 | 2 | First MCP server | `pseudo_hands` with `list_open_windows`, plugged into Hermes. |
 | 3 | Reading and acting | UI Automation tree reader, `focus_window`, approval gate. |
 | 4 | Privacy layer | Local OCR + redaction (Presidio) + blocked-apps list. |
-| 5 | The face | Resizable overlay, then voice. |
+| 5 | The face | Hermes Desktop first; own web UI and voice later if needed. |
 
 ## 6. Phase 1 scope: Foundations
 
@@ -91,3 +91,25 @@ Extra: count_words tool added as a learning exercise (Sept 28).
 ## 7. Out of scope for Phase 1
 
 MCP, Hermes integration, screen reading, OCR, UI automation, voice, overlay, memory database, scheduling, local models, any GUI.
+
+## 8. Phase 2 scope: First MCP server
+
+Three milestones. Core code lives in `pseudo_hands/core/` (plain Python, no MCP); wrappers stay thin (D11). Each milestone ends with a lesson file.
+
+### M4: list_open_windows in the core
+- `pseudo_hands/core/windows.py`: `list_open_windows()` returns the visible top-level windows (title, app, focused) via the Windows API. Plain Python, no MCP.
+- `pseudo_hands/core/blocked_apps.py` + `blocked_apps.txt`: windows of listed apps come back as "[restricted app]" (D6), so no sensitive titles reach the cloud even before Phase 4.
+- pytest tests with fake window data, plus one smoke test against the real Windows API.
+- **Done when:** `python -m pseudo_hands.show_windows` lists the open windows with the focused one marked and blocked apps masked, tests pass, and the owner can explain why blocking is decided by process name, not window title.
+
+### M5: Thin MCP server
+- `pseudo_hands/mcp_server.py` exposes `list_open_windows` over MCP with no logic of its own.
+- **Done when:** the MCP Inspector lists the tool, and calling it returns the same result as the core function, blocked apps still masked.
+
+### M6: Plug into Hermes
+- Connect `pseudo_hands` to the installed Hermes Agent with a free Groq model. Claude Code gives step-by-step instructions for the Hermes config (outside the repo) and does not edit it.
+- **Done when:** asked "what am I working on right now?", Hermes calls `list_open_windows` and answers from the result.
+
+Known gap until Phase 4: titles of non-blocked windows (including browser tab titles) reach the cloud model unredacted.
+
+Out of scope for Phase 2: UI Automation tree, focus_window, click/type, OCR, Presidio redaction, own UI, voice, memory, scheduling.
