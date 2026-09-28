@@ -200,4 +200,5 @@ Found while building; not scheduled. Each needs a plan and approval before work 
 
 - **Thinner first reads.** A freshly opened Chromium/Electron window's first read is thinner than later ones (M12: Obsidian gave 65 content chars on its first read vs 290 warm in M11). M12's retry only fires when a read fails or finds nothing inside the window, so a thin-but-not-empty first read isn't retried.
 - **Depth limit misses deep apps.** The UI tree walk stops at depth 12, which misses most of the content in deeply nested apps like Claude desktop (30 controls at depth 12 vs 109 at depth 30).
+- **Plain-text answers.** The model sometimes answers in Markdown (bold, lists) although the system prompt asks for plain text (M14). Either tighten the prompt or render Markdown in the face (M15).
 - **OCR revisit: DaVinci Resolve.** In M11 it exposed only 44 content chars (53 controls), just above the 40-char line. Revisit OCR if Pseudo needs to read Resolve (or games).
