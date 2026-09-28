@@ -11,7 +11,7 @@ from pathlib import Path
 
 import pytest
 
-from pseudo_hands.core import blocked_apps, windows
+from pseudo_hands.core import blocked_apps
 from pseudo_hands.core.blocked_apps import RESTRICTED, BlockedAppsError, load_blocked_apps, parse_blocked_apps
 from pseudo_hands.core.windows import RawWindow, list_open_windows
 
@@ -21,18 +21,6 @@ SECRET_TITLE = "Vault: bank PIN 4321"
 def fake_window(title: str = "notes.md - Notepad", app: str | None = "notepad.exe", *,
                 visible: bool = True, cloaked: bool = False, focused: bool = False) -> RawWindow:
     return RawWindow(title=title, app=app, visible=visible, cloaked=cloaked, focused=focused)
-
-
-@pytest.fixture
-def desktop(monkeypatch: pytest.MonkeyPatch, tmp_path: Path):
-    """Returns a helper: desktop([windows...]) makes list_open_windows() see exactly those."""
-    list_file = tmp_path / "blocked_apps.txt"
-    list_file.write_text("# test list\nKeePass.exe\n", encoding="utf-8")
-    monkeypatch.setattr(blocked_apps, "BLOCKED_APPS_FILE", list_file)
-
-    def set_windows(fakes: list[RawWindow]) -> None:
-        monkeypatch.setattr(windows, "read_all_windows", lambda: fakes)
-    return set_windows
 
 
 # ---------- what comes back ----------
