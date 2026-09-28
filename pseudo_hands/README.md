@@ -8,8 +8,12 @@ pseudo_hands/
     windows.py          list_open_windows(): Windows API -> clean list of dicts        (M4)
     blocked_apps.py     load the blocked list, mask blocked windows (D6)              (M4)
     blocked_apps.txt    the apps YOU consider private; edit freely                    (M4)
+    redactor.py         redact(text): Presidio + spaCy, fails closed                  (M7)
+    india_recognizers.py  +91 phone, Aadhaar, PAN, UPI, long-number shapes          (M7)
+    redaction_terms.txt   your private terms (gitignored; see the .example)         (M7)
   show_windows.py       thin terminal demo: python -m pseudo_hands.show_windows       (M4)
   mcp_server.py         thin MCP server over stdio: python -m pseudo_hands.mcp_server (M5)
+  show_redaction.py     thin demo on fake titles: python -m pseudo_hands.show_redaction (M7)
 ```
 
 The rule: every decision (what counts as a window, what gets masked, failing closed) lives in `core/`. Wrappers such as `show_windows.py`, and the MCP server in M5, only call core functions and pass the result on, so the privacy check holds for any caller.
