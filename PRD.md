@@ -2,7 +2,7 @@
 
 Owner: Sai Rishi Ventrapragada
 Repo: https://github.com/rishi-ventrapragada/Pseudo
-Status: Phase 1 (Foundations) - complete. Phase 2 (First MCP server) - complete. Phase 3 not started.
+Status: Phase 1 (Foundations) - complete. Phase 2 (First MCP server) - complete. Phase 3 (Privacy layer) in progress: M7.
 Last updated: 2026-09-28
 
 ## 1. What Pseudo is
@@ -50,8 +50,8 @@ See ARCHITECTURE.md. These later phases may change once the owner understands th
 |---|---|---|
 | 1 | Foundations (complete) | Owner understands LLM APIs, tool calling, and the agent loop by building a mini agent from scratch. |
 | 2 | First MCP server | `pseudo_hands` with `list_open_windows`, plugged into Hermes. |
-| 3 | Reading and acting | UI Automation tree reader, `focus_window`, approval gate. |
-| 4 | Privacy layer | Local OCR + redaction (Presidio) + blocked-apps list. |
+| 3 | Privacy layer | Local redaction (Presidio + Indian recognizers + owner rules), applied to window titles. |
+| 4 | Reading and acting | UI Automation tree reader, local OCR, `focus_window`, approval gate (native popup, D13). |
 | 5 | The face | Hermes Desktop first; own web UI and voice later if needed. |
 
 ## 6. Phase 1 scope: Foundations
@@ -98,7 +98,7 @@ Three milestones. Core code lives in `pseudo_hands/core/` (plain Python, no MCP)
 
 ### M4: list_open_windows in the core
 - `pseudo_hands/core/windows.py`: `list_open_windows()` returns the visible top-level windows (title, app, focused) via the Windows API. Plain Python, no MCP.
-- `pseudo_hands/core/blocked_apps.py` + `blocked_apps.txt`: windows of listed apps come back as "[restricted app]" (D6), so no sensitive titles reach the cloud even before Phase 4.
+- `pseudo_hands/core/blocked_apps.py` + `blocked_apps.txt`: windows of listed apps come back as "[restricted app]" (D6), so no sensitive titles reach the cloud even before the redactor (Phase 3).
 - pytest tests with fake window data, plus one smoke test against the real Windows API.
 - **Done when:** `python -m pseudo_hands.show_windows` lists the open windows with the focused one marked and blocked apps masked, tests pass, and the owner can explain why blocking is decided by process name, not window title.
 
@@ -110,6 +110,22 @@ Three milestones. Core code lives in `pseudo_hands/core/` (plain Python, no MCP)
 - Connect `pseudo_hands` to the installed Hermes Agent with a free Groq model. Claude Code edits Hermes config itself, after a backup and plan approval.
 - **Done when:** asked "what am I working on right now?", Hermes calls `list_open_windows` and answers from the result.
 
-Known gap until Phase 4: titles of non-blocked windows (including browser tab titles) reach the cloud model unredacted.
+Known gap until Phase 3 (M8): titles of non-blocked windows (including browser tab titles) reach the cloud model unredacted.
 
 Out of scope for Phase 2: UI Automation tree, focus_window, click/type, OCR, Presidio redaction, own UI, voice, memory, scheduling.
+
+## 9. Phase 3 scope: Privacy layer
+
+Built before any tool reads window contents (D6): nothing is read that can't be redacted first.
+
+### M7: Local redactor
+- `pseudo_hands/core/redactor.py` + `india_recognizers.py`: `redact(text)` masks personal info locally with Presidio (spaCy model on this laptop), custom recognizers for Indian formats (+91 phones, Aadhaar, PAN, UPI IDs), and the owner's own terms list.
+- Fail closed: any detection is masked regardless of confidence; Indian formats match by shape, not checksum; any error raises instead of returning unredacted text.
+- Tested only on fake text. No network needed at runtime.
+- **Done when:** tests pass on fake data, `python -m pseudo_hands.show_redaction` shows fake titles before/after with timings, and the owner can explain why the redactor fails closed.
+
+### M8: Redact window titles
+- Apply the redactor inside `list_open_windows()` (core), closing the Phase 2 browser-title gap.
+- **Done when:** verified through MCP and the Hermes `pseudo` profile using counts only (no real titles printed).
+
+Out of scope for Phase 3: reading window contents (UI Automation, OCR), actions, approval popups (Phase 4).
