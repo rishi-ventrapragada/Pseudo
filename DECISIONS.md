@@ -85,11 +85,15 @@ UI Automation tree first, local OCR second, local vision model (OmniParser / Flo
 Main brain on a free cloud model; cheap model for auxiliary tasks; fallback chain across providers (Groq, OpenRouter free, Gemini free for non-screen tasks only).
 
 ### L5. Interface
-For now the face is Hermes Desktop; Pseudo builds no UI of its own. If a custom face is built later, it is a web UI (React, wrapped with Tauri or Electron) that talks to Pseudo's Python core through a local server. PySide6 is dropped.
+Pseudo's face is our own web UI: a React window, wrapped with Tauri or Electron, that talks to `pseudo_brain` through a local server (M15). Hermes Desktop was ruled out in M13 (D15). PySide6 is dropped.
 Voice via openWakeWord + faster-whisper + Piper, all local. Wake word plus push-to-talk.
 
-### L6. Storage
-SQLite for memory and routines (may be replaced by Hermes' own memory, per D12).
+### L6. Storage (memory)
+Memory is a dedicated, Obsidian-compatible markdown vault: plain `.md` files that Obsidian can open, though Obsidian isn't needed at runtime. It is separate from the owner's personal vault.
+- `pseudo_brain` is sandboxed to that vault: paths are resolved and anything outside it is refused, as in the M3 sandbox.
+- Memory text is redacted before it is sent to the model (D6).
+- Memory writes go through the approval popup at first (D13).
+- SQLite only if structured task history is needed later.
 
 ### L7. Routines
 Saved from a successful run, preferring scripts over recorded clicks.
