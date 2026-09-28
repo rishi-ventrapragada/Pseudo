@@ -43,7 +43,7 @@ FOCUS_WINDOW_DESCRIPTION = (
     "tell the user and don't retry unless they ask. Private apps can't be focused."
 )
 
-server = MCPServer("pseudo_hands")
+server = MCPServer("pseudo_hands", log_level="WARNING")  # (P5-tune) no INFO chatter on stderr; warnings and errors still show
 server.add_tool(
     list_open_windows,  # the core function itself, not a copy or a wrapper around it
     name="list_open_windows",

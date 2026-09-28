@@ -18,6 +18,7 @@ match by shape (india_recognizers.py), and ANY error raises RedactionError. reda
 returns text it could not fully process. Nothing needs the network.
 """
 
+import logging
 import re
 from functools import lru_cache
 from pathlib import Path
@@ -38,6 +39,9 @@ TERMS_FILE = HERE / "redaction_terms.txt"  # the owner's private terms (gitignor
 ALLOWED_NAMES_FILE = HERE / "allowed_names.txt"  # app/site names never masked (committed)
 PLACES_FILE = HERE / "indian_places.txt"  # major Indian cities and states -> [LOCATION] (committed)
 PRIVATE_MASK = "[PRIVATE]"
+# (P5-tune) Presidio's load-time chatter ("Loaded recognizer", warnings about the non-English
+# recognizers we never load) filled the terminal. Its errors still show.
+logging.getLogger("presidio-analyzer").setLevel(logging.ERROR)
 # US-only ID recognizers: nothing here is American, and they misfire on short codes ("M9" as a
 # driver's license). Long ID numbers are still caught by LONG_NUMBER (any 8+ digit run).
 US_ONLY = ["UsSsnRecognizer", "UsLicenseRecognizer", "UsBankRecognizer", "UsItinRecognizer", "UsPassportRecognizer"]
