@@ -6,8 +6,10 @@ elements). We walk that list, keep the ones a person would actually see, and
 return plain data a model can read. No MCP and no agent code here (D11): the
 M5 MCP server will call list_open_windows() unchanged.
 
-Privacy is applied HERE, before anything is returned: windows of blocked apps
-come back as "[restricted app]" (see blocked_apps.py and DECISIONS.md D6).
+Privacy is applied HERE, before anything is returned (DECISIONS.md D6):
+  1. windows of blocked apps come back as "[restricted app]" (blocked_apps.py, M4)
+  2. every other title goes through the local redactor (redactor.py, M8), and
+     a title the redactor can't process comes back as "[title withheld]", never raw.
 """
 
 import ctypes
@@ -20,9 +22,11 @@ import pywintypes
 import win32gui
 import win32process
 
-from pseudo_hands.core.blocked_apps import load_blocked_apps, mask_if_blocked
+from pseudo_hands.core.blocked_apps import RESTRICTED, load_blocked_apps, mask_if_blocked
+from pseudo_hands.core.redactor import RedactionError, redact
 
 DWMWA_CLOAKED = 14  # the id of the "is this window cloaked?" attribute in the Windows API
+TITLE_WITHHELD = "[title withheld]"
 
 
 class Window(TypedDict):
@@ -98,8 +102,16 @@ def is_user_window(window: RawWindow) -> bool:
     return window.visible and not window.cloaked and window.title.strip() != ""
 
 
+def safe_title(title: str) -> str:
+    """The redacted title, or a placeholder if redaction fails. Never the raw title."""
+    try:
+        return redact(title)
+    except RedactionError:  # one bad title is withheld; the other windows are still listed
+        return TITLE_WITHHELD
+
+
 def list_open_windows() -> list[Window]:
-    """The windows a person can see, front-most first, with blocked apps masked.
+    """The windows a person can see, front-most first, blocked apps masked, titles redacted.
 
     Raises BlockedAppsError if the blocked-apps list can't be read: without the
     list we can't know what to hide, so nothing is returned (fail closed, D6).
@@ -110,5 +122,7 @@ def list_open_windows() -> list[Window]:
         if not is_user_window(raw):
             continue
         title, app = mask_if_blocked(raw.title, raw.app, blocked)
+        if title != RESTRICTED:  # blocked apps' titles never even reach the redactor
+            title = safe_title(title)
         result.append({"title": title, "app": app, "focused": raw.focused})
     return result

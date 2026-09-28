@@ -11,6 +11,8 @@ parameter, like beforeEach in Jest, but only for the tests that want it):
   desktop   -> (M4, M5) desktop([RawWindow, ...]) makes list_open_windows()
                see exactly those fake windows, with a test blocked list that
                holds only KeePass.exe. The real desktop is never read.
+               Title redaction is a pass-through here unless a test also asks
+               for real_redaction (M8).
 """
 
 import sys
@@ -79,6 +81,22 @@ def desktop(monkeypatch: pytest.MonkeyPatch, tmp_path: Path):
     list_file.write_text("# test list\nKeePass.exe\n", encoding="utf-8")
     monkeypatch.setattr(blocked_apps, "BLOCKED_APPS_FILE", list_file)
 
+    # Redaction off by default, so M4/M5 tests test blocking alone; M8 tests add `real_redaction`.
+    monkeypatch.setattr(windows, "redact", lambda title: title)
+
     def set_windows(fakes: list[RawWindow]) -> None:
         monkeypatch.setattr(windows, "read_all_windows", lambda: fakes)
     return set_windows
+
+
+@pytest.fixture
+def real_redaction(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> Path:
+    """(M8) Turn the real redactor back on inside list_open_windows(), with an EMPTY
+    private-terms file, so the owner's real list is never read by tests."""
+    from pseudo_hands.core import redactor
+
+    terms = tmp_path / "redaction_terms.txt"
+    terms.write_text("# no terms\n", encoding="utf-8")
+    monkeypatch.setattr(redactor, "TERMS_FILE", terms)
+    monkeypatch.setattr(windows, "redact", redactor.redact)
+    return terms
