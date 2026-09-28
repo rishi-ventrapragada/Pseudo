@@ -107,7 +107,7 @@ Three milestones. Core code lives in `pseudo_hands/core/` (plain Python, no MCP)
 - **Done when:** the MCP Inspector lists the tool, and calling it returns the same result as the core function, blocked apps still masked.
 
 ### M6: Plug into Hermes
-- Connect `pseudo_hands` to the installed Hermes Agent with a free Groq model. Claude Code gives step-by-step instructions for the Hermes config (outside the repo) and does not edit it.
+- Connect `pseudo_hands` to the installed Hermes Agent with a free Groq model. Claude Code edits Hermes config itself, after a backup and plan approval.
 - **Done when:** asked "what am I working on right now?", Hermes calls `list_open_windows` and answers from the result.
 
 Known gap until Phase 4: titles of non-blocked windows (including browser tab titles) reach the cloud model unredacted.
