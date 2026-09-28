@@ -2,7 +2,7 @@
 
 Owner: Sai Rishi Ventrapragada
 Repo: https://github.com/rishi-ventrapragada/Pseudo
-Status: Phase 1-3 complete. Phase 4 (Reading and acting) in progress: M9 and M10 done, M11 next.
+Status: Phase 1-3 complete. Phase 4 (Reading and acting) in progress: M9 and M10 done, M11 evaluated (OCR skipped), M12 next.
 Last updated: 2026-09-28
 
 ## 1. What Pseudo is
@@ -51,7 +51,7 @@ See ARCHITECTURE.md. These later phases may change once the owner understands th
 | 1 | Foundations (complete) | Owner understands LLM APIs, tool calling, and the agent loop by building a mini agent from scratch. |
 | 2 | First MCP server | `pseudo_hands` with `list_open_windows`, plugged into Hermes. |
 | 3 | Privacy layer | Local redaction (Presidio + Indian recognizers + owner rules), applied to window titles. |
-| 4 | Reading and acting | UI Automation tree reader, local OCR, `focus_window`, approval gate (native popup, D13). |
+| 4 | Reading and acting | UI Automation tree reader, `focus_window`, approval gate (native popup, D13). Local OCR evaluated in M11 and skipped for now. |
 | 5 | The face | Hermes Desktop first; own web UI and voice later if needed. |
 
 ## 6. Phase 1 scope: Foundations
@@ -148,5 +148,6 @@ Every action goes through a native approval popup owned by pseudo_hands (D13).
 ### M11: OCR fallback (evaluate first)
 - Local OCR for windows whose UI tree is empty, redacted the same way.
 - Start by measuring how often M9 finds an empty tree; build only if it's needed.
+- Evaluated 2026-09-28: 0/3 open windows and 0/6 other apps needed OCR; skipped. Revisit for DaVinci Resolve or games.
 
 Out of scope for Phase 4: typing, clicking (beyond focus), voice, own UI.
