@@ -35,3 +35,6 @@ en_core_web_sm @ https://github.com/explosion/spacy-models/releases/download/en_
 
 # M9: thin wrapper over Windows' UI Automation API (reads a window's control tree)
 uiautomation==2.0.29
+
+# M12: the COM library uiautomation uses (already installed with it); ui_tree.py catches its COMError
+comtypes==1.4.17
