@@ -20,7 +20,7 @@ That means:
 5. **Commit** with explicit paths (see section 4).
 6. **Stop.** Summarize in under 10 lines and wait for Rishi to say "next". Never start the next milestone on your own.
 
-Work only on the current milestone listed in PRD.md section 6. Do not jump ahead, do not "prepare" later phases, do not add features not in the PRD.
+Work only on the current milestone listed in PRD.md (the current phase's scope section). Do not jump ahead, do not "prepare" later phases, do not add features not in the PRD.
 
 ## 3. Code rules
 
