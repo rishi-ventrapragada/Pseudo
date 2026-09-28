@@ -13,17 +13,18 @@ import re
 
 from presidio_analyzer import Pattern, PatternRecognizer
 
-# (entity, regex, score). Scores only matter when two findings overlap: the
-# anonymizer keeps the higher one, so the specific shapes beat the catch-all.
+# (entity, regex, score). Scores only matter when two findings cover the same text: the
+# higher one names the mask. Exact Indian shapes get 1.0 so they beat Presidio's date guesses
+# ("98765-43210" also looks like a date to it); the catch-all stays low.
 SHAPES = [
     # +91 98765 43210 / 0091-9876543210 / 09876543210 / 98765-43210: 10 digits starting 6-9
-    ("IN_PHONE", r"(?<!\d)(?:(?:\+|00)91[\s-]?|0)?[6-9]\d{4}[\s-]?\d{5}(?!\d)", 0.7),
+    ("IN_PHONE", r"(?<!\d)(?:(?:\+|00)91[\s-]?|0)?[6-9]\d{4}[\s-]?\d{5}(?!\d)", 1.0),
     # 1234 5678 9012 / 1234-5678-9012 / 123456789012: 12 digits, checksum NOT required
-    ("IN_AADHAAR", r"(?<!\d)\d{4}[\s-]?\d{4}[\s-]?\d{4}(?!\d)", 0.6),
+    ("IN_AADHAAR", r"(?<!\d)\d{4}[\s-]?\d{4}[\s-]?\d{4}(?!\d)", 1.0),
     # ABCPE1234F: 5 letters, 4 digits, 1 letter (any case, via Presidio's IGNORECASE flag)
-    ("IN_PAN", r"\b[A-Z]{5}\d{4}[A-Z]\b", 0.6),
+    ("IN_PAN", r"\b[A-Z]{5}\d{4}[A-Z]\b", 1.0),
     # rahul.v@okaxis / 9876543210@ybl: like an email, but the part after @ has no dot
-    ("IN_UPI", r"\b[\w.\-]{2,256}@[A-Z][A-Z0-9]{1,63}\b(?!\.)", 0.6),
+    ("IN_UPI", r"\b[\w.\-]{2,256}@[A-Z][A-Z0-9]{1,63}\b(?!\.)", 1.0),
     # Catch-all: any run of 8+ digits, single spaces/hyphens allowed between them
     ("LONG_NUMBER", r"(?<!\d)\d(?:[\s-]?\d){7,}(?!\d)", 0.3),
 ]
