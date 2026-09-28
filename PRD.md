@@ -2,7 +2,7 @@
 
 Owner: Sai Rishi Ventrapragada
 Repo: https://github.com/rishi-ventrapragada/Pseudo
-Status: Phase 1-3 complete. Phase 4 (Reading and acting) in progress: M9 and M10 done, M11 evaluated (OCR skipped), M12 next.
+Status: Phase 1-3 complete. Phase 4 (Reading and acting) in progress: M9, M10 and M12 done; M11 evaluated (OCR skipped).
 Last updated: 2026-09-28
 
 ## 1. What Pseudo is

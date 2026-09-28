@@ -124,15 +124,15 @@ Only text the owner types (and files inside `playground/sandbox/`) is sent to th
 ```
 pseudo_hands/
   core/                 plain Python; never imports MCP or Hermes (D11)
-    windows.py          list_open_windows(): Windows API -> clean list of dicts
+    windows.py          list_open_windows(): Windows API -> clean list of dicts; skips overlays (M12)
     blocked_apps.py     load the blocked list, mask blocked windows (D6)
     blocked_apps.txt    owner-editable list of .exe names
     redactor.py         redact(text): Presidio + spaCy, fail closed (M7)
     india_recognizers.py  +91 phone, Aadhaar, PAN, UPI, long-number patterns (M7)
     redaction_terms.txt   owner's private terms (gitignored; .example committed) (M7)
     allowed_names.txt   app/site names never masked (M8)
-    ui_tree.py          walk a window's UI Automation tree -> raw lines (M9)
-    active_window.py    read_active_window(): pick window, block, redact, cap (M9)
+    ui_tree.py          walk a window's UI Automation tree -> raw lines (M9); skips failing controls (M12)
+    active_window.py    read_active_window(): pick window, block, redact, cap (M9); retries once (M12)
     window_ids.py       short ids ("w3") for listed windows, never reused (M10)
     approval.py         the approval gate: native popup, default no (D13, M10)
     focus.py            focus_window(): validate id, block, ask, act (M10)
