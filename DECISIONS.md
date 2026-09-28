@@ -57,6 +57,10 @@ Action tools (Phase 4 onward) ask for approval through a native Windows dialog t
 *Why:* M6 showed a brain may auto-approve (Hermes one-shot mode) or have no human watching; a gate owned by the brain can't be relied on to exist.
 *Would change if:* a standard MCP approval mechanism proves reliable across the brains Pseudo uses.
 
+### D14. No action may touch the approval popup or pseudo_hands' own windows
+No Pseudo action tool may ever interact with the approval popup or any other window owned by the pseudo_hands process: not focus, click, type, close, or anything else. The check lives in core next to each action tool (D11), with a test. focus_window enforces it from M10; future click/type tools must do the same. The only exception is the uncommitted scratchpad end-to-end test script, which clicks its own test popup and is never part of Pseudo.
+*Why:* a tool that can act on the approval popup lets the assistant approve its own requests, and the gate (D13) would mean nothing.
+
 ## LEANING (revisit after Phase 1)
 
 L1 moved to LOCKED as D12 (2026-09-28).
