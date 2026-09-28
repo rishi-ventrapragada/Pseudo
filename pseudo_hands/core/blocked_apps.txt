@@ -1,0 +1,20 @@
+# Apps whose windows Pseudo never describes to a model (DECISIONS.md D6).
+# Their window title AND app name come back as "[restricted app]".
+#
+# One process name per line, as shown in Task Manager > Details (e.g. KeePass.exe).
+# Upper/lower case doesn't matter. Everything after a # is a comment.
+# Edit this list to match the apps YOU consider private.
+#
+# Limit: a website can't be blocked here. A bank tab in Chrome is just chrome.exe;
+# hiding sensitive browser tabs is the Phase 4 redactor's job.
+
+# Password managers
+KeePass.exe
+KeePassXC.exe
+1Password.exe
+Bitwarden.exe
+
+# Private messaging
+WhatsApp.exe
+Telegram.exe
+Signal.exe
