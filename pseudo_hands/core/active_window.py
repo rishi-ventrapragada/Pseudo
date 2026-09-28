@@ -8,17 +8,22 @@ in core, before anything is returned (D6, D11):
      half of a secret. Redaction failure -> "[content withheld]", never raw text.
   4. The result is capped at 1,200 characters (~300-400 tokens) to fit Groq's
      8K tokens/min free tier, cut at a line boundary.
+  5. (M12) A read that fails or finds nothing inside the window is tried once more
+     after a short wait: Chromium/Electron apps build their tree only when first
+     asked, so the first read can fail (M11 saw it in Brave, VS Code, Obsidian).
 """
 
+import time
 from typing import TypedDict
 
 from pseudo_hands.core.blocked_apps import RESTRICTED, is_blocked, load_blocked_apps
 from pseudo_hands.core.redactor import RedactionError, redact
-from pseudo_hands.core.ui_tree import TreeLine, read_tree
+from pseudo_hands.core.ui_tree import TreeLine, TreeRead, read_tree
 from pseudo_hands.core.windows import RawWindow, is_user_window, read_all_windows, safe_title
 
 ASSISTANT_APPS = {"hermes.exe"}  # the brain's own window: reading it would read the chat itself
 MAX_CONTENT_CHARS = 1200
+RETRY_WAIT_SECONDS = 1.0  # (M12) time for a lazy app to build its tree before the second try
 CONTENT_WITHHELD = "[content withheld]"
 TRUNCATED_MARK = "… (truncated)"
 
@@ -60,15 +65,41 @@ def result(title: str, app: str, content: str = "", truncated: bool = False,
             "controls_read": controls_read, "note": note}
 
 
+def attempt(handle: int) -> tuple[TreeRead | None, str]:
+    """One read: (tree, "") or (None, the error's TYPE). Never its message: that could contain text."""
+    try:
+        return read_tree(handle), ""
+    except Exception as error:  # noqa: BLE001 - UIA/COM can fail many ways; report only the type
+        return None, type(error).__name__
+
+
+def read_with_retry(handle: int) -> tuple[TreeRead | None, str, bool]:
+    """(M12) Read; if that failed or found nothing inside the window, wait and read once more.
+    Returns (tree or None, error type or "", whether it retried)."""
+    tree, error = attempt(handle)
+    if tree is not None and any(line.depth > 0 for line in tree.lines):
+        return tree, error, False
+    time.sleep(RETRY_WAIT_SECONDS)
+    tree, error = attempt(handle)
+    return tree, error, True
+
+
+def success_note(retried: bool, skipped: int) -> str:
+    """(M12) "" for a clean read; otherwise what happened, with numbers only."""
+    parts = ["read on the second try"] if retried else []
+    if skipped:
+        parts.append(f"{skipped} control{'' if skipped == 1 else 's'} skipped (read errors)")
+    return "; ".join(parts)
+
+
 def read_window(raw: RawWindow, blocked: set[str]) -> WindowContent:
     """Read one window, with every privacy rule applied."""
     if is_blocked(raw.app, blocked):  # checked BEFORE touching the tree: nothing is read at all
         return result(RESTRICTED, RESTRICTED, note="blocked app: nothing read")
     title, app = safe_title(raw.title), raw.app
-    try:
-        tree = read_tree(raw.handle)
-    except Exception as error:  # noqa: BLE001 - UIA/COM can fail many ways; report only the type
-        return result(title, app, note=f"read failed ({type(error).__name__})")
+    tree, error, retried = read_with_retry(raw.handle)  # only windows that passed the check get here
+    if tree is None:
+        return result(title, app, note=f"read failed ({error})")
     if not tree.lines:
         return result(title, app, truncated=tree.truncated, controls_read=tree.controls_read,
                       note="no readable controls")
@@ -78,7 +109,8 @@ def read_window(raw: RawWindow, blocked: set[str]) -> WindowContent:
         return result(title, app, CONTENT_WITHHELD, tree.truncated, tree.controls_read,
                       note="redaction failed: content withheld")
     content, was_cut = cap(redacted, MAX_CONTENT_CHARS)
-    return result(title, app, content, tree.truncated or was_cut, tree.controls_read)
+    return result(title, app, content, tree.truncated or was_cut, tree.controls_read,
+                  success_note(retried, tree.skipped))
 
 
 def read_active_window() -> WindowContent:

@@ -27,21 +27,26 @@ def window(app: str | None = "notepad.exe", title: str = "notes.txt - Notepad", 
 
 @pytest.fixture
 def screen(monkeypatch: pytest.MonkeyPatch, tmp_path: Path):
-    """screen(windows, tree) fakes the z-ordered windows and the tree every read returns."""
+    """screen(windows, tree) fakes the z-ordered windows and the tree every read returns.
+    (M12) tree can be a list: one result per read, the last one repeating. No retry wait."""
     (tmp_path / "blocked.txt").write_text("KeePass.exe\n", encoding="utf-8")
     (tmp_path / "terms.txt").write_text("# none\n", encoding="utf-8")
     monkeypatch.setattr(blocked_apps, "BLOCKED_APPS_FILE", tmp_path / "blocked.txt")
     monkeypatch.setattr(redactor, "TERMS_FILE", tmp_path / "terms.txt")
+    monkeypatch.setattr(active_window, "RETRY_WAIT_SECONDS", 0)
     reads: list[int] = []
 
-    def set_screen(windows: list[RawWindow], tree: TreeRead | Exception) -> list[int]:
+    def set_screen(windows: list[RawWindow], tree: TreeRead | Exception | list) -> list[int]:
         monkeypatch.setattr(active_window, "read_all_windows", lambda: windows)
+        outcomes, calls = (tree if isinstance(tree, list) else [tree]), []
 
         def fake_read_tree(handle: int) -> TreeRead:
             reads.append(handle)
-            if isinstance(tree, Exception):
-                raise tree
-            return tree
+            calls.append(handle)
+            outcome = outcomes[min(len(calls), len(outcomes)) - 1]
+            if isinstance(outcome, Exception):
+                raise outcome
+            return outcome
         monkeypatch.setattr(active_window, "read_tree", fake_read_tree)
         return reads
     return set_screen
@@ -134,3 +139,41 @@ def test_empty_trees_and_no_window_are_explained(screen) -> None:
 def test_budget_constants_are_what_the_lesson_says() -> None:
     assert (ui_tree.MAX_DEPTH, ui_tree.MAX_CONTROLS, ui_tree.MAX_RAW_CHARS) == (12, 200, 4000)
     assert ui_tree.TIME_BUDGET_SECONDS == 2.0 and MAX_CONTENT_CHARS == 1200
+    assert active_window.RETRY_WAIT_SECONDS == 1.0  # (M12)
+
+
+# ---------- M12: one retry for a failed or empty first read ----------
+
+GOOD = TreeRead(FAKE_TREE, False, 3)
+WINDOW_ONLY = TreeRead([TreeLine(0, "Window", "notes.txt - Notepad")], False, 1)  # nothing inside
+
+
+def test_a_failed_first_read_is_retried_once(screen) -> None:
+    reads = screen([window()], [OSError("cold start"), GOOD])
+    result = read_active_window()
+    assert reads == [101, 101] and result["note"] == "read on the second try"
+    assert "[PERSON]" in result["content"]  # the second read went through redaction as usual
+
+
+def test_a_first_read_with_nothing_inside_the_window_is_retried(screen) -> None:
+    reads = screen([window()], [WINDOW_ONLY, GOOD])
+    assert read_active_window()["controls_read"] == 3 and reads == [101, 101]
+
+
+def test_a_good_first_read_is_not_retried(screen) -> None:
+    reads = screen([window()], [GOOD, OSError("a second read must not happen")])
+    assert read_active_window()["note"] == "" and reads == [101]
+
+
+def test_two_failures_still_report_only_the_type(screen) -> None:
+    reads = screen([window()], [OSError("Rahul Verma +91 98765 43210")] * 2)
+    result = read_active_window()
+    assert reads == [101, 101] and result["note"] == "read failed (OSError)"
+    assert "Rahul" not in json.dumps(result) and "98765" not in json.dumps(result)
+
+
+def test_skipped_controls_are_counted_in_the_note(screen) -> None:
+    screen([window()], TreeRead(FAKE_TREE, False, 5, skipped=2))
+    assert read_active_window()["note"] == "2 controls skipped (read errors)"
+    screen([window()], [OSError("cold start"), TreeRead(FAKE_TREE, False, 4, skipped=1)])
+    assert read_active_window()["note"] == "read on the second try; 1 control skipped (read errors)"
