@@ -84,6 +84,24 @@ The test window is a small Windows Forms window made by our script, **all fake d
 
 Our 337-character outline became a 910-character tool message after Hermes' wrappers. A window that fills the 1,200-character cap adds about 250 more tokens. A two-tool question therefore fits under 8,000/min **with only ~600 to spare, so one such question per minute.** The fixed cost is the harness: each call resends the system prompt and tool schemas.
 
+## Tuning (after M9)
+
+**Where the ~3K tokens per call went.** Hermes rebuilds its system prompt from blocks, and several only appear once tools are enabled. For the `pseudo` profile it came to about **2,760 tokens per call** (chars/4 estimate), sent on *every* call:
+
+| Block | ~Tokens | Kept? |
+|---|---|---|
+| Identity (`SOUL.md`, Hermes' default persona) | 165 | replaced with a 229-char Pseudo identity (~57) that also says "never guess what [LABELS] hide" |
+| "Finishing the job" | 192 | removed (`agent.task_completion_guidance: false`) |
+| Execution discipline: 8 coding-agent blocks | 947 | removed (`agent.execution_guidance: false`) |
+| CLI formatting hint | 217 | replaced by one line (`platform_hints.cli.replace`) |
+| Tool-use enforcement, parallel tool calls, steering note, help pointer, host/shell, profile, timestamp | ~1,240 | kept (enforcement keeps the model actually calling our tools) |
+
+The trim applies to the `pseudo` profile only (backed up first). Result, same M9 question, real Groq numbers, no cache: **6,109 → 3,644 input tokens (−40%)**, and the model still called `read_active_window`.
+
+**Prompt caching.** Groq caches repeated prompt prefixes for 2 hours, and *cached tokens don't count toward the 8K/min limit*. A repeat question showed 2,816 cached + 3,293 new tokens; only the new part counts. So the first question after a quiet spell is the expensive one.
+
+**Rate limits (429).** Groq's free limits for `openai/gpt-oss-120b` are 30 requests/min, 8,000 tokens/min and 200,000 tokens/day. Three **parallel** Hermes runs (fake window) hit it. Hermes **waited and retried** (all three took ~79 s instead of ~20 s), then one completed and two **failed cleanly**. The failure message replaced the answer, and the **exit code was still 0**. Always check `failed` / `completed` in the usage file (the M6 lesson again), never the exit code alone.
+
 ## Try this
 
 1. Run `python -m pseudo_hands.show_active_window`, click a window of your own within 3 seconds, and read what a model would get (only on your screen).
