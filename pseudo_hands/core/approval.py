@@ -13,8 +13,8 @@ How the popup works:
   - MB_TOPMOST asks for the always-on-top layer, in front of normal windows, even
     though Windows won't let a background process take keyboard focus. We don't try:
     a popup that grabs your keyboard mid-sentence invites accidental answers.
-    (Real test: every popup was in front, but 3 of 13 didn't carry the flag; see the
-    M10 lesson. A popup nobody sees still times out as no.)
+    (Real test: 3 of 13 popups didn't carry the flag, though nothing covered them;
+    see the M10 lesson. A popup nobody sees still times out as no.)
   - Default NO: Cancel is the default button (so Enter means no) and OK has no
     keyboard shortcut. Cancel, Esc, the X, the timeout, any error, or another popup
     already being open all mean no.
