@@ -150,4 +150,10 @@ Every action goes through a native approval popup owned by pseudo_hands (D13).
 - Start by measuring how often M9 finds an empty tree; build only if it's needed.
 - Evaluated 2026-09-28: 0/3 open windows and 0/6 other apps needed OCR; skipped. Revisit for DaVinci Resolve or games.
 
+### M12: Harden the readers
+- The UI tree walk skips a control that fails to read (and everything inside it) and keeps going, instead of losing the whole read. The note says how many controls were skipped.
+- If a read fails, or finds nothing inside the window, on the first attempt, read_active_window waits briefly and retries once (the Chromium/Electron cold start).
+- Invisible and click-through overlays (WS_EX_TRANSPARENT, or a tool window that can never be activated) are not user windows: not listed, no ids, never read or focused.
+- **Done when:** tests pass on fake trees and fake windows, and the M11 counts-only method shows claude.exe readable, a freshly launched Obsidian readable on the first call, and the overlays gone from list_open_windows.
+
 Out of scope for Phase 4: typing, clicking (beyond focus), voice, own UI.
