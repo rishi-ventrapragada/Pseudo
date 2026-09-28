@@ -20,3 +20,6 @@ pywin32==312
 
 # M4: turns a process id into an app name (e.g. 4120 -> "Code.exe")
 psutil==7.2.2
+
+# M5: official MCP SDK (server for pseudo_hands, client for its tests)
+mcp==2.2.0
