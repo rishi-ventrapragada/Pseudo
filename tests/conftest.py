@@ -17,6 +17,8 @@ import pytest
 
 # Let tests `import agent_tools` from playground/, the way 03_agent_loop.py does.
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "playground"))
+# Let tests `import pseudo_hands` from the repo root (Phase 2 onward).
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 import agent_tools  # noqa: E402  (has to come after the sys.path line above)
 
