@@ -2,7 +2,7 @@
 
 A personal, privacy-first AI desktop assistant for Windows. Screen content will be understood and redacted locally before anything reaches a cloud model.
 
-**Status:** Phase 1 (Foundations), Phase 2 (First MCP server) and Phase 3 (Privacy layer) complete. Phase 4 not started. See [PRD.md](PRD.md) section 5 for the phase plan and section 9 for Phase 3.
+**Status:** Phases 1-3 complete. Phase 4 (Reading and acting) in progress: M9 done, M10 next. See [PRD.md](PRD.md) section 5 for the phase plan and section 10 for Phase 4.
 
 ## Setup (PowerShell)
 

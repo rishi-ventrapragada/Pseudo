@@ -14,6 +14,7 @@ pseudo_hands/
     allowed_names.txt   app/site names never masked; no personal names             (M8)
     ui_tree.py          walk one window's UI Automation tree -> raw lines          (M9)
     active_window.py    read_active_window(): pick, block, redact, cap             (M9)
+    indian_places.txt   Indian states and cities, masked as [LOCATION]             (M9)
   show_windows.py       thin terminal demo: python -m pseudo_hands.show_windows       (M4)
   mcp_server.py         thin MCP server over stdio: python -m pseudo_hands.mcp_server (M5)
   show_redaction.py     thin demo on fake titles: python -m pseudo_hands.show_redaction (M7)

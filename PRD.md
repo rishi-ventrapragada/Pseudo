@@ -2,7 +2,7 @@
 
 Owner: Sai Rishi Ventrapragada
 Repo: https://github.com/rishi-ventrapragada/Pseudo
-Status: Phase 1-3 complete. Phase 4 (Reading and acting) in progress: M9.
+Status: Phase 1-3 complete. Phase 4 (Reading and acting) in progress: M9 done, M10 next.
 Last updated: 2026-09-28
 
 ## 1. What Pseudo is
