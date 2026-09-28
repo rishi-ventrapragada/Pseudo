@@ -52,6 +52,11 @@ Pseudo is the senses, hands, and face; Hermes Agent (already installed) does rea
 *Why:* it is already installed and covers memory, skills and scheduling, so Pseudo can focus on perception, privacy, and actions.
 *Would change if:* Hermes works poorly with free models (first real test: M6).
 
+### D13. Approval prompts are native Windows popups shown by pseudo_hands
+Action tools (Phase 4 onward) ask for approval through a native Windows dialog that pseudo_hands itself shows, not through the brain's chat UI or terminal. The gate lives in core next to the tool (D11), so it works with any brain.
+*Why:* M6 showed a brain may auto-approve (Hermes one-shot mode) or have no human watching; a gate owned by the brain can't be relied on to exist.
+*Would change if:* a standard MCP approval mechanism proves reliable across the brains Pseudo uses.
+
 ## LEANING (revisit after Phase 1)
 
 L1 moved to LOCKED as D12 (2026-09-28).
