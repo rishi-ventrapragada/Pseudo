@@ -1,0 +1,13 @@
+# Private terms: words Pseudo always masks as [PRIVATE] before any model sees them.
+#
+# The real list lives in redaction_terms.txt next to this file. That file is
+# gitignored because it holds exactly the personal data Pseudo protects.
+# If it's missing, redaction fails closed (nothing is shown), so keep it, even empty.
+#
+# One term per line. Upper/lower case doesn't matter. Whole words only:
+# "Zorblax" masks "Zorblax" but not "Zorblaxian". Everything after a # is a comment.
+#
+# Examples (fake):
+# Zorblax Industries
+# Priya Q. Examplename
+# Project Nightjar

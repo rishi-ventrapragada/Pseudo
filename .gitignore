@@ -17,3 +17,6 @@ playground/sandbox/*
 
 # Editor settings are personal, not part of the project.
 .vscode/
+
+# Private redaction terms: personal by definition. Only the .example is committed.
+pseudo_hands/core/redaction_terms.txt
