@@ -85,8 +85,8 @@ Pseudo/
     01c_memory.py       terminal chat, history on/off
     02_one_tool.py      single tool call, every step printed
     03_agent_loop.py    the loop above
-    agent_tools.py      list_files / read_file / write_file + sandbox check
-    agent_tool_schemas.py the three tool schemas: all the model ever sees of the tools
+    agent_tools.py      sandboxed file tools + sandbox check
+    agent_tool_schemas.py their schemas: all the model ever sees of the tools
     sandbox/            the only folder the agent may touch (.gitkeep)
   tests/
     conftest.py         shared fixtures: temp sandbox, decoy outside folder, fake approvers

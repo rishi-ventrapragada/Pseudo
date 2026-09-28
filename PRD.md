@@ -86,6 +86,8 @@ Four milestones. Each lives in `playground/`, is small, and ends with a lesson f
 - All four milestones done, committed, and each has a lesson file.
 - Owner can draw the agent loop from memory.
 
+Extra: count_words tool added as a learning exercise (Sept 28).
+
 ## 7. Out of scope for Phase 1
 
 MCP, Hermes integration, screen reading, OCR, UI automation, voice, overlay, memory database, scheduling, local models, any GUI.
