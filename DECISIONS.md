@@ -47,10 +47,10 @@ Pseudo is the whole assistant experience; the brain inside it (Hermes today) mus
 - The Phase 1 agent loop uses the same tool-definition format, so it can later drive Pseudo's real tools directly as an alternative brain.
 *Why:* the owner may change direction (own brain, different harness, local model) and doesn't want a rewrite when that happens.
 
-### D12. Hermes Agent as the brain (was L1)
+### D12. Hermes Agent as the brain (was L1). SUPERSEDED by D15 (2026-09-28)
 Pseudo is the senses, hands, and face; Hermes Agent (already installed) does reasoning, memory, skills, scheduling, and coding. D11 still holds: Hermes reaches Pseudo only through MCP, so it stays replaceable.
 *Why:* it is already installed and covers memory, skills and scheduling, so Pseudo can focus on perception, privacy, and actions.
-*Would change if:* Hermes works poorly with free models (first real test: M6).
+*Would change if:* Hermes works poorly with free models (first real test: M6). It did; see D15.
 
 ### D13. Approval prompts are native Windows popups shown by pseudo_hands
 Action tools (Phase 4 onward) ask for approval through a native Windows dialog that pseudo_hands itself shows, not through the brain's chat UI or terminal. The gate lives in core next to the tool (D11), so it works with any brain.
@@ -60,6 +60,16 @@ Action tools (Phase 4 onward) ask for approval through a native Windows dialog t
 ### D14. No action may touch the approval popup or pseudo_hands' own windows
 No Pseudo action tool may ever interact with the approval popup or any other window owned by the pseudo_hands process: not focus, click, type, close, or anything else. The check lives in core next to each action tool (D11), with a test. focus_window enforces it from M10; future click/type tools must do the same. The only exception is the uncommitted scratchpad end-to-end test script, which clicks its own test popup and is never part of Pseudo.
 *Why:* a tool that can act on the approval popup lets the assistant approve its own requests, and the gate (D13) would mean nothing.
+
+### D15. Pseudo's brain is its own agent loop (supersedes D12)
+Pseudo's brain is its own agent loop in `pseudo_brain/`, grown from the M3 loop and acting as an MCP client of `pseudo_hands`. Hermes stays installed but is no longer Pseudo's brain, and Hermes Desktop is ruled out as Pseudo's face (M13). D11 still holds: `pseudo_hands` stays a plain MCP server that any brain, Hermes included, can use.
+*Why (evidence from M6-M13):*
+- **Token cost.** A harness resends its system prompt and tool schemas on every call. The slim `pseudo` profile still cost about 3,000-3,600 input tokens per call (M6, M9 tuned), and a Desktop session about 16-17K (M13), against Groq's free 8,000 tokens per minute. The M3 loop used 530-610.
+- **The tool_search bridge.** With any MCP tool present, Hermes hid our tool behind `tool_search`/`tool_call` by default, and the model tried to run `ls -la` in a terminal instead (M6).
+- **Silent failures.** A failed one-shot turn exits 0, because the error text replaces the answer; only the usage records show it (M6, M9).
+- **Hidden provider fallbacks.** Auxiliary side-calls (titles, compression) fall back to OpenRouter or Nous on a Groq capacity error, and every profile inherits the root Nous login, so profile config alone can't keep pseudo data on Groq (M13).
+- **Desktop-only tools that bypass redaction.** Hermes Desktop adds 12 tools to every session. One, `read_window_below`, returns the raw title of the window behind Desktop, skipping blocked apps and the redactor, and no profile setting removes it (M13).
+*Would change if:* a harness can be pinned to one provider with no fallbacks, sends only the tools it is given, reports failures honestly, and fits the free tier's per-minute budget.
 
 ## LEANING (revisit after Phase 1)
 
