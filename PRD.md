@@ -2,7 +2,7 @@
 
 Owner: Sai Rishi Ventrapragada
 Repo: https://github.com/rishi-ventrapragada/Pseudo
-Status: Phase 1-3 complete. Phase 4 (Reading and acting) in progress: M9, M10 and M12 done; M11 evaluated (OCR skipped).
+Status: Phase 1-4 complete (M11 evaluated OCR and skipped it). Open follow-ups are in section 11, Backlog.
 Last updated: 2026-09-28
 
 ## 1. What Pseudo is
@@ -51,7 +51,7 @@ See ARCHITECTURE.md. These later phases may change once the owner understands th
 | 1 | Foundations (complete) | Owner understands LLM APIs, tool calling, and the agent loop by building a mini agent from scratch. |
 | 2 | First MCP server | `pseudo_hands` with `list_open_windows`, plugged into Hermes. |
 | 3 | Privacy layer | Local redaction (Presidio + Indian recognizers + owner rules), applied to window titles. |
-| 4 | Reading and acting | UI Automation tree reader, `focus_window`, approval gate (native popup, D13). Local OCR evaluated in M11 and skipped for now. |
+| 4 | Reading and acting (complete) | UI Automation tree reader, `focus_window`, approval gate (native popup, D13). Local OCR evaluated in M11 and skipped for now. |
 | 5 | The face | Hermes Desktop first; own web UI and voice later if needed. |
 
 ## 6. Phase 1 scope: Foundations
@@ -157,3 +157,11 @@ Every action goes through a native approval popup owned by pseudo_hands (D13).
 - **Done when:** tests pass on fake trees and fake windows, and the M11 counts-only method shows claude.exe readable, a freshly launched Obsidian readable on the first call, and the overlays gone from list_open_windows.
 
 Out of scope for Phase 4: typing, clicking (beyond focus), voice, own UI.
+
+## 11. Backlog
+
+Found while building; not scheduled. Each needs a plan and approval before work starts.
+
+- **Thinner first reads.** A freshly opened Chromium/Electron window's first read is thinner than later ones (M12: Obsidian gave 65 content chars on its first read vs 290 warm in M11). M12's retry only fires when a read fails or finds nothing inside the window, so a thin-but-not-empty first read isn't retried.
+- **Depth limit misses deep apps.** The UI tree walk stops at depth 12, which misses most of the content in deeply nested apps like Claude desktop (30 controls at depth 12 vs 109 at depth 30).
+- **OCR revisit: DaVinci Resolve.** In M11 it exposed only 44 content chars (53 controls), just above the 40-char line. Revisit OCR if Pseudo needs to read Resolve (or games).
