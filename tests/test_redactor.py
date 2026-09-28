@@ -92,9 +92,39 @@ def test_private_terms_are_masked_as_whole_words(empty_terms: Path) -> None:
 
 @pytest.mark.parametrize("title", ["Untitled - Notepad", "Task Manager", "Downloads - File Explorer",
                                    "Discover Weekly - Spotify", "Supabase Dashboard - Google Chrome",
-                                   "notes.md - Notepad", "main.py - Pseudo - Visual Studio Code"])
+                                   "notes.md - Notepad", "main.py - Pseudo - Visual Studio Code",
+                                   "New Tab - Google Chrome", "Windows PowerShell"])
 def test_ordinary_titles_are_unchanged(title: str) -> None:
     assert redact(title) == title
+
+
+# ---------- the allowlist (M8): exempts app names, never personal info ----------
+
+def test_a_name_that_is_also_an_app_is_still_masked() -> None:
+    # "Claude" (and "Hermes") are deliberately NOT allowlisted: they are first names too.
+    assert "Claude" not in redact("Chat with Claude Martin") and "Martin" not in redact("Chat with Claude Martin")
+
+
+def test_personal_info_next_to_an_allowed_name_is_masked() -> None:
+    out = redact("Chat with Rahul Verma, +91 98765 43210 - WhatsApp Web - Google Chrome")
+    assert out.endswith("WhatsApp Web - Google Chrome")  # a separator next to a mask may be absorbed
+    assert "Rahul" not in out and "98765" not in out
+
+
+@pytest.mark.parametrize("glued", ["notepad@okaxis", "github.com/someone", "spotify.example.org"])
+def test_an_allowed_name_glued_into_a_bigger_token_is_not_exempted(glued: str) -> None:
+    assert glued not in redact(f"Open {glued} - Google Chrome")
+
+
+def test_a_private_term_beats_the_allowlist(empty_terms: Path) -> None:
+    empty_terms.write_text("Zorblax Notepad Plan\n", encoding="utf-8")  # contains an allowed name
+    assert redact("Zorblax Notepad Plan - Notepad") == "[PRIVATE] - Notepad"
+
+
+def test_a_missing_allowlist_fails_closed(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    monkeypatch.setattr(redactor, "ALLOWED_NAMES_FILE", tmp_path / "missing.txt")
+    with pytest.raises(RedactionError):
+        redact("New Tab - Google Chrome")
 
 
 def test_real_web_addresses_are_still_masked() -> None:
@@ -102,8 +132,8 @@ def test_real_web_addresses_are_still_masked() -> None:
     assert "example.org" not in out and "example.net" not in out and "someone" not in out
 
 
-@pytest.mark.xfail(strict=True, reason="known over-masking (M7 lesson): spaCy tags some titles as names/places")
-@pytest.mark.parametrize("title", ["New Tab - Google Chrome", "Windows PowerShell"])
+@pytest.mark.xfail(strict=True, reason="known over-masking (M8 lesson): spaCy tags 'Lofi' as a person")
+@pytest.mark.parametrize("title", ["Lofi hip hop radio - beats to relax/study to - YouTube - Google Chrome"])
 def test_known_false_positives(title: str) -> None:
     assert redact(title) == title
 
