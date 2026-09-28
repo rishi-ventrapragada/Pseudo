@@ -2,7 +2,7 @@
 
 Owner: Sai Rishi Ventrapragada
 Repo: https://github.com/rishi-ventrapragada/Pseudo
-Status: Phase 1 (Foundations) - complete. Phase 2 (First MCP server) - complete. Phase 3 (Privacy layer) in progress: M7.
+Status: Phase 1 (Foundations) - complete. Phase 2 (First MCP server) - complete. Phase 3 (Privacy layer) - complete. Phase 4 not started.
 Last updated: 2026-09-28
 
 ## 1. What Pseudo is
@@ -110,7 +110,7 @@ Three milestones. Core code lives in `pseudo_hands/core/` (plain Python, no MCP)
 - Connect `pseudo_hands` to the installed Hermes Agent with a free Groq model. Claude Code edits Hermes config itself, after a backup and plan approval.
 - **Done when:** asked "what am I working on right now?", Hermes calls `list_open_windows` and answers from the result.
 
-Known gap until Phase 3 (M8): titles of non-blocked windows (including browser tab titles) reach the cloud model unredacted.
+Closed in M8: titles are redacted in core before any brain sees them.
 
 Out of scope for Phase 2: UI Automation tree, focus_window, click/type, OCR, Presidio redaction, own UI, voice, memory, scheduling.
 

@@ -11,6 +11,7 @@ pseudo_hands/
     redactor.py         redact(text): Presidio + spaCy, fails closed                  (M7)
     india_recognizers.py  +91 phone, Aadhaar, PAN, UPI, long-number shapes          (M7)
     redaction_terms.txt   your private terms (gitignored; see the .example)         (M7)
+    allowed_names.txt   app/site names never masked; no personal names             (M8)
   show_windows.py       thin terminal demo: python -m pseudo_hands.show_windows       (M4)
   mcp_server.py         thin MCP server over stdio: python -m pseudo_hands.mcp_server (M5)
   show_redaction.py     thin demo on fake titles: python -m pseudo_hands.show_redaction (M7)

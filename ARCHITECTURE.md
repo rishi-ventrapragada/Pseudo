@@ -130,6 +130,7 @@ pseudo_hands/
     redactor.py         redact(text): Presidio + spaCy, fail closed (M7)
     india_recognizers.py  +91 phone, Aadhaar, PAN, UPI, long-number patterns (M7)
     redaction_terms.txt   owner's private terms (gitignored; .example committed) (M7)
+    allowed_names.txt   app/site names never masked (M8)
   show_windows.py       thin CLI demo (M4)
   mcp_server.py         thin MCP wrapper (M5)
 ```
