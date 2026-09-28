@@ -162,3 +162,14 @@ reply: 'ok' | model calls attempted: 2 | elapsed: 2.6 s
 - **Sandbox + default-deny gate + pluggable approver** is the Phase 3 approval-gate pattern in miniature. `list_open_windows` and click/type tools will follow it.
 - **Every tool result goes to the cloud model.** Phase 4's privacy layer sits exactly between `run_tool` and `messages.append`.
 - **Known limit:** a link swapped in *between* the check and the write (a "race condition") isn't covered. That's acceptable for a learning sandbox, and it's worth remembering for real ones.
+
+## Extension: count_words
+
+A Phase 1 extra, added after M3 as a learning exercise. It shows that **adding a tool takes three small edits and some tests**, and the loop itself doesn't change:
+
+1. **The function** (`agent_tools.py`): `count_words(path)` reuses the same safety checks as `read_file` (`resolve_in_sandbox`, `refuse_hard_links`, UTF-8 only), then returns `len(text.split())`. It only reads, so it needs no approval gate.
+2. **The dispatcher entry** (`TOOL_FUNCTIONS`): `"count_words": count_words`. This is how `run_tool` turns the name the model sends into the Python function to run. `ALLOWED_ARGUMENTS` is built from the schemas, so it picks up `path` by itself.
+3. **The schema** (`COUNT_WORDS_SCHEMA` in `agent_tool_schemas.py`, added to `TOOL_SCHEMAS`): this is all the model ever knows about the tool. The description tells it *when* to choose this tool over `read_file`.
+4. **The tests** (`tests/test_agent_tools.py`): word counting across mixed whitespace, sandbox escapes refused, and a missing file becoming `"Error: ..."` through `run_tool`. The existing schema-contract test checks the new schema against the Python signature automatically.
+
+The system prompt names the tools too, so it got one extra word. Nothing else in `03_agent_loop.py` changed. The loop just sends whatever is in `TOOL_SCHEMAS`.
