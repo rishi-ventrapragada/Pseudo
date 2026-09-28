@@ -151,15 +151,34 @@ pseudo_hands/
 | spaCy + en_core_web_sm | The small English language model Presidio uses to spot names and places. |
 | uiautomation | Thin wrapper over Windows' UI Automation API, used to read the active window's control tree (M9). |
 
-## 4. Phase 5: pseudo_brain and the face (planned)
+## 4. Phase 5: pseudo_brain and the face
 
 ```
-pseudo_brain/           Pseudo's own agent loop (D15), grown from playground/03_agent_loop.py (M14)
-  ...                   an MCP client of pseudo_hands; Groq only through the OpenAI-compatible
-                        API (D10); visible 429 handling; session history saved locally;
-                        terminal interface first. Files are decided in M14's plan.
+pseudo_brain/           Pseudo's own agent loop (D15, M14), grown from playground/03_agent_loop.py
+  model.py              Groq through AsyncOpenAI (D10), max_retries=0; visible 429 waits (retry-after);
+                        every other failure -> ModelFailure with a plain reason
+  hands.py              MCP CLIENT of pseudo_hands over stdio; tools discovered at startup, none named
+  session.py            history as whole turns; trimmed per request to ~3,000 estimated tokens;
+                        saved to %LOCALAPPDATA%\Pseudo\sessions\ (your messages + final answers only)
+  loop.py               SYSTEM_PROMPT + run_turn(): THE LOOP. Never prints: reports events via on_event
+  terminal.py           thin interface: prints events, reads input, --continue, /new, /quit
+  __main__.py           python -m pseudo_brain
 face/ (name TBD)        React desktop window, Tauri or Electron (M15), talking to pseudo_brain
-                        through a local server. Display only: no logic (D11).
+                        through a local server and showing the same events. Display only (D11).
 ```
+
+```
+  you --> terminal.py --text--> loop.run_turn --request--> model.py --> Groq (only)
+                  ^                   |   ^
+                  +----- events ------+   | tool result (redacted in pseudo_hands core)
+                                          v
+                               hands.py --MCP stdio--> pseudo_hands (blocked apps, redactor, popup)
+```
+
+| Library | Why |
+|---|---|
+| openai (AsyncOpenAI) | The same SDK as Phase 1, async so it can share one event loop with the MCP client. |
+| mcp (Client) | The MCP SDK's client side: starts pseudo_hands over stdio, lists and calls its tools. |
+| anyio | Comes with mcp; runs the event loop, and `input()` in a helper thread so MCP keeps running. |
 
 Privacy and approval don't move: blocked apps, redaction and the approval popup stay in `pseudo_hands` core (D6, D11, D13), so they hold for `pseudo_brain` exactly as they did for Hermes.
