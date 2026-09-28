@@ -7,12 +7,13 @@ Two parts: the long-term target (so every step has context) and the Phase 1 stru
 ```
           voice / hotkey / typed prompt
                        |
-             [ Pseudo Face ]  Hermes Desktop for now; own web UI + voice later
-                       |       (talks to Hermes via its local API)
+             [ Pseudo Face ]  own React window, Tauri or Electron (M15);
+                       |       terminal first (M14); voice later
+                       |  local server
                        v
-             [ Hermes Agent ]  brain: reasoning, memory, skills,
-                       |        scheduling, coding
-                       |  calls tools via MCP
+             [ pseudo_brain ]  Pseudo's own agent loop (D15, M14):
+                       |        Groq only, visible 429s, session history
+                       |  calls tools via MCP (it is an MCP client)
                        v
              [ Pseudo Hands ]  MCP server on Windows
                        |
@@ -30,14 +31,15 @@ Two parts: the long-term target (so every step has context) and the Phase 1 stru
 Key ideas:
 - The model always runs remotely; Pseudo's code is the "hands" and "eyes" that run locally.
 - Text before pixels: read the UI Automation tree (the desktop's DOM) first, local OCR/vision second. Screenshots never leave the laptop.
-- Pseudo Hands is an MCP server so any MCP-capable agent can use it, not just Hermes.
+- Pseudo Hands is an MCP server so any MCP-capable agent can use it, not just Pseudo's own brain.
+- Pseudo's brain is its own loop (D15). Hermes was the brain from M6 to M13 and stays installed, but M13 ruled out Hermes and Hermes Desktop: harness token cost, hidden provider fallbacks, and Desktop-only tools that bypass redaction.
 
 This is a direction, not a commitment. It will be revisited after Phase 1.
 
 ### Designed for change (see DECISIONS.md D11)
 
 ```
-   any brain: Hermes | own loop (Phase 1) | Claude Code | local model
+   any brain: pseudo_brain (D15) | Hermes | Claude Code | local model
         |  MCP (tools)                  |  OpenAI-compatible API (chat)
         v                               v
    [ MCP wrapper ]  thin, swappable     [ Face ]
@@ -148,3 +150,16 @@ pseudo_hands/
 | presidio-analyzer / presidio-anonymizer | Microsoft's open-source PII detection and masking; runs fully locally. |
 | spaCy + en_core_web_sm | The small English language model Presidio uses to spot names and places. |
 | uiautomation | Thin wrapper over Windows' UI Automation API, used to read the active window's control tree (M9). |
+
+## 4. Phase 5: pseudo_brain and the face (planned)
+
+```
+pseudo_brain/           Pseudo's own agent loop (D15), grown from playground/03_agent_loop.py (M14)
+  ...                   an MCP client of pseudo_hands; Groq only through the OpenAI-compatible
+                        API (D10); visible 429 handling; session history saved locally;
+                        terminal interface first. Files are decided in M14's plan.
+face/ (name TBD)        React desktop window, Tauri or Electron (M15), talking to pseudo_brain
+                        through a local server. Display only: no logic (D11).
+```
+
+Privacy and approval don't move: blocked apps, redaction and the approval popup stay in `pseudo_hands` core (D6, D11, D13), so they hold for `pseudo_brain` exactly as they did for Hermes.
