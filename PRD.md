@@ -7,14 +7,15 @@ Last updated: 2026-09-28
 
 ## 1. What Pseudo is
 
-Pseudo is a personal, privacy-first AI desktop assistant for Windows. The long-term goal is an all-in-one agent that can:
+Pseudo is the owner's zero-budget **Agentic OS for Windows**: one assistant, living on his laptop, that:
 
-1. Write and edit code on request (like Claude Code).
-2. Look at the screen, understand what is going on, and answer questions about it.
-3. Automate tasks the owner would otherwise do by hand (scripts first, GUI control as fallback).
-4. Remember facts about the owner and past tasks, save successful runs as reusable routines, and run scheduled jobs.
+1. **Remembers every task he has done.** Memory is stored locally; only the relevant memories, redacted, are sent to the model.
+2. **Sees and reads his screen.** Everything it reads is redacted before anything leaves the laptop.
+3. **Asks permission before any edit or action**, through a native popup whose default answer is no.
+4. **Talks to him and listens to him**, with local voice.
+5. **Can control whatever he is looking at** to help with any task: click and type, always behind the approval popup.
 
-The name is a nod to pseudonymization: Pseudo's defining feature is that screen content is understood and redacted locally before anything reaches a cloud model.
+The name is a nod to pseudonymization: Pseudo's defining feature is that what it sees and remembers is understood and redacted locally before anything reaches a cloud model.
 
 ## 2. Why this project exists (the real goal)
 
@@ -38,9 +39,9 @@ If (2) fails, the milestone is not done.
 
 ## 4. Long-term shape (for context only, NOT Phase 1 scope)
 
-- **Brain:** Hermes Agent (Nous Research, open source, already installed on the owner's machine) handles reasoning, memory, skills, scheduling, and coding.
+- **Brain:** `pseudo_brain`, Pseudo's own agent loop (D15), grown from the Phase 1 loop. It is an MCP client of Pseudo Hands and talks to a free cloud model (Groq) through the OpenAI-compatible API. Hermes Agent stays installed but is not Pseudo's brain (M13).
 - **Pseudo Hands:** an MCP server exposing Windows tools (window list, UI Automation tree, local OCR, click/type) with a local privacy/redaction layer and an approval gate for risky actions.
-- **Pseudo Face:** Hermes Desktop for now. Later, possibly a custom web UI (React + Tauri or Electron) talking to Pseudo's Python core through a local server, plus local voice.
+- **Pseudo Face:** our own React desktop window (Tauri or Electron) talking to `pseudo_brain` through a local server, plus local voice later. Hermes Desktop was ruled out in M13.
 
 See ARCHITECTURE.md. These later phases may change once the owner understands the foundations. Do not build any of them in Phase 1.
 
@@ -53,6 +54,16 @@ See ARCHITECTURE.md. These later phases may change once the owner understands th
 | 3 | Privacy layer | Local redaction (Presidio + Indian recognizers + owner rules), applied to window titles. |
 | 4 | Reading and acting (complete) | UI Automation tree reader, `focus_window`, approval gate (native popup, D13). Local OCR evaluated in M11 and skipped for now. |
 | 5 | Make it usable | Use Pseudo day to day, not just through `hermes -p pseudo` in a terminal. M13 ruled out Hermes Desktop, so Pseudo gets its own brain (`pseudo_brain`, D15, M14) and its own face (M15). |
+
+### Roadmap toward the vision (section 1)
+
+1. **M14: own brain.** `pseudo_brain`, Pseudo's own loop as an MCP client of `pseudo_hands` (D15).
+2. **M15: own face.** A React desktop window talking to `pseudo_brain` through a local server.
+3. **Memory.** The local task memory from section 1, as a dedicated markdown vault (L6).
+4. **Voice.** Local listening and speaking (L5).
+5. **Click and type control.** Acting on whatever is on screen, always behind the approval popup (D13, D14).
+
+Each step gets its own plan, and its milestone numbers, when it starts.
 
 ## 6. Phase 1 scope: Foundations
 
