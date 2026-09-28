@@ -14,3 +14,6 @@ __pycache__/
 # The .gitkeep line keeps the empty folder itself in git.
 playground/sandbox/*
 !playground/sandbox/.gitkeep
+
+# Editor settings are personal, not part of the project.
+.vscode/
