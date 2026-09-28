@@ -10,9 +10,11 @@ How the popup works:
     tool's own thread. Why this process: Windows only lets a program bring a window
     to the front if it received the user's last input. Your OK click lands here, so
     your click is exactly what makes the focus change allowed.
-  - MB_TOPMOST puts it in the always-on-top layer, in front of normal windows, even
-    though Windows won't let a background process take keyboard focus. We don't try:
-    a popup that grabs your keyboard mid-sentence invites accidental answers.
+  - It goes in the always-on-top layer, in front of normal windows, even though Windows
+    won't let a background process take keyboard focus. We don't try: a popup that
+    grabs your keyboard mid-sentence invites accidental answers. MB_TOPMOST alone
+    didn't always stick in the real test (2 of 8 popups), so pin_on_top() also pins
+    the box there itself once it appears, without activating it.
   - Default NO: Cancel is the default button (so Enter means no) and OK has no
     keyboard shortcut. Cancel, Esc, the X, the timeout, any error, or another popup
     already being open all mean no.
@@ -42,22 +44,49 @@ def approved(answer: int, elapsed: float, timeout: float) -> bool:
     return answer == win32con.IDOK and elapsed < timeout
 
 
-def close_popup(thread_id: int) -> None:
-    """Run by the timer: close the dialog that thread is showing, as if the X was clicked."""
-    def close(handle: int, _extra: None) -> bool:
+def find_popup(thread_id: int) -> int:
+    """The dialog box that thread is showing, or 0. Only that thread's windows are looked at."""
+    found: list[int] = []
+
+    def check(handle: int, _extra: None) -> bool:
         if win32gui.GetClassName(handle) == DIALOG_CLASS:
-            win32gui.PostMessage(handle, win32con.WM_CLOSE, 0, 0)  # X -> Cancel -> no
+            found.append(handle)
         return True
 
     try:
-        win32gui.EnumThreadWindows(thread_id, close, None)  # only that thread's windows
-    except pywintypes.error:  # it was answered a moment ago and is already gone
+        win32gui.EnumThreadWindows(thread_id, check, None)
+    except pywintypes.error:  # the thread has no windows (yet, or any more)
         pass
+    return found[0] if found else 0
+
+
+def pin_on_top(thread_id: int) -> None:
+    """Run in a helper thread: once the box is visible, pin it in the always-on-top layer."""
+    deadline = time.monotonic() + 2.0
+    while time.monotonic() < deadline:
+        popup = find_popup(thread_id)
+        if popup and win32gui.IsWindowVisible(popup):
+            flags = win32con.SWP_NOMOVE | win32con.SWP_NOSIZE | win32con.SWP_NOACTIVATE  # don't take focus
+            try:
+                win32gui.SetWindowPos(popup, win32con.HWND_TOPMOST, 0, 0, 0, 0, flags)
+            except pywintypes.error:  # refused: the box is still shown, and no answer still means no
+                pass
+            return
+        time.sleep(0.02)
+
+
+def close_popup(thread_id: int) -> None:
+    """Run by the timer: close the box that thread is showing, as if the X was clicked."""
+    popup = find_popup(thread_id)
+    if popup:
+        win32gui.PostMessage(popup, win32con.WM_CLOSE, 0, 0)  # X -> Cancel -> no
 
 
 def show_popup(question: str, timeout: float = TIMEOUT_SECONDS) -> bool:
     """Show the popup and wait at most `timeout` seconds. True only for OK in time."""
-    timer = threading.Timer(timeout, close_popup, args=(win32api.GetCurrentThreadId(),))
+    thread_id = win32api.GetCurrentThreadId()
+    threading.Thread(target=pin_on_top, args=(thread_id,), daemon=True).start()
+    timer = threading.Timer(timeout, close_popup, args=(thread_id,))
     started = time.monotonic()
     timer.start()
     try:

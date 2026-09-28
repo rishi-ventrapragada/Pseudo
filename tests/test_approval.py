@@ -6,10 +6,13 @@ that "nobody answered" really comes back as no.
 """
 
 import sys
+import threading
 import time
 
 import pytest
+import win32api
 import win32con
+import win32gui
 
 from pseudo_hands.core import approval
 from pseudo_hands.core.approval import approved, ask, show_popup
@@ -54,10 +57,31 @@ def test_the_timeout_is_shorter_than_hermes_tool_timeout() -> None:
     assert approval.TIMEOUT_SECONDS == 20.0  # Hermes' pseudo profile waits 30 s (see the M10 lesson)
 
 
+def test_pinning_asks_for_always_on_top_without_taking_focus(monkeypatch: pytest.MonkeyPatch) -> None:
+    calls: list[tuple] = []
+    monkeypatch.setattr(approval, "find_popup", lambda _thread: 77)
+    monkeypatch.setattr(approval.win32gui, "IsWindowVisible", lambda _h: True)
+    monkeypatch.setattr(approval.win32gui, "SetWindowPos", lambda *args: calls.append(args))
+    approval.pin_on_top(1234)
+    [(handle, insert_after, *_position, flags)] = calls
+    assert handle == 77 and insert_after == win32con.HWND_TOPMOST
+    assert flags & win32con.SWP_NOACTIVATE  # pinned in front, but never grabs the keyboard
+
+
 @pytest.mark.skipif(sys.platform != "win32", reason="needs Windows")
-def test_a_real_popup_nobody_answers_closes_itself_and_means_no() -> None:
+def test_a_real_popup_is_pinned_on_top_and_closes_itself_as_no() -> None:
     # A REAL popup, on screen for about 1 second. Nobody clicks it; its timer closes it.
+    this_thread, seen = win32api.GetCurrentThreadId(), {}
+
+    def look() -> None:  # halfway through, read our own popup's always-on-top flag
+        time.sleep(0.5)
+        box = approval.find_popup(this_thread)
+        seen["topmost"] = bool(box) and bool(win32gui.GetWindowLong(box, win32con.GWL_EXSTYLE)
+                                             & win32con.WS_EX_TOPMOST)
+    checker = threading.Thread(target=look)
+    checker.start()
     started = time.monotonic()
     answer = show_popup("Pseudo test: this closes itself in 1 second. Nothing will happen.", timeout=1.0)
-    assert answer is False
+    checker.join()
+    assert answer is False and seen["topmost"] is True
     assert 0.9 <= time.monotonic() - started < 5.0
