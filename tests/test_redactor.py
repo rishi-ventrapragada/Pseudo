@@ -91,15 +91,19 @@ def test_private_terms_are_masked_as_whole_words(empty_terms: Path) -> None:
 # ---------- over-masking: ordinary titles should survive ----------
 
 @pytest.mark.parametrize("title", ["Untitled - Notepad", "Task Manager", "Downloads - File Explorer",
-                                   "Discover Weekly - Spotify", "Supabase Dashboard - Google Chrome"])
+                                   "Discover Weekly - Spotify", "Supabase Dashboard - Google Chrome",
+                                   "notes.md - Notepad", "main.py - Pseudo - Visual Studio Code"])
 def test_ordinary_titles_are_unchanged(title: str) -> None:
     assert redact(title) == title
 
 
-@pytest.mark.xfail(strict=True, reason="known over-masking (M7 lesson): Presidio's URL recognizer reads "
-                                       "'.md'/'.py' filenames as web domains; spaCy tags some titles as names")
-@pytest.mark.parametrize("title", ["notes.md - Notepad", "main.py - Pseudo - Visual Studio Code",
-                                   "New Tab - Google Chrome", "Windows PowerShell"])
+def test_real_web_addresses_are_still_masked() -> None:
+    out = redact("see example.org, www.example.net and github.com/someone")
+    assert "example.org" not in out and "example.net" not in out and "someone" not in out
+
+
+@pytest.mark.xfail(strict=True, reason="known over-masking (M7 lesson): spaCy tags some titles as names/places")
+@pytest.mark.parametrize("title", ["New Tab - Google Chrome", "Windows PowerShell"])
 def test_known_false_positives(title: str) -> None:
     assert redact(title) == title
 

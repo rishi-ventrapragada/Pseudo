@@ -35,6 +35,13 @@ TERMS_FILE = Path(__file__).resolve().parent / "redaction_terms.txt"
 # App and site names ("Visual Studio Code", "GitHub") are what window titles are made of,
 # and they are not personal, so spaCy's ORGANIZATION guesses are deliberately left visible.
 NOT_MASKED = {"ORGANIZATION"}
+# "main.py" and "notes.md" look like web addresses to Presidio (.py and .md are real country
+# domains). A URL finding with no "://", "/" or "www." that ends in one of these is a file name.
+FILE_EXTENSIONS = {
+    "py", "md", "txt", "json", "js", "ts", "tsx", "jsx", "html", "css", "csv", "pdf", "docx", "xlsx",
+    "pptx", "png", "jpg", "jpeg", "gif", "svg", "yaml", "yml", "toml", "ini", "log", "sh", "ps1", "bat",
+    "ipynb", "sql",
+}
 
 
 class RedactionError(Exception):
@@ -82,14 +89,23 @@ def terms_recognizers(terms: list[str]) -> list[PatternRecognizer]:
                               deny_list=terms, deny_list_score=1.0)]
 
 
+def is_file_name(span: str) -> bool:
+    """True for "main.py"-style spans the URL recognizer mistakes for web addresses."""
+    lowered = span.lower()
+    if "://" in lowered or "/" in lowered or lowered.startswith("www.") or "." not in lowered:
+        return False
+    return lowered.rsplit(".", 1)[1] in FILE_EXTENSIONS
+
+
 def find_personal_info(text: str, terms: list[str]) -> list:
     """The analyzer half: every span any recognizer flags, at any confidence."""
     analyzer = build_analyzer()
     entities = [e for e in analyzer.get_supported_entities(language="en") if e not in NOT_MASKED]
     if terms:
         entities.append("PRIVATE")
-    return analyzer.analyze(text=text, language="en", entities=entities, score_threshold=0.0,
-                            ad_hoc_recognizers=terms_recognizers(terms))
+    findings = analyzer.analyze(text=text, language="en", entities=entities, score_threshold=0.0,
+                                ad_hoc_recognizers=terms_recognizers(terms))
+    return [f for f in findings if not (f.entity_type == "URL" and is_file_name(text[f.start:f.end]))]
 
 
 def check_nothing_left(masked: str) -> None:
