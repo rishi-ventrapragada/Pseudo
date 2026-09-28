@@ -133,6 +133,9 @@ pseudo_hands/
     allowed_names.txt   app/site names never masked (M8)
     ui_tree.py          walk a window's UI Automation tree -> raw lines (M9)
     active_window.py    read_active_window(): pick window, block, redact, cap (M9)
+    window_ids.py       short ids ("w3") for listed windows, never reused (M10)
+    approval.py         the approval gate: native popup, default no (D13, M10)
+    focus.py            focus_window(): validate id, block, ask, act (M10)
   show_windows.py       thin CLI demo (M4)
   mcp_server.py         thin MCP wrapper (M5)
 ```

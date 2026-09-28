@@ -2,7 +2,7 @@
 
 Owner: Sai Rishi Ventrapragada
 Repo: https://github.com/rishi-ventrapragada/Pseudo
-Status: Phase 1-3 complete. Phase 4 (Reading and acting) in progress: M9 done, M10 next.
+Status: Phase 1-3 complete. Phase 4 (Reading and acting) in progress: M9 and M10 done, M11 next.
 Last updated: 2026-09-28
 
 ## 1. What Pseudo is
@@ -142,7 +142,7 @@ Every action goes through a native approval popup owned by pseudo_hands (D13).
 
 ### M10: Approval popup + focus_window
 - A native Windows approval popup in core (D13), default deny: closing it or timing out means no.
-- `focus_window(app or title)` as the first action tool, always behind the popup.
+- `focus_window(window_id)` as the first action tool, always behind the popup. `list_open_windows` gives each window a short id (titles are redacted, so a title can't be the key); blocked apps get none.
 - **Done when:** approve, deny and timeout are tested on fake windows, and denial leaves focus unchanged.
 
 ### M11: OCR fallback (evaluate first)
