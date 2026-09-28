@@ -2,7 +2,7 @@
 
 Owner: Sai Rishi Ventrapragada
 Repo: https://github.com/rishi-ventrapragada/Pseudo
-Status: Phase 1 (Foundations) - complete. Phase 2 (First MCP server) - complete. Phase 3 (Privacy layer) - complete. Phase 4 not started.
+Status: Phase 1-3 complete. Phase 4 (Reading and acting) in progress: M9.
 Last updated: 2026-09-28
 
 ## 1. What Pseudo is
@@ -129,3 +129,24 @@ Built before any tool reads window contents (D6): nothing is read that can't be 
 - **Done when:** verified through MCP and the Hermes `pseudo` profile using counts only (no real titles printed).
 
 Out of scope for Phase 3: reading window contents (UI Automation, OCR), actions, approval popups (Phase 4).
+
+## 10. Phase 4 scope: Reading and acting
+
+Everything read goes through the blocked-apps mask and redact() before it leaves core (D6).
+Every action goes through a native approval popup owned by pseudo_hands (D13).
+
+### M9: read_active_window
+- Read the active window's UI Automation tree (visible text, control names and types), redacted with redact() before returning, capped in size so calls stay under Groq's 8K tokens/min.
+- Blocked apps return nothing: their tree is never even read. Password fields are never read.
+- **Done when:** tests pass on fake trees, and a fake-content Notepad window reads back as a redacted outline through core, MCP and the Hermes pseudo profile, verified with fake data and counts only.
+
+### M10: Approval popup + focus_window
+- A native Windows approval popup in core (D13), default deny: closing it or timing out means no.
+- `focus_window(app or title)` as the first action tool, always behind the popup.
+- **Done when:** approve, deny and timeout are tested on fake windows, and denial leaves focus unchanged.
+
+### M11: OCR fallback (evaluate first)
+- Local OCR for windows whose UI tree is empty, redacted the same way.
+- Start by measuring how often M9 finds an empty tree; build only if it's needed.
+
+Out of scope for Phase 4: typing, clicking (beyond focus), voice, own UI.
