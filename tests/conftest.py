@@ -14,6 +14,9 @@ parameter, like beforeEach in Jest, but only for the tests that want it):
                Title redaction is a pass-through here unless a test also asks
                for real_redaction (M8). Each test gets a fresh id registry
                (M10), so the first listed window is always "w1".
+  no_real_popups -> (M10, runs for EVERY test) a test that reaches the real
+               approval popup fails instead of showing it on screen.
+  popup_yes / popup_no -> (M10) the person at the approval popup, faked.
 """
 
 import sys
@@ -27,7 +30,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "playground"))
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 import agent_tools  # noqa: E402  (has to come after the sys.path lines above)
-from pseudo_hands.core import blocked_apps, window_ids, windows  # noqa: E402
+from pseudo_hands.core import approval, blocked_apps, window_ids, windows  # noqa: E402
 from pseudo_hands.core.windows import RawWindow  # noqa: E402
 
 
@@ -72,6 +75,27 @@ def say_yes(monkeypatch: pytest.MonkeyPatch) -> FakeApprover:
 def say_no(monkeypatch: pytest.MonkeyPatch) -> FakeApprover:
     fake = FakeApprover(answer=False)
     monkeypatch.setattr(agent_tools, "approver", fake)
+    return fake
+
+
+@pytest.fixture(autouse=True)
+def no_real_popups(monkeypatch: pytest.MonkeyPatch) -> None:
+    def refuse(question: str) -> bool:
+        pytest.fail("a test tried to show a real approval popup")  # BaseException: ask() can't swallow it
+    monkeypatch.setattr(approval, "approver", refuse)
+
+
+@pytest.fixture
+def popup_yes(monkeypatch: pytest.MonkeyPatch) -> FakeApprover:
+    fake = FakeApprover(answer=True)
+    monkeypatch.setattr(approval, "approver", fake)
+    return fake
+
+
+@pytest.fixture
+def popup_no(monkeypatch: pytest.MonkeyPatch) -> FakeApprover:
+    fake = FakeApprover(answer=False)
+    monkeypatch.setattr(approval, "approver", fake)
     return fake
 
 
