@@ -23,14 +23,15 @@ SHAPES = [
     ("IN_AADHAAR", r"(?<!\d)\d{4}[\s-]?\d{4}[\s-]?\d{4}(?!\d)", 1.0),
     # ABCPE1234F: 5 letters, 4 digits, 1 letter (any case, via Presidio's IGNORECASE flag)
     ("IN_PAN", r"\b[A-Z]{5}\d{4}[A-Z]\b", 1.0),
-    # rahul.v@okaxis / 9876543210@ybl: like an email, but the part after @ has no dot
-    ("IN_UPI", r"\b[\w.\-]{2,256}@[A-Z][A-Z0-9]{1,63}\b(?!\.)", 1.0),
+    # rahul.v@okaxis / 9876543210@ybl: like an email, but the part after @ has no ".domain"
+    # (a sentence-ending "." is fine: "Pay rahul.v@okaxis." is still a UPI ID)
+    ("IN_UPI", r"\b[\w.\-]{2,256}@[A-Z][A-Z0-9]{1,63}\b(?!\.[A-Z0-9])", 1.0),
     # Catch-all: any run of 8+ digits, single spaces/hyphens allowed between them
     ("LONG_NUMBER", r"(?<!\d)\d(?:[\s-]?\d){7,}(?!\d)", 0.3),
 ]
 
 # The shapes that must never survive redaction; redactor.py re-checks its output with these.
-LEAK_CHECKS = {name: re.compile(regex) for name, regex, _ in SHAPES if name in ("IN_PHONE", "IN_AADHAAR", "LONG_NUMBER")}
+LEAK_CHECKS = {name: re.compile(regex, re.IGNORECASE) for name, regex, _ in SHAPES}
 
 
 def india_recognizers() -> list[PatternRecognizer]:

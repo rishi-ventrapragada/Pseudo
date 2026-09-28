@@ -1,0 +1,110 @@
+# Indian states, union territories and major cities, always masked as [LOCATION] (M9).
+# spaCy's small model misses many Indian place names ("Pune"), so this list backs it up.
+# Whole words, any case. Everything after a # is a comment. Read once per process.
+
+# States
+Andhra Pradesh
+Arunachal Pradesh
+Assam
+Bihar
+Chhattisgarh
+Goa
+Gujarat
+Haryana
+Himachal Pradesh
+Jharkhand
+Karnataka
+Kerala
+Madhya Pradesh
+Maharashtra
+Manipur
+Meghalaya
+Mizoram
+Nagaland
+Odisha
+Punjab
+Rajasthan
+Sikkim
+Tamil Nadu
+Telangana
+Tripura
+Uttar Pradesh
+Uttarakhand
+West Bengal
+
+# Union territories
+Andaman and Nicobar Islands
+Chandigarh
+Dadra and Nagar Haveli and Daman and Diu
+Delhi
+Jammu and Kashmir
+Ladakh
+Lakshadweep
+Puducherry
+
+# Major cities (old and new names)
+Mumbai
+Bombay
+Navi Mumbai
+Thane
+New Delhi
+Noida
+Gurugram
+Gurgaon
+Ghaziabad
+Faridabad
+Bengaluru
+Bangalore
+Hyderabad
+Secunderabad
+Ahmedabad
+Chennai
+Madras
+Kolkata
+Calcutta
+Howrah
+Surat
+Pune
+Jaipur
+Lucknow
+Kanpur
+Nagpur
+Indore
+Bhopal
+Visakhapatnam
+Vizag
+Vijayawada
+Patna
+Vadodara
+Ludhiana
+Amritsar
+Agra
+Nashik
+Meerut
+Rajkot
+Varanasi
+Prayagraj
+Allahabad
+Srinagar
+Aurangabad
+Ranchi
+Dhanbad
+Coimbatore
+Madurai
+Jabalpur
+Gwalior
+Jodhpur
+Udaipur
+Raipur
+Guwahati
+Mysuru
+Mysore
+Mangaluru
+Mangalore
+Kochi
+Cochin
+Thiruvananthapuram
+Trivandrum
+Bhubaneswar
+Dehradun
+Shimla

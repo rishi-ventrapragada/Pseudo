@@ -22,7 +22,7 @@ import re
 from functools import lru_cache
 from pathlib import Path
 
-from presidio_analyzer import AnalyzerEngine, RecognizerRegistry
+from presidio_analyzer import AnalyzerEngine, PatternRecognizer, RecognizerRegistry
 from presidio_analyzer.nlp_engine import NlpEngineProvider
 from presidio_analyzer.predefined_recognizers import (
     InGstinRecognizer, InPassportRecognizer, InVehicleRegistrationRecognizer, InVoterRecognizer,
@@ -36,7 +36,13 @@ SPACY_MODEL = "en_core_web_sm"  # 12.8 MB; swap for "en_core_web_lg" (400 MB) if
 HERE = Path(__file__).resolve().parent
 TERMS_FILE = HERE / "redaction_terms.txt"  # the owner's private terms (gitignored)
 ALLOWED_NAMES_FILE = HERE / "allowed_names.txt"  # app/site names never masked (committed)
+PLACES_FILE = HERE / "indian_places.txt"  # major Indian cities and states -> [LOCATION] (committed)
 PRIVATE_MASK = "[PRIVATE]"
+# US-only ID recognizers: nothing here is American, and they misfire on short codes ("M9" as a
+# driver's license). Long ID numbers are still caught by LONG_NUMBER (any 8+ digit run).
+US_ONLY = ["UsSsnRecognizer", "UsLicenseRecognizer", "UsBankRecognizer", "UsItinRecognizer", "UsPassportRecognizer"]
+# Final catch-all: any "something@something" left after masking counts as a leak.
+AT_TOKEN = re.compile(r"[\w.+\-]+@[\w.\-]+")
 # spaCy's ORGANIZATION guesses in titles are app/site names, not personal, so they stay visible.
 NOT_MASKED = {"ORGANIZATION"}
 # "main.py" and "notes.md" look like web addresses to Presidio (.py and .md are real country
@@ -100,9 +106,14 @@ def build_analyzer() -> AnalyzerEngine:
     }).create_engine()
     registry = RecognizerRegistry(supported_languages=["en"])
     registry.load_predefined_recognizers(languages=["en"], nlp_engine=nlp)  # email, phone, card, IP, URL, NER...
+    for name in US_ONLY:
+        registry.remove_recognizer(name)
     # Presidio's own Indian recognizers ship switched off; turn on the ones we don't replace.
+    # The places list backs up spaCy, which misses cities like "Pune" (read once per process).
+    places = PatternRecognizer(supported_entity="LOCATION", name="PseudoIndianPlacesRecognizer",
+                               deny_list=load_list(PLACES_FILE, "Indian places"))
     for recognizer in [InPassportRecognizer(), InVoterRecognizer(), InVehicleRegistrationRecognizer(),
-                       InGstinRecognizer(), *india_recognizers()]:
+                       InGstinRecognizer(), *india_recognizers(), places]:
         registry.add_recognizer(recognizer)
     return AnalyzerEngine(nlp_engine=nlp, registry=registry, supported_languages=["en"])
 
@@ -136,8 +147,8 @@ def mask_piece(piece: str) -> str:
 
 
 def check_nothing_left(masked: str) -> None:
-    """Belt and braces: if a phone, Aadhaar or long number survived, refuse the result."""
-    for name, shape in LEAK_CHECKS.items():
+    """Belt and braces: if any Indian ID shape or a word@word token survived, refuse the result."""
+    for name, shape in [*LEAK_CHECKS.items(), ("word@word", AT_TOKEN)]:
         if shape.search(masked):
             raise RedactionError(f"a {name} shape survived masking; text withheld")
 
