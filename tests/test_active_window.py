@@ -21,8 +21,10 @@ FAKE_TREE = [TreeLine(0, "Window", "notes.txt - Notepad"),
              TreeLine(1, "Button", "Save")]
 
 
-def window(app: str | None = "notepad.exe", title: str = "notes.txt - Notepad", handle: int = 101) -> RawWindow:
-    return RawWindow(title=title, app=app, visible=True, cloaked=False, focused=True, handle=handle)
+def window(app: str | None = "notepad.exe", title: str = "notes.txt - Notepad", handle: int = 101,
+           overlay: bool = False) -> RawWindow:
+    return RawWindow(title=title, app=app, visible=True, cloaked=False, focused=True, handle=handle,
+                     overlay=overlay)
 
 
 @pytest.fixture
@@ -80,6 +82,11 @@ def test_blocked_or_unknown_apps_are_never_walked(screen, app: str | None) -> No
 
 def test_the_assistant_window_is_skipped(screen) -> None:
     reads = screen([window(app="Hermes.exe", title="Hermes", handle=7), window(handle=101)], TreeRead(FAKE_TREE, False, 3))
+    assert read_active_window()["app"] == "notepad.exe" and reads == [101]
+
+
+def test_an_overlay_in_front_is_never_the_window_read(screen) -> None:  # (M12)
+    reads = screen([window(app="NVIDIA Overlay.exe", handle=9, overlay=True), window(handle=101)], TreeRead(FAKE_TREE, False, 3))
     assert read_active_window()["app"] == "notepad.exe" and reads == [101]
 
 

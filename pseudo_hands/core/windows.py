@@ -12,6 +12,9 @@ Privacy is applied HERE, before anything is returned (DECISIONS.md D6):
      a title the redactor can't process comes back as "[title withheld]", never raw.
 (M10) Each window also gets a short id for focus_window(). Blocked apps and
 Pseudo's own windows (the approval popup, D14) get None: nothing to point at.
+(M12) Invisible and click-through overlays (e.g. a GPU overlay) aren't windows a
+person reads: they're dropped by is_user_window(), so they're never listed, never
+get an id, and are never read or focused.
 """
 
 import ctypes
@@ -22,6 +25,7 @@ from typing import TypedDict
 
 import psutil
 import pywintypes
+import win32con
 import win32gui
 import win32process
 
@@ -53,6 +57,15 @@ class RawWindow:
     focused: bool
     handle: int = 0  # (M9) Windows' id for the window, so a reader can open exactly this one
     process_id: int = 0  # (M10) which running program owns it; tells a reused handle apart
+    overlay: bool = False  # (M12) invisible or click-through: see is_overlay_style()
+
+
+def is_overlay_style(ex_style: int) -> bool:
+    """(M12) Judge a window by its extended style bits: click-through (TRANSPARENT: clicks
+    fall through to what's behind), or a tool window that can never become the active one.
+    LAYERED alone is NOT enough: Electron apps (Claude, VS Code) are layered too."""
+    never_active_tool = ex_style & win32con.WS_EX_TOOLWINDOW and ex_style & win32con.WS_EX_NOACTIVATE
+    return bool(ex_style & win32con.WS_EX_TRANSPARENT or never_active_tool)
 
 
 def is_cloaked(handle: int) -> bool:
@@ -91,6 +104,7 @@ def read_window(handle: int, focused: int) -> RawWindow | None:
             focused=handle == focused,
             handle=handle,
             process_id=process_id,
+            overlay=is_overlay_style(win32gui.GetWindowLong(handle, win32con.GWL_EXSTYLE)),
         )
     except pywintypes.error:  # the window closed while we were looking at it
         return None
@@ -111,8 +125,8 @@ def read_all_windows() -> list[RawWindow]:
 
 
 def is_user_window(window: RawWindow) -> bool:
-    """Would a person see this window? Visible, not cloaked, and it has a title."""
-    return window.visible and not window.cloaked and window.title.strip() != ""
+    """Would a person see this window? Visible, not cloaked, has a title, (M12) not an overlay."""
+    return window.visible and not window.cloaked and window.title.strip() != "" and not window.overlay
 
 
 def safe_title(title: str) -> str:

@@ -11,20 +11,22 @@ import sys
 from pathlib import Path
 
 import pytest
+import win32con
 
 from pseudo_hands.core import blocked_apps, windows
 from pseudo_hands.core.blocked_apps import RESTRICTED, BlockedAppsError, load_blocked_apps, parse_blocked_apps
 from pseudo_hands.core.redactor import RedactionError
-from pseudo_hands.core.windows import TITLE_WITHHELD, RawWindow, list_open_windows
+from pseudo_hands.core.windows import TITLE_WITHHELD, RawWindow, is_overlay_style, list_open_windows
 
 SECRET_TITLE = "Vault: bank PIN 4321"
 HANDLES = itertools.count(101)  # (M10) every fake window gets its own handle, so its own id
 
 
 def fake_window(title: str = "notes.md - Notepad", app: str | None = "notepad.exe", *,
-                visible: bool = True, cloaked: bool = False, focused: bool = False) -> RawWindow:
+                visible: bool = True, cloaked: bool = False, focused: bool = False,
+                overlay: bool = False) -> RawWindow:
     return RawWindow(title=title, app=app, visible=visible, cloaked=cloaked, focused=focused,
-                     handle=next(HANDLES), process_id=4000)
+                     handle=next(HANDLES), process_id=4000, overlay=overlay)
 
 
 # ---------- what comes back ----------
@@ -38,6 +40,31 @@ def test_hidden_cloaked_and_untitled_windows_are_dropped(desktop) -> None:
     desktop([fake_window(visible=False), fake_window(cloaked=True), fake_window(title="   "),
              fake_window(title="kept")])
     assert [w["title"] for w in list_open_windows()] == ["kept"]
+
+
+# ---------- M12: overlays are not user windows ----------
+
+TOOL, NOACTIVATE = win32con.WS_EX_TOOLWINDOW, win32con.WS_EX_NOACTIVATE
+LAYERED, TRANSPARENT = win32con.WS_EX_LAYERED, win32con.WS_EX_TRANSPARENT
+
+
+@pytest.mark.parametrize("style, overlay", [
+    (TRANSPARENT, True),                          # click-through
+    (LAYERED | TRANSPARENT | TOOL | NOACTIVATE, True),  # the M11 cua-driver.exe window
+    (LAYERED | TOOL | NOACTIVATE, True),          # the M11 NVIDIA Overlay.exe window
+    (TOOL | NOACTIVATE, True),                    # a tool window that can never be active
+    (LAYERED, False),                             # Electron apps like claude.exe: real windows
+    (TOOL, False),                                # a floating palette you can click into
+    (NOACTIVATE, False),
+    (0, False),
+])
+def test_the_overlay_rule(style: int, overlay: bool) -> None:
+    assert is_overlay_style(style) is overlay
+
+
+def test_an_overlay_is_not_listed_and_uses_up_no_id(desktop) -> None:
+    desktop([fake_window("GPU overlay", "NVIDIA Overlay.exe", overlay=True), fake_window("kept")])
+    assert list_open_windows() == [{"id": "w1", "title": "kept", "app": "notepad.exe", "focused": False}]
 
 
 # ---------- the blocked-apps check (D6) ----------
