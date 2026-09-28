@@ -32,3 +32,6 @@ presidio-anonymizer==2.2.364
 # The model is a wheel on GitHub, pinned by its versioned URL.
 spacy==3.8.16
 en_core_web_sm @ https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.8.0/en_core_web_sm-3.8.0-py3-none-any.whl
+
+# M9: thin wrapper over Windows' UI Automation API (reads a window's control tree)
+uiautomation==2.0.29
