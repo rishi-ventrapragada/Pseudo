@@ -2,7 +2,7 @@
 
 Owner: Sai Rishi Ventrapragada
 Repo: https://github.com/rishi-ventrapragada/Pseudo
-Status: Phase 1-4 complete (M11 evaluated OCR and skipped it). Phase 5 (Make it usable) in progress: M13 next. Open follow-ups are in section 12, Backlog.
+Status: Phase 1-4 complete (M11 evaluated OCR and skipped it). Phase 5 (Make it usable) in progress: M13 done (Hermes Desktop ruled out; own brain per D15), M14 next. Open follow-ups are in section 12, Backlog.
 Last updated: 2026-09-28
 
 ## 1. What Pseudo is
@@ -52,7 +52,7 @@ See ARCHITECTURE.md. These later phases may change once the owner understands th
 | 2 | First MCP server | `pseudo_hands` with `list_open_windows`, plugged into Hermes. |
 | 3 | Privacy layer | Local redaction (Presidio + Indian recognizers + owner rules), applied to window titles. |
 | 4 | Reading and acting (complete) | UI Automation tree reader, `focus_window`, approval gate (native popup, D13). Local OCR evaluated in M11 and skipped for now. |
-| 5 | Make it usable | Use Pseudo day to day, not just through `hermes -p pseudo` in a terminal. Hermes Desktop first (evaluated in M13); an own face only if Desktop can't meet the privacy, approval and token rules. |
+| 5 | Make it usable | Use Pseudo day to day, not just through `hermes -p pseudo` in a terminal. M13 ruled out Hermes Desktop, so Pseudo gets its own brain (`pseudo_brain`, D15, M14) and its own face (M15). |
 
 ## 6. Phase 1 scope: Foundations
 
@@ -166,6 +166,22 @@ Goal: use Pseudo day to day, not just through `hermes -p pseudo` in a terminal. 
 - Using only records, counts and fake-data windows, find out: whether Desktop can run the `pseudo` profile (profile rail or Bot Mode) and how; what Desktop adds on top of the profile (system prompt, tools, skills) and the real token cost per question; whether anything in Desktop could send pseudo data to a provider other than Groq (auxiliary tasks, titles, fallbacks, bot messaging, voice); and whether the approval popup works with Desktop as the face.
 - No Hermes config changes during the evaluation. Any fix is proposed as an exact diff, with a backup, for approval.
 - **Done when:** each question has a measured answer, and there is a recommendation (Desktop, with any profile changes listed, or an own face), decided by criteria written down before measuring.
+- **Result (2026-09-28): Hermes Desktop is ruled out as the face.** Desktop can run the `pseudo` profile, but:
+  - every Desktop session gets 12 Desktop-only tools, and one of them, `read_window_below`, returns the raw title of the window behind Desktop, skipping blocked apps and the redactor. No profile setting removes it (accepted as a hard failure);
+  - a Desktop question would cost about 16-17K input tokens per call, and Groq allows 8K per minute;
+  - auxiliary side-calls can fall back to Nous, whose login every profile inherits from the root.
+  These findings led to D15. The `pseudo` profile was hardened (Pseudo's tools only, no auto-titles, no Bot Mode protocol) until M14 replaces it.
+
+### M14: pseudo_brain, Pseudo's own loop
+- `pseudo_brain/`: the M3 loop grown into Pseudo's brain (D15). It is an MCP client of `pseudo_hands` (the same stdio server Hermes used) and talks to Groq through the OpenAI-compatible API (D10).
+- Groq only: no fallback provider and no hidden side-calls. A 429 is shown to the user, with the wait, and retried visibly; a failed turn is reported as a failure, never as an answer.
+- Session history: kept during a conversation and saved locally, so a session can be continued.
+- Terminal interface first.
+- **Done when:** asked about a fake window, `pseudo_brain` calls `pseudo_hands` over MCP and answers; a 429 is shown and handled visibly; a saved session continues; all verified with fake data and counts only.
+
+### M15: Pseudo's own face
+- A React desktop window (Tauri or Electron, chosen in M15's plan) that talks to `pseudo_brain` through a local server. The window only displays; all logic stays in `pseudo_brain` and `pseudo_hands` (D11).
+- **Done when:** the M14 checks pass through the window, and `focus_window` still asks through the native approval popup (D13).
 
 ## 12. Backlog
 
