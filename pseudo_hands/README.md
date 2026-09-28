@@ -12,9 +12,12 @@ pseudo_hands/
     india_recognizers.py  +91 phone, Aadhaar, PAN, UPI, long-number shapes          (M7)
     redaction_terms.txt   your private terms (gitignored; see the .example)         (M7)
     allowed_names.txt   app/site names never masked; no personal names             (M8)
+    ui_tree.py          walk one window's UI Automation tree -> raw lines          (M9)
+    active_window.py    read_active_window(): pick, block, redact, cap             (M9)
   show_windows.py       thin terminal demo: python -m pseudo_hands.show_windows       (M4)
   mcp_server.py         thin MCP server over stdio: python -m pseudo_hands.mcp_server (M5)
   show_redaction.py     thin demo on fake titles: python -m pseudo_hands.show_redaction (M7)
+  show_active_window.py  thin demo: python -m pseudo_hands.show_active_window         (M9)
 ```
 
 The rule: every decision (what counts as a window, what gets masked, failing closed) lives in `core/`. Wrappers such as `show_windows.py`, and the MCP server in M5, only call core functions and pass the result on, so the privacy check holds for any caller.

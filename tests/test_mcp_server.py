@@ -47,10 +47,11 @@ def everything_sent(result) -> str:
 # ---------- what the server publishes ----------
 
 @pytest.mark.anyio
-async def test_the_server_publishes_exactly_one_read_only_tool() -> None:
+async def test_the_server_publishes_its_read_only_tools() -> None:
     async with Client(server) as client:
         tools = (await client.list_tools()).tools
-    assert [tool.name for tool in tools] == ["list_open_windows"]
+    assert [tool.name for tool in tools] == ["list_open_windows", "read_active_window"]  # M9 added one
+    assert all(t.annotations.read_only_hint is True and t.input_schema["properties"] == {} for t in tools)
     tool = tools[0]
     assert tool.description == LIST_OPEN_WINDOWS_DESCRIPTION
     assert tool.input_schema["properties"] == {}  # the tool takes no arguments
@@ -137,7 +138,7 @@ async def test_real_server_over_stdio_smoke() -> None:
     async with Client(params) as client:
         names = [tool.name for tool in (await client.list_tools()).tools]
         result = await client.call_tool("list_open_windows", {})
-    assert names == ["list_open_windows"]
+    assert names == ["list_open_windows", "read_active_window"]
     assert result.is_error is False
     windows = result.structured_content["result"]
     assert all(set(w) == {"title", "app", "focused"} for w in windows)

@@ -19,6 +19,7 @@ Run it (normally the brain does this for you):
 from mcp.server import MCPServer
 from mcp.types import ToolAnnotations
 
+from pseudo_hands.core.active_window import read_active_window
 from pseudo_hands.core.windows import list_open_windows
 
 LIST_OPEN_WINDOWS_DESCRIPTION = (
@@ -27,6 +28,13 @@ LIST_OPEN_WINDOWS_DESCRIPTION = (
     "private apps come back as '[restricted app]'; never guess what they contain. Use this to "
     "see what the user is working on right now."
 )
+READ_ACTIVE_WINDOW_DESCRIPTION = (
+    "Read the text of the user's front-most window (not this assistant): an outline of its "
+    "controls, one per line as 'Type: text', indented by nesting. Personal info is already "
+    "replaced with labels like [PERSON] or [IN_PHONE]; never guess what they hide. Private apps "
+    "return nothing. Long windows are cut short ('truncated': true). Use this when the user asks "
+    "about what is on their screen."
+)
 
 server = MCPServer("pseudo_hands")
 server.add_tool(
@@ -34,6 +42,12 @@ server.add_tool(
     name="list_open_windows",
     description=LIST_OPEN_WINDOWS_DESCRIPTION,
     annotations=ToolAnnotations(read_only_hint=True, open_world_hint=False),  # hints for clients, not a guard
+)
+server.add_tool(
+    read_active_window,  # M9: the core function itself, again
+    name="read_active_window",
+    description=READ_ACTIVE_WINDOW_DESCRIPTION,
+    annotations=ToolAnnotations(read_only_hint=True, open_world_hint=False),
 )
 
 if __name__ == "__main__":
