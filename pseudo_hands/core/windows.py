@@ -46,6 +46,7 @@ class RawWindow:
     visible: bool
     cloaked: bool
     focused: bool
+    handle: int = 0  # (M9) Windows' id for the window, so a reader can open exactly this one
 
 
 def is_cloaked(handle: int) -> bool:
@@ -91,6 +92,7 @@ def read_all_windows() -> list[RawWindow]:
                 visible=bool(win32gui.IsWindowVisible(handle)),
                 cloaked=is_cloaked(handle),
                 focused=handle == focused,
+                handle=handle,
             ))
         except pywintypes.error:  # the window closed while we were looking at it
             continue
