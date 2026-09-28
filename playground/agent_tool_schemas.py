@@ -1,4 +1,4 @@
-"""M3: what the model sees. The three file tools, described as JSON schemas.
+"""M3: what the model sees. The sandboxed file tools, described as JSON schemas.
 
 What it demonstrates: to the model, a tool is pure data in the standard OpenAI
 tool format. These dicts go out with every request; the model never sees the
@@ -45,6 +45,20 @@ READ_FILE_SCHEMA = {
     },
 }
 
+COUNT_WORDS_SCHEMA = {
+    "type": "function",
+    "function": {
+        "name": "count_words",
+        "description": "Count the words in a UTF-8 text file in the sandbox. Use this instead of reading the file when you only need the word count.",
+        "parameters": {
+            "type": "object",
+            "properties": {"path": {"type": "string", "description": PATH_DESCRIPTION}},
+            "required": ["path"],
+            "additionalProperties": False,
+        },
+    },
+}
+
 WRITE_FILE_SCHEMA = {
     "type": "function",
     "function": {
@@ -66,4 +80,4 @@ WRITE_FILE_SCHEMA = {
 }
 
 # The full "tools" list the agent loop sends with every request.
-TOOL_SCHEMAS = [LIST_FILES_SCHEMA, READ_FILE_SCHEMA, WRITE_FILE_SCHEMA]
+TOOL_SCHEMAS = [LIST_FILES_SCHEMA, READ_FILE_SCHEMA, COUNT_WORDS_SCHEMA, WRITE_FILE_SCHEMA]

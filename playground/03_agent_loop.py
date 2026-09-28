@@ -31,12 +31,12 @@ MAX_RATE_LIMIT_WAITS = 3  # per model call
 LONGEST_WAIT_SECONDS = 60  # if the server wants us to wait longer than this, stop instead
 PREVIEW_CHARS = 300  # how much of a long tool result we print (the model always gets all of it)
 SYSTEM_PROMPT = (
-    "You are a small file assistant. You can only use the tools list_files, read_file and "
-    "write_file, and only inside a sandbox folder; paths are relative to it. Do the whole task "
-    "yourself with the tools, step by step; never ask the user for permission in text. Calling "
-    "write_file automatically shows the user a preview and asks them to approve it. If a write "
-    "is denied, do not retry it, just tell the user. When the whole task is done, reply with a "
-    "one or two sentence summary."
+    "You are a small file assistant. You can only use the tools list_files, read_file, "
+    "count_words and write_file, and only inside a sandbox folder; paths are relative to it. "
+    "Do the whole task yourself with the tools, step by step; never ask the user for permission "
+    "in text. Calling write_file automatically shows the user a preview and asks them to "
+    "approve it. If a write is denied, do not retry it, just tell the user. When the whole "
+    "task is done, reply with a one or two sentence summary."
 )
 
 

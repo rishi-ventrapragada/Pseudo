@@ -12,7 +12,7 @@ import pytest
 
 import agent_tools
 from agent_tool_schemas import TOOL_SCHEMAS
-from agent_tools import ToolError, list_files, read_file, run_tool, write_file
+from agent_tools import ToolError, SandboxError, count_words, list_files, read_file, run_tool, write_file
 
 
 # ---------- the approval gate ----------
@@ -82,6 +82,25 @@ def test_list_files_shows_folders_and_sizes(sandbox: Path) -> None:
     assert list_files("drafts") == "sandbox/drafts is empty."
     with pytest.raises(ToolError):
         list_files("notes.md")  # a file, not a folder
+
+
+# ---------- count_words ----------
+
+def test_count_words_counts_across_any_whitespace(sandbox: Path) -> None:
+    (sandbox / "notes.md").write_text("# Tips\n1. Sleep  well\n\n\tdrink water", encoding="utf-8")
+    assert count_words("notes.md") == "sandbox/notes.md has 7 words."
+
+
+def test_count_words_refuses_paths_outside_the_sandbox(sandbox: Path, outside: Path) -> None:
+    for path in ["../outside/secret.txt", str(outside / "secret.txt")]:
+        with pytest.raises(SandboxError):
+            count_words(path)
+
+
+def test_count_words_handles_a_missing_file(sandbox: Path) -> None:
+    with pytest.raises(ToolError, match="not a file"):
+        count_words("missing.md")
+    assert run_tool("count_words", '{"path": "missing.md"}').startswith("Error:")
 
 
 # ---------- run_tool(): the dispatcher every brain goes through ----------

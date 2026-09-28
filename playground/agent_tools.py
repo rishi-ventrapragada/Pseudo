@@ -1,4 +1,4 @@
-"""M3: the agent's hands. Three file tools, locked inside playground/sandbox/.
+"""M3: the agent's hands. Sandboxed file tools, locked inside playground/sandbox/.
 
 What it demonstrates: tools are plain Python functions, and the safety rules
 live HERE, inside the tools, not in the agent loop (DECISIONS.md D11). So they
@@ -118,6 +118,20 @@ def read_file(path: str) -> str:
     return text or "(the file is empty)"
 
 
+def count_words(path: str) -> str:
+    """Count the words in a text file (read-only, so no approval gate)."""
+    target = resolve_in_sandbox(path)
+    if not target.is_file():
+        raise ToolError(f"{path!r} is not a file in the sandbox")
+    refuse_hard_links(target)
+    try:
+        text = target.read_text(encoding="utf-8")
+    except UnicodeDecodeError:
+        raise ToolError(f"{path!r} is not a UTF-8 text file") from None
+    word_count = len(text.split())  # split() with no argument splits on any run of whitespace
+    return f"{display(target)} has {word_count} words."
+
+
 def build_preview(where: str, old: str | None, new: str) -> str:
     """What the human sees before saying yes or no: full text if new, a diff if not."""
     if old is None:
@@ -152,7 +166,8 @@ def write_file(path: str, content: str) -> str:
 
 # The name the model asks for -> the Python function we run, plus the parameter
 # names each schema allows (anything else the model sends is refused).
-TOOL_FUNCTIONS = {"list_files": list_files, "read_file": read_file, "write_file": write_file}
+TOOL_FUNCTIONS = {"list_files": list_files, "read_file": read_file, "count_words": count_words,
+                  "write_file": write_file}
 ALLOWED_ARGUMENTS = {s["function"]["name"]: set(s["function"]["parameters"]["properties"]) for s in TOOL_SCHEMAS}
 
 
