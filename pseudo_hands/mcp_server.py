@@ -20,6 +20,7 @@ from mcp.server import MCPServer
 from mcp.types import ToolAnnotations
 
 from pseudo_hands.core.active_window import read_active_window
+from pseudo_hands.core.focus import focus_window
 from pseudo_hands.core.windows import list_open_windows
 
 LIST_OPEN_WINDOWS_DESCRIPTION = (
@@ -35,6 +36,12 @@ READ_ACTIVE_WINDOW_DESCRIPTION = (
     "return nothing. Long windows are cut short ('truncated': true). Use this when the user asks "
     "about what is on their screen."
 )
+FOCUS_WINDOW_DESCRIPTION = (
+    "Bring one of the user's windows to the front. Pass its id from list_open_windows (like "
+    "'w3'); call list_open_windows first if you don't have a current id. The user must approve "
+    "every call in a popup on their screen. If the status is 'not approved', nothing happened: "
+    "tell the user and don't retry unless they ask. Private apps can't be focused."
+)
 
 server = MCPServer("pseudo_hands")
 server.add_tool(
@@ -48,6 +55,13 @@ server.add_tool(
     name="read_active_window",
     description=READ_ACTIVE_WINDOW_DESCRIPTION,
     annotations=ToolAnnotations(read_only_hint=True, open_world_hint=False),
+)
+server.add_tool(
+    focus_window,  # M10: the first action. The approval popup runs inside it, in core (D13).
+    name="focus_window",
+    description=FOCUS_WINDOW_DESCRIPTION,
+    annotations=ToolAnnotations(read_only_hint=False, destructive_hint=False,
+                                idempotent_hint=True, open_world_hint=False),
 )
 
 if __name__ == "__main__":

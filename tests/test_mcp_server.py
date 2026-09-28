@@ -20,7 +20,7 @@ from pathlib import Path
 import pytest
 from mcp import Client, StdioServerParameters
 
-from pseudo_hands.core import blocked_apps
+from pseudo_hands.core import blocked_apps, focus
 from pseudo_hands.core.blocked_apps import RESTRICTED
 from pseudo_hands.core.windows import RawWindow, list_open_windows
 from pseudo_hands.mcp_server import LIST_OPEN_WINDOWS_DESCRIPTION, server
@@ -28,6 +28,7 @@ from pseudo_hands.mcp_server import LIST_OPEN_WINDOWS_DESCRIPTION, server
 REPO_ROOT = Path(__file__).resolve().parent.parent
 PSEUDO_HANDS = REPO_ROOT / "pseudo_hands"
 SECRET_TITLE = "Vault: bank PIN 4321"
+ALL_TOOLS = ["list_open_windows", "read_active_window", "focus_window"]  # M9 and M10 added one each
 HANDLES = itertools.count(101)  # (M10) every fake window gets its own handle, so its own id
 
 
@@ -50,15 +51,29 @@ def everything_sent(result) -> str:
 # ---------- what the server publishes ----------
 
 @pytest.mark.anyio
-async def test_the_server_publishes_its_read_only_tools() -> None:
+async def test_the_server_publishes_its_tools() -> None:
     async with Client(server) as client:
         tools = (await client.list_tools()).tools
-    assert [tool.name for tool in tools] == ["list_open_windows", "read_active_window"]  # M9 added one
-    assert all(t.annotations.read_only_hint is True and t.input_schema["properties"] == {} for t in tools)
-    tool = tools[0]
-    assert tool.description == LIST_OPEN_WINDOWS_DESCRIPTION
-    assert tool.input_schema["properties"] == {}  # the tool takes no arguments
-    assert tool.annotations.read_only_hint is True
+    assert [tool.name for tool in tools] == ALL_TOOLS
+    readers, action = tools[:2], tools[2]
+    assert all(t.annotations.read_only_hint is True and t.input_schema["properties"] == {} for t in readers)
+    assert readers[0].description == LIST_OPEN_WINDOWS_DESCRIPTION
+    assert action.annotations.read_only_hint is False  # (M10) an action, and it says so
+    assert action.input_schema["required"] == ["window_id"] and list(action.input_schema["properties"]) == ["window_id"]
+
+
+@pytest.mark.anyio
+async def test_focus_window_over_mcp_goes_through_the_core_gate(desktop, popup_no,
+                                                                monkeypatch: pytest.MonkeyPatch) -> None:
+    target = fake("notes.md - Notepad", "notepad.exe")
+    desktop([fake("Home", "Code.exe", focused=True), target])
+    monkeypatch.setattr(focus, "read_window", lambda handle, _focused: target if handle == target.handle else None)
+    async with Client(server) as client:
+        listed = (await client.call_tool("list_open_windows", {})).structured_content["result"]
+        result = await client.call_tool("focus_window", {"window_id": listed[1]["id"]})
+    assert result.structured_content == {"window_id": listed[1]["id"], "title": "notes.md - Notepad",
+                                         "app": "notepad.exe", "status": "not approved"}
+    assert len(popup_no.previews) == 1  # the (fake) person was asked, from inside core
 
 
 # ---------- calling it: same result as the core, privacy intact ----------
@@ -141,7 +156,7 @@ async def test_real_server_over_stdio_smoke() -> None:
     async with Client(params) as client:
         names = [tool.name for tool in (await client.list_tools()).tools]
         result = await client.call_tool("list_open_windows", {})
-    assert names == ["list_open_windows", "read_active_window"]
+    assert names == ALL_TOOLS
     assert result.is_error is False
     windows = result.structured_content["result"]
     assert all(set(w) == {"id", "title", "app", "focused"} for w in windows)
