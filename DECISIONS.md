@@ -47,11 +47,14 @@ Pseudo is the whole assistant experience; the brain inside it (Hermes today) mus
 - The Phase 1 agent loop uses the same tool-definition format, so it can later drive Pseudo's real tools directly as an alternative brain.
 *Why:* the owner may change direction (own brain, different harness, local model) and doesn't want a rewrite when that happens.
 
+### D12. Hermes Agent as the brain (was L1)
+Pseudo is the senses, hands, and face; Hermes Agent (already installed) does reasoning, memory, skills, scheduling, and coding. D11 still holds: Hermes reaches Pseudo only through MCP, so it stays replaceable.
+*Why:* it is already installed and covers memory, skills and scheduling, so Pseudo can focus on perception, privacy, and actions.
+*Would change if:* Hermes works poorly with free models (first real test: M6).
+
 ## LEANING (revisit after Phase 1)
 
-### L1. Hermes Agent as the brain
-Pseudo becomes the senses, hands, and face; Hermes does reasoning, memory, skills, scheduling, coding. Already installed.
-*Open question:* how well Hermes works with free models; test before committing.
+L1 moved to LOCKED as D12 (2026-09-28).
 
 ### L2. Pseudo Hands as an MCP server
 Portable across agents. First tool: `list_open_windows`.
@@ -63,10 +66,11 @@ UI Automation tree first, local OCR second, local vision model (OmniParser / Flo
 Main brain on a free cloud model; cheap model for auxiliary tasks; fallback chain across providers (Groq, OpenRouter free, Gemini free for non-screen tasks only).
 
 ### L5. Interface
-Resizable overlay (PySide6) with collapsed / compact / expanded states; voice via openWakeWord + faster-whisper + Piper, all local. Wake word plus push-to-talk.
+For now the face is Hermes Desktop; Pseudo builds no UI of its own. If a custom face is built later, it is a web UI (React, wrapped with Tauri or Electron) that talks to Pseudo's Python core through a local server. PySide6 is dropped.
+Voice via openWakeWord + faster-whisper + Piper, all local. Wake word plus push-to-talk.
 
 ### L6. Storage
-SQLite for memory and routines (may be replaced by Hermes' own memory if L1 holds).
+SQLite for memory and routines (may be replaced by Hermes' own memory, per D12).
 
 ### L7. Routines
 Saved from a successful run, preferring scripts over recorded clicks.
