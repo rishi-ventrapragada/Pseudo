@@ -134,3 +134,4 @@ pseudo_hands/
 |---|---|
 | pywin32 | Python wrappers for the Windows API (EnumWindows, window titles, process ids). pywinauto (Phase 3) is built on it too. |
 | psutil | Turns a process id into an app name ("Code.exe"). |
+| mcp | Official MCP Python SDK: MCPServer for pseudo_hands, Client for its tests. |

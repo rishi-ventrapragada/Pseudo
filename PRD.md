@@ -2,7 +2,7 @@
 
 Owner: Sai Rishi Ventrapragada
 Repo: https://github.com/rishi-ventrapragada/Pseudo
-Status: Phase 1 (Foundations) - complete. Phase 2 (First MCP server) in progress: M4.
+Status: Phase 1 (Foundations) - complete. Phase 2 (First MCP server) in progress: M5.
 Last updated: 2026-09-28
 
 ## 1. What Pseudo is
