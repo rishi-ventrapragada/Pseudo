@@ -16,6 +16,7 @@ The model only ever gets the redacted title, never the popup's text.
 """
 
 import os
+import time
 from typing import TypedDict
 
 import pywintypes
@@ -27,6 +28,7 @@ from pseudo_hands.core.blocked_apps import RESTRICTED, is_blocked, load_blocked_
 from pseudo_hands.core.windows import RawWindow, is_user_window, read_window, safe_title
 
 POPUP_TITLE_CHARS = 120
+SWITCH_WAIT_SECONDS = 1.0  # the other app finishes the switch on its own thread, a moment later
 
 # What focus_window() reports back, as plain words a model can act on.
 FOCUSED = "focused"
@@ -78,6 +80,9 @@ def bring_to_front(handle: int) -> bool:
         return False
     if win32gui.IsIconic(handle):  # minimized: restore it, but only now that focusing worked
         win32gui.ShowWindow(handle, win32con.SW_RESTORE)
+    deadline = time.monotonic() + SWITCH_WAIT_SECONDS  # checking at once can still see the old window
+    while win32gui.GetForegroundWindow() != handle and time.monotonic() < deadline:
+        time.sleep(0.05)
     return win32gui.GetForegroundWindow() == handle
 
 
