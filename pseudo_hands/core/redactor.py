@@ -1,4 +1,4 @@
-"""M7: Pseudo's local redactor. redact(text) masks personal info before any model sees it.
+"""M7/M8: Pseudo's local redactor. redact(text) masks personal info before any model sees it.
 
 What it demonstrates: privacy as a plain core function (D6, D11). Microsoft's
 Presidio does the finding, in two halves, like a linter and its --fix:
@@ -7,20 +7,22 @@ Presidio does the finding, in two halves, like a linter and its --fix:
   anonymizer -> replaces each span with a mask like "[PERSON]"
 Everything runs on this laptop; no text is sent anywhere.
 
-Fail closed (when unsure, mask), six ways:
-  1. score_threshold=0: every finding is masked, even low-confidence guesses.
-  2. Indian formats match by shape, never by checksum (india_recognizers.py).
-  3. LONG_NUMBER catches any 8+ digit run no other recognizer understood.
-  4. The output is re-checked for phone/Aadhaar/number shapes; any leftover raises.
-  5. Any error (model, analyzer, anonymizer, terms file) raises RedactionError.
-     redact() never returns text it could not fully process.
-  6. Nothing needs the network (a test proves it with sockets blocked).
+The steps of redact(text):
+  1. Your private terms become [PRIVATE] first, so nothing below can un-hide them.
+  2. Known app/site names (allowed_names.txt) are split out and passed through untouched;
+     every other piece goes through full detection (M8: stops "New Tab" looking like a name).
+  3. Presidio finds and masks; "main.py"-style file names are not treated as web addresses.
+  4. The output is re-checked for phone/Aadhaar/long-number shapes; any leftover raises.
+Fail closed: every finding is masked at any confidence (score_threshold=0), Indian formats
+match by shape (india_recognizers.py), and ANY error raises RedactionError. redact() never
+returns text it could not fully process. Nothing needs the network.
 """
 
+import re
 from functools import lru_cache
 from pathlib import Path
 
-from presidio_analyzer import AnalyzerEngine, PatternRecognizer, RecognizerRegistry
+from presidio_analyzer import AnalyzerEngine, RecognizerRegistry
 from presidio_analyzer.nlp_engine import NlpEngineProvider
 from presidio_analyzer.predefined_recognizers import (
     InGstinRecognizer, InPassportRecognizer, InVehicleRegistrationRecognizer, InVoterRecognizer,
@@ -31,9 +33,11 @@ from presidio_anonymizer.entities import OperatorConfig
 from pseudo_hands.core.india_recognizers import LEAK_CHECKS, india_recognizers
 
 SPACY_MODEL = "en_core_web_sm"  # 12.8 MB; swap for "en_core_web_lg" (400 MB) if names get missed
-TERMS_FILE = Path(__file__).resolve().parent / "redaction_terms.txt"
-# App and site names ("Visual Studio Code", "GitHub") are what window titles are made of,
-# and they are not personal, so spaCy's ORGANIZATION guesses are deliberately left visible.
+HERE = Path(__file__).resolve().parent
+TERMS_FILE = HERE / "redaction_terms.txt"  # the owner's private terms (gitignored)
+ALLOWED_NAMES_FILE = HERE / "allowed_names.txt"  # app/site names never masked (committed)
+PRIVATE_MASK = "[PRIVATE]"
+# spaCy's ORGANIZATION guesses in titles are app/site names, not personal, so they stay visible.
 NOT_MASKED = {"ORGANIZATION"}
 # "main.py" and "notes.md" look like web addresses to Presidio (.py and .md are real country
 # domains). A URL finding with no "://", "/" or "www." that ends in one of these is a file name.
@@ -42,23 +46,50 @@ FILE_EXTENSIONS = {
     "pptx", "png", "jpg", "jpeg", "gif", "svg", "yaml", "yml", "toml", "ini", "log", "sh", "ps1", "bat",
     "ipynb", "sql",
 }
+# An allowed name glued to one of these is part of a bigger token, like "notepad@okaxis" (UPI)
+# or "github.com/someone" (URL), so it is NOT exempted there.
+GLUE = r"\w@./\-"
 
 
 class RedactionError(Exception):
     """Redaction could not be completed, so the text must be withheld, never shown as-is."""
 
 
-def parse_terms(text: str) -> list[str]:
-    """One private term per line; '#' starts a comment. Matching ignores case."""
+def parse_list(text: str) -> list[str]:
+    """One entry per line; '#' starts a comment. Matching ignores case."""
     return [line.split("#", 1)[0].strip() for line in text.splitlines() if line.split("#", 1)[0].strip()]
 
 
-def load_terms() -> list[str]:
-    """Read the owner's private terms. A missing list is an error, not "no terms" (fail closed)."""
+def load_list(path: Path, what: str) -> list[str]:
+    """A missing list is an error, not "empty" (fail closed)."""
     try:
-        return parse_terms(TERMS_FILE.read_text(encoding="utf-8"))
+        return parse_list(path.read_text(encoding="utf-8"))
     except (OSError, UnicodeDecodeError) as error:
-        raise RedactionError(f"can't read the private terms list ({type(error).__name__})") from None
+        raise RedactionError(f"can't read the {what} list ({type(error).__name__})") from None
+
+
+def word_pattern(words: list[str], not_touching: str) -> re.Pattern | None:
+    """Regex for any of the words (longest first), not directly touching those characters."""
+    if not words:
+        return None
+    alternatives = "|".join(re.escape(w) for w in sorted(words, key=len, reverse=True))
+    return re.compile(rf"(?<![{not_touching}])(?:{alternatives})(?![{not_touching}])", re.IGNORECASE)
+
+
+def mask_private_terms(text: str, terms: list[str]) -> str:
+    """Whole-word match with plain word boundaries: looser than the allowlist, so it masks more."""
+    pattern = word_pattern(terms, r"\w")
+    return pattern.sub(PRIVATE_MASK, text) if pattern else text
+
+
+def split_on_allowed(text: str, names: list[str]) -> list[tuple[str, bool]]:
+    """[(piece, is_allowed_name), ...]. [PRIVATE] masks are passed through like allowed names."""
+    pattern = word_pattern([*names, PRIVATE_MASK], GLUE)
+    pieces, position = [], 0
+    for match in pattern.finditer(text):
+        pieces += [(text[position:match.start()], False), (match.group(0), True)]
+        position = match.end()
+    return pieces + [(text[position:], False)]
 
 
 @lru_cache(maxsize=1)
@@ -81,14 +112,6 @@ def build_anonymizer() -> AnonymizerEngine:
     return AnonymizerEngine()
 
 
-def terms_recognizers(terms: list[str]) -> list[PatternRecognizer]:
-    """Built per call ("ad hoc"), so edits to the terms file apply without a restart."""
-    if not terms:
-        return []
-    return [PatternRecognizer(supported_entity="PRIVATE", name="PseudoPrivateTermsRecognizer",
-                              deny_list=terms, deny_list_score=1.0)]
-
-
 def is_file_name(span: str) -> bool:
     """True for "main.py"-style spans the URL recognizer mistakes for web addresses."""
     lowered = span.lower()
@@ -97,15 +120,19 @@ def is_file_name(span: str) -> bool:
     return lowered.rsplit(".", 1)[1] in FILE_EXTENSIONS
 
 
-def find_personal_info(text: str, terms: list[str]) -> list:
+def find_personal_info(text: str) -> list:
     """The analyzer half: every span any recognizer flags, at any confidence."""
     analyzer = build_analyzer()
     entities = [e for e in analyzer.get_supported_entities(language="en") if e not in NOT_MASKED]
-    if terms:
-        entities.append("PRIVATE")
-    findings = analyzer.analyze(text=text, language="en", entities=entities, score_threshold=0.0,
-                                ad_hoc_recognizers=terms_recognizers(terms))
+    findings = analyzer.analyze(text=text, language="en", entities=entities, score_threshold=0.0)
     return [f for f in findings if not (f.entity_type == "URL" and is_file_name(text[f.start:f.end]))]
+
+
+def mask_piece(piece: str) -> str:
+    """Find and replace personal info in one piece of text (the anonymizer half)."""
+    findings = find_personal_info(piece)
+    operators = {f.entity_type: OperatorConfig("replace", {"new_value": f"[{f.entity_type}]"}) for f in findings}
+    return build_anonymizer().anonymize(text=piece, analyzer_results=findings, operators=operators).text
 
 
 def check_nothing_left(masked: str) -> None:
@@ -121,12 +148,12 @@ def redact(text: str) -> str:
         raise TypeError("redact() takes a string")
     if not text.strip():
         return text
-    terms = load_terms()
+    terms = load_list(TERMS_FILE, "private terms")
+    names = load_list(ALLOWED_NAMES_FILE, "allowed names")
     try:
-        findings = find_personal_info(text, terms)
-        operators = {f.entity_type: OperatorConfig("replace", {"new_value": f"[{f.entity_type}]"})
-                     for f in findings}
-        masked = build_anonymizer().anonymize(text=text, analyzer_results=findings, operators=operators).text
+        text = mask_private_terms(text, terms)  # first: a private term always beats the allowlist
+        masked = "".join(piece if allowed or not piece.strip() else mask_piece(piece)
+                         for piece, allowed in split_on_allowed(text, names))
     except Exception as error:  # noqa: BLE001 - any failure must end in "withheld", never in raw text
         raise RedactionError(f"redaction failed ({type(error).__name__}); text withheld") from None
     check_nothing_left(masked)

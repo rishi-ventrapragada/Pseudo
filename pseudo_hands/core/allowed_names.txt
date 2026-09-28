@@ -1,0 +1,45 @@
+# App and site names Pseudo never masks in window titles (M8).
+# They are split out before detection, so "New Tab - Google Chrome" isn't read as a person.
+# Everything else in a title still goes through full detection.
+#
+# Rules for adding a name:
+#   - Use the full form that appears in titles ("Visual Studio Code", not "Code").
+#   - Never add anything that could be a person's name on its own. That's why the Claude
+#     and Hermes desktop apps are NOT here: their product names are just "Claude" and
+#     "Hermes" (checked from the .exe metadata), which are also first names.
+#   - A name glued to @ . / - or letters is not exempted ("notepad@okaxis" is still masked).
+# Upper/lower case doesn't matter. Everything after a # is a comment.
+
+# Browsers and browser UI
+Google Chrome
+Microsoft Edge
+Mozilla Firefox
+New Tab
+
+# Sites
+YouTube
+GitHub
+Stack Overflow
+Supabase
+Vercel
+WhatsApp Web
+Gmail
+
+# Apps
+Visual Studio Code
+Claude Code
+File Explorer
+Notepad
+Windows PowerShell
+Command Prompt
+Task Manager
+Settings
+Calculator
+Spotify Premium
+Spotify
+Discord
+Slack
+Microsoft Word
+Microsoft Excel
+Microsoft PowerPoint
+Adobe Acrobat
