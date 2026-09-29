@@ -104,6 +104,11 @@ def test_the_brain_names_no_tools() -> None:
             assert tool not in text, f"{path.name} names {tool}; tools must come from the server"
 
 
+def test_the_prompt_asks_for_a_fresh_read_of_the_screen() -> None:  # (P5-tune) M14 answered from stale history
+    from pseudo_brain.loop import SYSTEM_PROMPT
+    assert "call the tools again" in SYSTEM_PROMPT and "never answer from earlier tool results" in SYSTEM_PROMPT
+
+
 def test_the_terminal_hides_the_api_key(capsys: pytest.CaptureFixture) -> None:
     printer("fake-key-123")("failed", {"reason": "an error that mentions fake-key-123"})
     output = capsys.readouterr().out
