@@ -85,7 +85,7 @@ UI Automation tree first, local OCR second, local vision model (OmniParser / Flo
 Main brain on a free cloud model; cheap model for auxiliary tasks; fallback chain across providers (Groq, OpenRouter free, Gemini free for non-screen tasks only).
 
 ### L5. Interface
-Pseudo's face is our own web UI: a React window, wrapped with Tauri or Electron, that talks to `pseudo_brain` through a local server (M15). Hermes Desktop was ruled out in M13 (D15). PySide6 is dropped.
+Pseudo's face is our own web UI: a React window, wrapped with Tauri or Electron, that talks to `pseudo_brain` through a local server (M16). Hermes Desktop was ruled out in M13 (D15). PySide6 is dropped.
 Voice via openWakeWord + faster-whisper + Piper, all local. Wake word plus push-to-talk.
 
 ### L6. Storage (memory)
