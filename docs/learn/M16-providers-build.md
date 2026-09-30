@@ -70,7 +70,7 @@ A `Model` is built from **one** `Provider` and never sees another. So "never fal
 if session.provider and session.provider != provider.id:
     return fail(result, f"this session belongs to {session.provider}, not {provider.id}; ...")
 ```
-This check lives in the loop, not in the terminal, so M17's face gets the same protection automatically.
+This check lives in the loop, not in the terminal, so M18's face gets the same protection automatically.
 
 **5. Starting Ollama safely** (`local_server.py`, `start`):
 1. `cloud_is_off()`: `server.json` must say `"disable_ollama_cloud": true`; otherwise nothing starts.
@@ -142,6 +142,6 @@ The `FAILED` line came after the test stopped Ollama on purpose: the question fa
 
 ## How this connects to Pseudo's final architecture
 
-- **M17's face** calls the same `connect_provider()` and shows the same events (`fallback`, `server_ready`, provider and model in every answer). The session rule lives in the loop, so the face can't break it.
+- **M18's face** calls the same `connect_provider()` and shows the same events (`fallback`, `server_ready`, provider and model in every answer). The session rule lives in the loop, so the face can't break it.
 - **Next after the face:** the redactor over-masks non-personal text (Backlog, high priority).
 - **Claude Code** stays a separate brain over MCP (D16), not an entry in `providers.toml`.

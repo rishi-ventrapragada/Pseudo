@@ -5,7 +5,7 @@ asks for, repeat until it answers in plain text, stop at a hard cap) with four c
   1. The tools come from pseudo_hands over MCP (hands.py), not from Python imports.
   2. It is async, because the MCP client and the model client are.
   3. It never prints. Each step is reported as an EVENT (a kind plus a small dict) through
-     on_event, so the terminal prints them now and the M17 React face can show the same
+     on_event, so the terminal prints them now and the M18 React face can show the same
      events. Events carry names, sizes and numbers, never a tool result's text.
   4. It is honest: every failure returns TurnResult(ok=False, reason=...). A failure is
      never shown or stored as an answer.

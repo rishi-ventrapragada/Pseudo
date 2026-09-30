@@ -3,7 +3,7 @@
 What it demonstrates: the same call as M1-M3 (the OpenAI-compatible API, D10), now
 async (AsyncOpenAI), because pseudo_brain also talks to pseudo_hands over MCP, and
 MCP is async. Nothing here prints: waits are reported through on_event, so any
-interface (the terminal now, the React face in M17) can show them.
+interface (the terminal now, the React face in M18) can show them.
 
 Since M16 a Model belongs to ONE provider from the allowlist (providers.py, D16). The
 same code talks to Groq or to Ollama on this laptop: only the URL, key and model names

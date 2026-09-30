@@ -1,6 +1,6 @@
 """M14, M16: the terminal interface for pseudo_brain. A thin wrapper (D11): it prints the
 loop's events and reads your questions. Every decision lives in the other files, so
-M17's React face can use the same loop through the same events.
+M18's React face can use the same loop through the same events.
 
 Run it from the repo root:
     python -m pseudo_brain                    a new session on the default provider (providers.toml)

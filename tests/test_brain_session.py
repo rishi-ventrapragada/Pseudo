@@ -113,7 +113,7 @@ def test_only_the_terminal_prints() -> None:
         tree = ast.parse((PSEUDO_BRAIN / name).read_text(encoding="utf-8"))
         prints = [n for n in ast.walk(tree)
                   if isinstance(n, ast.Call) and isinstance(n.func, ast.Name) and n.func.id == "print"]
-        assert prints == [], f"{name} prints; only terminal.py may (M17's face reuses the loop)"
+        assert prints == [], f"{name} prints; only terminal.py may (M18's face reuses the loop)"
 
 
 def test_the_brain_names_no_tools() -> None:
