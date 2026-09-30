@@ -213,7 +213,6 @@ Goal: use Pseudo day to day, not just through `hermes -p pseudo` in a terminal. 
   - what data goes where: redacted tool results to Anthropic ("Help improve Claude" is off), and anything else the app sends;
   - how `read_active_window` should pick the window the owner was on before switching to the app (today it would read the chat itself: `pick_window` skips only `hermes.exe`), and whether that fix belongs in `pseudo_hands` core so every face benefits;
   - whether the approval popup works with the app as the face;
-  - also: a six-question test of `phi4-mini` and `qwen3:1.7b` as backup private-mode models, with M15's thresholds.
 - No Claude app configuration changes without a backup and the owner's approval of the exact change.
 - **Done when:** each question has a measured answer, and there is a recommendation (the Claude app, with its configuration listed, or the own React face in M18), decided by criteria written down before measuring.
 
