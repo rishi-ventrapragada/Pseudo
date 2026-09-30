@@ -129,6 +129,6 @@ def test_the_prompt_asks_for_a_fresh_read_of_the_screen() -> None:  # (P5-tune) 
 
 
 def test_the_terminal_hides_the_api_key(capsys: pytest.CaptureFixture) -> None:
-    printer("fake-key-123")("failed", {"reason": "an error that mentions fake-key-123"})
+    printer(["fake-key-123"])("failed", {"reason": "an error that mentions fake-key-123"})
     output = capsys.readouterr().out
     assert "fake-key-123" not in output and "<hidden>" in output and "No answer was produced" in output

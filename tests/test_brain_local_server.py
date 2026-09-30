@@ -13,8 +13,9 @@ from pathlib import Path
 import psutil
 import pytest
 
-from pseudo_brain import local_server
+from pseudo_brain import local_server, model
 from pseudo_brain.local_server import LocalServer, ServerFailure
+from pseudo_brain.model import ModelFailure, connect_provider
 from pseudo_brain.providers import Provider, Server
 
 FAKE_SERVER = """
@@ -127,3 +128,31 @@ async def test_a_server_listening_outside_127_0_0_1_is_stopped(tmp_path: Path, m
     with pytest.raises(ServerFailure, match=r"isn't private \(our server was stopped\)"):
         await server.start()
     assert not server.started_by_us
+
+
+# ---------- connect_provider (model.py): server first, then the check ----------
+
+@pytest.mark.anyio
+async def test_connecting_starts_the_server_says_so_and_checks_the_provider(tmp_path: Path,
+                                                                           monkeypatch: pytest.MonkeyPatch) -> None:
+    async def fake_check(self) -> None:
+        assert local_server.answers(self.provider.address)  # the server is up BEFORE the check
+    monkeypatch.setattr(model.Model, "check", fake_check)
+    provider = private(tmp_path, [sys.executable, "-c", FAKE_SERVER, str(tmp_path / "child.pid")])
+    servers, events = {}, []
+    connected = await connect_provider(provider, servers, lambda kind, data: events.append(kind))
+    assert connected.provider is provider and events == ["server_starting", "server_ready"]
+    assert servers["local"].stop()
+
+
+@pytest.mark.anyio
+async def test_a_server_started_for_a_provider_that_fails_its_check_is_stopped(tmp_path: Path,
+                                                                             monkeypatch: pytest.MonkeyPatch) -> None:
+    async def failing_check(self) -> None:
+        raise ModelFailure("Fake local at 127.0.0.1 doesn't have tiny-model")
+    monkeypatch.setattr(model.Model, "check", failing_check)
+    provider = private(tmp_path, [sys.executable, "-c", FAKE_SERVER, str(tmp_path / "child.pid")])
+    servers: dict = {}
+    with pytest.raises(ModelFailure, match="doesn't have tiny-model"):
+        await connect_provider(provider, servers, lambda kind, data: None)
+    assert not servers["local"].started_by_us and not local_server.answers(provider.address)

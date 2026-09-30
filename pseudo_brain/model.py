@@ -30,6 +30,7 @@ import openai
 from dotenv import load_dotenv
 from openai.types.chat import ChatCompletion
 
+from pseudo_brain.local_server import LocalServer
 from pseudo_brain.providers import Provider
 
 ENV_PATH = Path(__file__).resolve().parent.parent / ".env"
@@ -101,6 +102,27 @@ class Model:
         missing = [name for name in self.provider.models if name not in available]
         if missing:
             raise ModelFailure(f"{where} doesn't have {', '.join(missing)}")
+
+
+async def connect_provider(provider: Provider, servers: dict[str, LocalServer],
+                           on_event: Callable[[str, dict], None]) -> Model:
+    """A ready Model: the provider's own server started if it has one, its key loaded, and checked.
+
+    Raises ServerFailure or ModelFailure, with a plain reason, if the provider can't be used.
+    A server started here stays in `servers`, so the interface can stop it when it exits.
+    """
+    if provider.server:
+        server = servers.setdefault(provider.id, LocalServer(provider))
+        on_event("server_starting", {"provider": provider.id, "address": provider.address})
+        on_event("server_ready", await server.start())
+    try:
+        model = Model(provider, load_key(provider))
+        await model.check()
+    except ModelFailure:
+        if provider.server:
+            servers[provider.id].stop()  # started for nothing: don't leave it running
+        raise
+    return model
 
 
 def retry_after(error: openai.RateLimitError) -> float:
