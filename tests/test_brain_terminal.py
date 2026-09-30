@@ -139,3 +139,15 @@ def test_an_unknown_provider_at_launch_cannot_start(world: dict, capsys, monkeyp
     monkeypatch.setattr(sys, "argv", ["pseudo_brain", "--provider", "cloudy"])
     assert terminal.main() == 1
     assert '--- CANNOT START: "cloudy" is not in the allowlist' in capsys.readouterr().out
+
+
+@pytest.mark.anyio
+async def test_a_mistyped_command_is_never_sent_to_the_model(world: dict, capsys) -> None:
+    out = await run(world, ["/provder local"], capsys)
+    assert "--- UNKNOWN COMMAND /provder: nothing was sent." in out and world["models"]["groq"][0].requests == []
+
+
+@pytest.mark.anyio
+async def test_a_byte_order_mark_before_a_command_is_ignored(world: dict, capsys) -> None:
+    out = await run(world, ["﻿/provider"], capsys)  # PowerShell starts piped text with one (found in M16)
+    assert "--- ALLOWED PROVIDERS" in out and world["models"]["groq"][0].requests == []

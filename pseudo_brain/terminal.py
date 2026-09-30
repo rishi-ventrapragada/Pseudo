@@ -29,6 +29,8 @@ from pseudo_brain.providers import Provider, ProviderRefused, load_allowlist
 from pseudo_brain.session import Session, load_latest
 
 REFUSALS = (ProviderRefused, ModelFailure, ServerFailure)  # a provider that can't be used, with the reason
+COMMANDS = "/provider, /provider <id>, /new, /quit"
+BOM = "﻿"  # an invisible mark PowerShell puts at the start of piped text (found in M16's checks)
 
 
 def describe(provider: Provider) -> str:
@@ -121,7 +123,7 @@ async def chat(resume: bool, wanted: str | None) -> int:
             print(f"--- CONNECTED: {len(hands.names)} tools discovered: {', '.join(hands.names)} ---")
             while True:
                 try:
-                    text = (await ask("\nyou> ")).strip()
+                    text = (await ask("\nyou> ")).replace(BOM, "").strip()
                 except EOFError:  # end of piped input
                     break
                 if text in ("/quit", "/exit"):
@@ -145,6 +147,8 @@ async def chat(resume: bool, wanted: str | None) -> int:
                         continue
                     session = Session(provider=chosen.id)
                     print(f"--- SWITCHED TO {chosen.id}: NEW SESSION {session.started} (a session keeps one provider) ---")
+                elif text.startswith("/"):  # a mistyped command must never reach the model as a question
+                    print(f"--- UNKNOWN COMMAND {text.split()[0]}: nothing was sent. Commands: {COMMANDS} ---")
                 elif text:
                     await run_turn(session, text, model, hands, show)
                     session.save()  # after every turn, so nothing is lost if the window closes
