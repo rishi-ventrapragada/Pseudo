@@ -1,0 +1,13 @@
+# Assistant apps: the programs you talk to Pseudo (or another AI) through (M17, M18).
+# read_active_window never reads their windows. When you switch to one of them to ask
+# "what does my window say?", it reads the window you were on BEFORE switching.
+#
+# One process name per line, as shown in Task Manager > Details (e.g. claude.exe).
+# Upper/lower case doesn't matter. Everything after a # is a comment.
+# If this file can't be read, read_active_window reads nothing (fail closed).
+#
+# Limit: an always-on-top window still counts as "in front", even if you switched away.
+
+hermes.exe     # Hermes Agent and Hermes Desktop (M6-M13)
+claude.exe     # the Claude desktop app (M17)
+electron.exe   # Pseudo's own face while it runs from `npm start` (M18)

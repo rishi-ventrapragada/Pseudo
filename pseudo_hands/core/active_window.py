@@ -2,7 +2,10 @@
 
 What it demonstrates: reading is only safe because every privacy rule runs HERE,
 in core, before anything is returned (D6, D11):
-  1. The assistant's own window is skipped, so Hermes never reads its own chat.
+  1. Assistant apps are skipped (M18: the owner's list in assistant_apps.txt), so a
+     question asked from Pseudo's face reads the window you were on before switching,
+     never the chat itself. Windows keeps windows in the order they were last active,
+     so skipping the face leads to that window. If the list can't be read, nothing is.
   2. Blocked (or unknown) apps return nothing, and their tree is never even walked.
   3. The outline is redacted as a whole, THEN cut to size, so a cut can't expose
      half of a secret. Redaction failure -> "[content withheld]", never raw text.
@@ -14,14 +17,16 @@ in core, before anything is returned (D6, D11):
 """
 
 import time
+from pathlib import Path
 from typing import TypedDict
 
-from pseudo_hands.core.blocked_apps import RESTRICTED, is_blocked, load_blocked_apps
+from pseudo_hands.core.blocked_apps import RESTRICTED, is_blocked, load_blocked_apps, parse_blocked_apps
 from pseudo_hands.core.redactor import RedactionError, redact
 from pseudo_hands.core.ui_tree import TreeLine, TreeRead, read_tree
 from pseudo_hands.core.windows import RawWindow, is_user_window, read_all_windows, safe_title
 
-ASSISTANT_APPS = {"hermes.exe"}  # the brain's own window: reading it would read the chat itself
+ASSISTANT_APPS_FILE = Path(__file__).resolve().parent / "assistant_apps.txt"  # (M18) the face, Hermes, the Claude app
+ASSISTANT_LIST_UNREADABLE = "assistant-apps list can't be read: nothing read"
 MAX_CONTENT_CHARS = 1200
 RETRY_WAIT_SECONDS = 1.0  # (M12) time for a lazy app to build its tree before the second try
 CONTENT_WITHHELD = "[content withheld]"
@@ -39,10 +44,23 @@ class WindowContent(TypedDict):
     note: str  # "" or a short reason, never an error message (those could contain text)
 
 
+class AssistantAppsError(Exception):
+    """(M18) assistant_apps.txt could not be read, so we can't tell the face from your window."""
+
+
+def load_assistant_apps() -> set[str]:
+    """(M18) Read assistant_apps.txt (same format as blocked_apps.txt). Raises instead of guessing."""
+    try:
+        return parse_blocked_apps(ASSISTANT_APPS_FILE.read_text(encoding="utf-8"))
+    except (OSError, UnicodeDecodeError):
+        raise AssistantAppsError(f"can't read {ASSISTANT_APPS_FILE.name}") from None
+
+
 def pick_window() -> RawWindow | None:
-    """The front-most window a person can see that isn't the assistant itself."""
+    """The front-most window a person can see that isn't an assistant app. Raises AssistantAppsError."""
+    assistants = load_assistant_apps()
     for raw in read_all_windows():  # z-order: front-most first
-        if is_user_window(raw) and (raw.app or "").lower() not in ASSISTANT_APPS:
+        if is_user_window(raw) and (raw.app or "").lower() not in assistants:
             return raw
     return None
 
@@ -116,7 +134,10 @@ def read_window(raw: RawWindow, blocked: set[str]) -> WindowContent:
 def read_active_window() -> WindowContent:
     """Read-only. Raises BlockedAppsError if the blocked-apps list is missing (as in M4)."""
     blocked = load_blocked_apps()
-    raw = pick_window()
+    try:
+        raw = pick_window()
+    except AssistantAppsError:  # (M18) fail closed: the front window might be the face itself
+        return result("", "", note=ASSISTANT_LIST_UNREADABLE)
     if raw is None:
         return result("", "", note="no active window")
     return read_window(raw, blocked)
