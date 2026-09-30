@@ -1,4 +1,4 @@
-﻿"""Tests for M14: pseudo_brain's session history (trimming, saving, continuing), plus two
+"""Tests for M14: pseudo_brain's session history (trimming, saving, continuing), plus two
 rules about the package itself: the loop never prints, and the brain names no tools.
 All messages here are FAKE; sessions are saved to a temporary folder.
 """
