@@ -1,0 +1,31 @@
+# D16: the ONLY providers pseudo_brain may use. Anything not listed here is refused (providers.py).
+# Keys never go in this file: key_env is the NAME of the .env variable that holds the key.
+# Every place Pseudo can send your questions is in this file, so it is reviewed in git (D10).
+
+default = "groq"
+
+[providers.groq]
+name = "Groq"
+base_url = "https://api.groq.com/openai/v1"
+key_env = "LLM_API_KEY"
+models = ["openai/gpt-oss-120b", "openai/gpt-oss-20b"]  # first = main; the rest = 429 fallbacks, in order
+leaves_laptop = true
+privacy = "Redacted screen text goes to Groq, which doesn't train on it (services agreement 4.2)."
+timeout_seconds = 60
+max_prompt_tokens = 3000  # a two-call question stays well under Groq's 8K tokens/min
+
+[providers.local]
+name = "Private mode (Ollama)"
+base_url = "http://127.0.0.1:11434/v1"
+key_env = ""  # Ollama needs no key
+models = ["granite4.1:3b"]
+leaves_laptop = false
+privacy = "Nothing leaves this laptop: Ollama on 127.0.0.1, cloud off."
+timeout_seconds = 180  # a cold start took 15 s, the very first one 85 s (M15)
+max_prompt_tokens = 2500  # Ollama's context is 4,096 tokens, and the answer needs room
+
+# pseudo_brain starts this server when you switch to private mode, and stops it when it exits.
+[providers.local.server]
+command = ['%LOCALAPPDATA%\Programs\Ollama\ollama.exe', 'serve']
+address_env = "OLLAMA_HOST"  # set to base_url's address, so the server listens on 127.0.0.1:11434 only
+cloud_off = { file = '%USERPROFILE%\.ollama\server.json', key = "disable_ollama_cloud" }  # must be true
