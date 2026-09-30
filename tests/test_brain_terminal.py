@@ -1,4 +1,6 @@
 """Tests for M16: /provider, --provider and --continue in the terminal (pseudo_brain/terminal.py).
+Since M18 the rules live in chat.py, so connecting is faked there; these tests check the terminal still
+behaves exactly as in M16.
 
 Everything is FAKE: the allowlist holds brain_fakes' providers, connecting to a provider
 returns a FakeModel (no network, no real server), pseudo_hands is the in-memory fake, and
@@ -11,6 +13,7 @@ from pathlib import Path
 import pytest
 
 from brain_fakes import FAKE_CLOUD, FAKE_HANDS, FAKE_LOCAL, FakeModel, reply
+from pseudo_brain import chat as chat_module
 from pseudo_brain import session as session_module
 from pseudo_brain import terminal
 from pseudo_brain.hands import connect_hands
@@ -51,7 +54,7 @@ def world(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> dict:
         if not world["typed"]:
             raise EOFError
         return world["typed"].pop(0)
-    monkeypatch.setattr(terminal, "connect_provider", fake_connect)
+    monkeypatch.setattr(chat_module, "connect_provider", fake_connect)
     monkeypatch.setattr(terminal, "ask", fake_ask)
     return world
 

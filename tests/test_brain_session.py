@@ -109,11 +109,11 @@ def test_a_session_saved_before_m16_belongs_to_groq(sessions_dir: Path) -> None:
 # ---------- rules about the package ----------
 
 def test_only_the_terminal_prints() -> None:
-    for name in ("loop.py", "session.py", "hands.py", "model.py", "providers.py", "local_server.py"):
+    for name in ("loop.py", "session.py", "hands.py", "model.py", "providers.py", "local_server.py", "chat.py"):
         tree = ast.parse((PSEUDO_BRAIN / name).read_text(encoding="utf-8"))
         prints = [n for n in ast.walk(tree)
                   if isinstance(n, ast.Call) and isinstance(n.func, ast.Name) and n.func.id == "print"]
-        assert prints == [], f"{name} prints; only terminal.py may (M18's face reuses the loop)"
+        assert prints == [], f"{name} prints; only terminal.py may (the face reuses the loop and chat.py)"
 
 
 def test_the_brain_names_no_tools() -> None:

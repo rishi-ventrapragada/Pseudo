@@ -17,16 +17,26 @@ Rules:
     answer. A private conversation's history can never be sent to the cloud later:
     the loop refuses a model from another provider (loop.py), and switching
     provider starts a new session.
+  - (M18) The face lists saved sessions and opens one by NAME. A name is accepted only
+    if it looks like one Pseudo made (a date and time), so it can never be a path
+    that points outside the sessions folder (the M3 sandbox idea).
 """
 
 import json
 import os
+import re
 import time
 from dataclasses import dataclass, field
 from pathlib import Path
 
 M14_PROVIDER = "groq"  # sessions saved before M16 have no provider: they all used Groq
 SESSIONS_DIR = Path(os.environ.get("LOCALAPPDATA", str(Path.home()))) / "Pseudo" / "sessions"
+SESSION_NAME = re.compile(r"\d{8}-\d{6}(-\d{3})?")  # 20260930-231500-123 (M14's names have no milliseconds)
+TITLE_CHARS = 60  # (M18) how much of a session's first question the face's list shows
+
+
+class SessionNotFound(Exception):
+    """(M18) There is no saved session with that name, or the name isn't one Pseudo makes."""
 
 
 class TooLarge(Exception):
@@ -87,9 +97,8 @@ class Session:
             raise TooLarge(estimate, limit)
         return messages, estimate, dropped
 
-    def save(self) -> Path:
-        """Write your messages and the final answers (nothing from tools) to this session's file."""
-        SESSIONS_DIR.mkdir(parents=True, exist_ok=True)
+    def transcript(self) -> list[dict]:
+        """Your messages and the final answers, each answer with who gave it: what is saved (and shown)."""
         kept = []
         for number, turn in enumerate(self.turns):
             for m in turn:
@@ -97,18 +106,56 @@ class Session:
                     kept.append({"role": m["role"], "content": m["content"]})
                     if m["role"] == "assistant" and number in self.answered_by:
                         kept[-1]["answered_by"] = self.answered_by[number]
+        return kept
+
+    def save(self) -> Path:
+        """Write your messages and the final answers (nothing from tools) to this session's file."""
+        SESSIONS_DIR.mkdir(parents=True, exist_ok=True)
         path = SESSIONS_DIR / f"{self.started}.json"
-        data = {"started": self.started, "provider": self.provider, "messages": kept}
+        data = {"started": self.started, "provider": self.provider, "messages": self.transcript()}
         path.write_text(json.dumps(data, ensure_ascii=False, indent=1), encoding="utf-8")
         return path
 
 
+def saved_files() -> list[Path]:
+    """Every saved session file, oldest first (the names are dates and times, so they sort by time)."""
+    return sorted(SESSIONS_DIR.glob("*.json")) if SESSIONS_DIR.exists() else []
+
+
+def list_sessions() -> list[dict]:
+    """(M18) Every saved session, newest first: its name, provider, number of questions and first question."""
+    items = []
+    for path in reversed(saved_files()):
+        try:
+            data = json.loads(path.read_text(encoding="utf-8"))
+            asked = [m["content"] for m in data["messages"] if m["role"] == "user"]
+        except (OSError, ValueError, KeyError, TypeError):  # a damaged file is left out, never guessed at
+            continue
+        items.append({"name": path.stem, "provider": data.get("provider") or M14_PROVIDER,
+                      "questions": len(asked), "title": asked[0][:TITLE_CHARS] if asked else ""})
+    return items
+
+
+def load_session(name: str) -> Session:
+    """(M18) One saved session, by the name list_sessions() gave. Raises SessionNotFound."""
+    if not isinstance(name, str) or not SESSION_NAME.fullmatch(name):
+        raise SessionNotFound("that is not a session name")  # never used as a path
+    path = SESSIONS_DIR / f"{name}.json"
+    try:
+        return read_session(path)
+    except (OSError, ValueError, KeyError, TypeError):
+        raise SessionNotFound(f"no readable saved session called {name}") from None
+
+
 def load_latest() -> Session | None:
     """The most recent saved session, or None. Its turns hold only messages and answers, and it keeps its provider."""
-    files = sorted(SESSIONS_DIR.glob("*.json")) if SESSIONS_DIR.exists() else []
-    if not files:
-        return None
-    data = json.loads(files[-1].read_text(encoding="utf-8"))
+    files = saved_files()
+    return read_session(files[-1]) if files else None
+
+
+def read_session(path: Path) -> Session:
+    """A saved file -> a Session with its provider and answer labels."""
+    data = json.loads(path.read_text(encoding="utf-8"))
     session = Session(started=data["started"], provider=data.get("provider") or M14_PROVIDER)
     for message in data["messages"]:
         label = message.pop("answered_by", None)  # kept in the session, never sent to a model

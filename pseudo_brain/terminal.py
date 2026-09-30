@@ -1,6 +1,6 @@
 """M14, M16: the terminal interface for pseudo_brain. A thin wrapper (D11): it prints the
-loop's events and reads your questions. Every decision lives in the other files, so
-M18's React face can use the same loop through the same events.
+loop's events and reads your questions. Every decision lives in the other files. Since
+M18 the provider and session rules live in chat.py, shared with the face (bridge.py).
 
 Run it from the repo root:
     python -m pseudo_brain                    a new session on the default provider (providers.toml)
@@ -21,14 +21,10 @@ import argparse
 
 import anyio
 
+from pseudo_brain.chat import REFUSALS, Chat
 from pseudo_brain.hands import connect_hands
-from pseudo_brain.local_server import ServerFailure
-from pseudo_brain.loop import run_turn
-from pseudo_brain.model import NO_KEY, ModelFailure, connect_provider
-from pseudo_brain.providers import Provider, ProviderRefused, load_allowlist
-from pseudo_brain.session import Session, load_latest
+from pseudo_brain.providers import Provider, load_allowlist
 
-REFUSALS = (ProviderRefused, ModelFailure, ServerFailure)  # a provider that can't be used, with the reason
 COMMANDS = "/provider, /provider <id>, /new, /quit"
 BOM = "﻿"  # an invisible mark PowerShell puts at the start of piped text (found in M16's checks)
 
@@ -96,28 +92,14 @@ async def ask(prompt: str) -> str:
     return await anyio.to_thread.run_sync(input, prompt, abandon_on_cancel=True)
 
 
-async def use(provider: Provider, servers: dict, secrets: list[str], show):
-    """Connect to a provider (starting its server if it has one) and say so. Raises one of REFUSALS."""
-    model = await connect_provider(provider, servers, show)
-    if model.client.api_key != NO_KEY:
-        secrets.append(model.client.api_key)
-    print(f"--- PROVIDER {describe(provider)} ---")
-    return model
-
-
 async def chat(resume: bool, wanted: str | None) -> int:
-    allowlist = load_allowlist()
-    session = load_latest() if resume else None
-    if session and wanted and wanted != session.provider:
-        raise ProviderRefused(f"the latest session belongs to {session.provider}, and a session never changes "
-                              f"provider; leave out --continue to start a new one on {wanted}")
-    provider = allowlist.get(session.provider if session else wanted or allowlist.default)
-    session = session or Session(provider=provider.id)
-    secrets: list[str] = []
-    show, servers = printer(secrets), {}
+    secrets: list[str] = []  # every key in use (Chat fills it); hidden in every printed line
+    conversation = Chat(load_allowlist(), printer(secrets), secrets)
     try:
-        model = await use(provider, servers, secrets, show)
-        print(f"--- SESSION {session.started} | provider: {provider.id} | {len(session.turns)} earlier turn(s) loaded ---")
+        await conversation.start(resume, wanted)
+        print(f"--- PROVIDER {describe(conversation.provider)} ---")
+        print(f"--- SESSION {conversation.session.started} | provider: {conversation.provider.id} | "
+              f"{len(conversation.session.turns)} earlier turn(s) loaded ---")
         print("--- CONNECTING TO pseudo_hands (MCP over stdio) ---", flush=True)
         async with connect_hands() as hands:
             print(f"--- CONNECTED: {len(hands.names)} tools discovered: {', '.join(hands.names)} ---")
@@ -129,35 +111,33 @@ async def chat(resume: bool, wanted: str | None) -> int:
                 if text in ("/quit", "/exit"):
                     break
                 if text == "/new":
-                    session = Session(provider=model.provider.id)
-                    print(f"--- NEW SESSION {session.started} | provider: {model.provider.id} ---")
+                    conversation.new_session()
+                    print(f"--- NEW SESSION {conversation.session.started} | provider: {conversation.provider.id} ---")
                 elif text == "/provider":
-                    print(f"--- ALLOWED PROVIDERS ({allowlist.providers[model.provider.id].name} is in use) ---")
-                    for listed in allowlist.providers.values():
-                        print(f" {'*' if listed.id == model.provider.id else ' '} {describe(listed)}")
+                    print(f"--- ALLOWED PROVIDERS ({conversation.provider.name} is in use) ---")
+                    for listed in conversation.allowlist.providers.values():
+                        print(f" {'*' if listed.id == conversation.provider.id else ' '} {describe(listed)}")
                 elif text.startswith("/provider "):
                     try:
-                        chosen = allowlist.get(text.split(maxsplit=1)[1])
-                        if chosen.id == model.provider.id:
-                            print(f"--- ALREADY USING {chosen.id} ---")
-                            continue
-                        model = await use(chosen, servers, secrets, show)
+                        switched = await conversation.switch(text.split(maxsplit=1)[1])
                     except REFUSALS as refusal:
-                        print(f"--- REFUSED: {refusal}. Still on {model.provider.id}. ---")
+                        print(f"--- REFUSED: {refusal}. Still on {conversation.provider.id}. ---")
                         continue
-                    session = Session(provider=chosen.id)
-                    print(f"--- SWITCHED TO {chosen.id}: NEW SESSION {session.started} (a session keeps one provider) ---")
+                    if not switched:
+                        print(f"--- ALREADY USING {conversation.provider.id} ---")
+                        continue
+                    print(f"--- PROVIDER {describe(conversation.provider)} ---")
+                    print(f"--- SWITCHED TO {conversation.provider.id}: NEW SESSION {conversation.session.started} "
+                          "(a session keeps one provider) ---")
                 elif text.startswith("/"):  # a mistyped command must never reach the model as a question
                     print(f"--- UNKNOWN COMMAND {text.split()[0]}: nothing was sent. Commands: {COMMANDS} ---")
                 elif text:
-                    await run_turn(session, text, model, hands, show)
-                    session.save()  # after every turn, so nothing is lost if the window closes
-        if session.turns:
-            print(f"\n--- SESSION SAVED: {session.save()} (your messages and final answers only) ---")
+                    await conversation.ask(text, hands)  # saved after every turn, so nothing is lost
+        if conversation.session.turns:
+            print(f"\n--- SESSION SAVED: {conversation.session.save()} (your messages and final answers only) ---")
     finally:
-        for server in servers.values():
-            if server.stop():
-                print(f"--- STOPPED the {server.provider.id} server (Pseudo started it) ---")
+        for provider_id in conversation.close():
+            print(f"--- STOPPED the {provider_id} server (Pseudo started it) ---")
     return 0
 
 
