@@ -109,7 +109,8 @@ def test_a_session_saved_before_m16_belongs_to_groq(sessions_dir: Path) -> None:
 # ---------- rules about the package ----------
 
 def test_only_the_terminal_prints() -> None:
-    for name in ("loop.py", "session.py", "hands.py", "model.py", "providers.py", "local_server.py", "chat.py"):
+    for name in ("loop.py", "session.py", "hands.py", "model.py", "providers.py", "local_server.py", "chat.py",
+                 "bridge.py"):
         tree = ast.parse((PSEUDO_BRAIN / name).read_text(encoding="utf-8"))
         prints = [n for n in ast.walk(tree)
                   if isinstance(n, ast.Call) and isinstance(n.func, ast.Name) and n.func.id == "print"]
