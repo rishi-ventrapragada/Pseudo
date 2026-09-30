@@ -85,6 +85,27 @@ def test_no_saved_session_means_a_fresh_start(sessions_dir: Path) -> None:
     assert load_latest() is None
 
 
+def test_a_saved_session_keeps_its_provider_and_who_answered(sessions_dir: Path) -> None:  # (M16)
+    session = Session(turns=[turn(1)], provider="local")
+    session.note_answer("local · tiny-model")
+    session.start_turn("question 2")  # no answer yet: nothing to label
+    saved = json.loads(session.save().read_text(encoding="utf-8"))
+    assert saved["provider"] == "local"
+    assert [m.get("answered_by") for m in saved["messages"]] == [None, "local · tiny-model", None]
+    loaded = load_latest()
+    assert loaded.provider == "local" and loaded.answered_by == {0: "local · tiny-model"}
+    messages, _, _ = loaded.messages_for_request("fake system prompt", [], 3000)
+    assert all("answered_by" not in m for m in messages)  # a label is never sent to a model
+
+
+def test_a_session_saved_before_m16_belongs_to_groq(sessions_dir: Path) -> None:
+    sessions_dir.mkdir(parents=True)
+    old = {"started": "20260928-000000", "messages": [{"role": "user", "content": "hi"},
+                                                       {"role": "assistant", "content": "hello"}]}
+    (sessions_dir / "20260928-000000.json").write_text(json.dumps(old), encoding="utf-8")
+    assert load_latest().provider == "groq"
+
+
 # ---------- rules about the package ----------
 
 def test_only_the_terminal_prints() -> None:

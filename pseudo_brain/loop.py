@@ -69,10 +69,13 @@ def fail(result: TurnResult, reason: str, on_event: EventSink) -> TurnResult:
 
 async def run_turn(session: Session, text: str, model, hands: Hands, on_event: EventSink) -> TurnResult:
     """One question, answered through as many tool calls as needed (at most MAX_ITERATIONS model calls)."""
+    result, provider = TurnResult(), model.provider
+    if session.provider and session.provider != provider.id:  # D16: history never moves to another provider
+        return fail(result, f"this session belongs to {session.provider}, not {provider.id}; "
+                            "a session never changes provider, so start a new one", on_event)
+    session.provider = provider.id
     session.start_turn(text)
     model.use_main()
-    result = TurnResult()
-    provider = model.provider
     for call_number in range(1, MAX_ITERATIONS + 1):
         try:
             messages, estimate, dropped = session.messages_for_request(SYSTEM_PROMPT, hands.schemas,
@@ -103,6 +106,7 @@ async def run_turn(session: Session, text: str, model, hands: Hands, on_event: E
 
         if not message.tool_calls:  # plain text: the model thinks the question is answered
             result.ok, result.answer, result.model = True, message.content or "", model.name
+            session.note_answer(f"{provider.id} · {model.name}" + (" (fallback)" if model.on_fallback else ""))
             on_event("answer", {"text": result.answer, "calls": result.calls,
                                 "tokens_in": result.tokens_in, "tokens_out": result.tokens_out,
                                 "provider": provider.id, "model": model.name, "fallback": model.on_fallback})

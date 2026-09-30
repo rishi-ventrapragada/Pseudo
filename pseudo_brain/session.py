@@ -1,4 +1,4 @@
-"""M14: session history. What pseudo_brain remembers between your questions.
+"""M14, M16: session history. What pseudo_brain remembers between your questions.
 
 What it demonstrates: the model is stateless (M1), so every call must resend the
 conversation. The session keeps it, turn by turn, and TRIMS each request to a
@@ -13,6 +13,10 @@ Rules:
   - The current turn is never trimmed. If it alone is too big, the turn fails.
   - Saving keeps only your messages and the final answers. Tool calls and tool results
     (screen content, even redacted) live only in memory and are gone when you quit.
+  - (M16) A session belongs to ONE provider for life, and says which model gave each
+    answer. A private conversation's history can never be sent to the cloud later:
+    the loop refuses a model from another provider (loop.py), and switching
+    provider starts a new session.
 """
 
 import json
@@ -21,6 +25,7 @@ import time
 from dataclasses import dataclass, field
 from pathlib import Path
 
+M14_PROVIDER = "groq"  # sessions saved before M16 have no provider: they all used Groq
 SESSIONS_DIR = Path(os.environ.get("LOCALAPPDATA", str(Path.home()))) / "Pseudo" / "sessions"
 
 
@@ -45,6 +50,8 @@ def is_final_answer(message: dict) -> bool:
 class Session:
     turns: list[list[dict]] = field(default_factory=list)  # each turn: its messages, in order
     started: str = field(default_factory=lambda: time.strftime("%Y%m%d-%H%M%S"))  # also the file name
+    provider: str = ""  # the provider this session belongs to ("" = not bound yet: the first turn binds it)
+    answered_by: dict[int, str] = field(default_factory=dict)  # turn number -> "groq · model (fallback)"
 
     def start_turn(self, text: str) -> None:
         self.turns.append([{"role": "user", "content": text}])
@@ -52,6 +59,10 @@ class Session:
     def add(self, message: dict) -> None:
         """Add an assistant or tool message to the current turn."""
         self.turns[-1].append(message)
+
+    def note_answer(self, label: str) -> None:
+        """Which provider and model answered the current turn. Saved, never sent to a model."""
+        self.answered_by[len(self.turns) - 1] = label
 
     def messages_for_request(self, system_prompt: str, tools: list[dict], limit: int) -> tuple[list[dict], int, int]:
         """System prompt plus as many recent turns as fit in `limit` tokens (the provider's max_prompt_tokens).
@@ -73,24 +84,32 @@ class Session:
     def save(self) -> Path:
         """Write your messages and the final answers (nothing from tools) to this session's file."""
         SESSIONS_DIR.mkdir(parents=True, exist_ok=True)
-        kept = [{"role": m["role"], "content": m["content"]} for turn in self.turns for m in turn
-                if m["role"] == "user" or is_final_answer(m)]
+        kept = []
+        for number, turn in enumerate(self.turns):
+            for m in turn:
+                if m["role"] == "user" or is_final_answer(m):
+                    kept.append({"role": m["role"], "content": m["content"]})
+                    if m["role"] == "assistant" and number in self.answered_by:
+                        kept[-1]["answered_by"] = self.answered_by[number]
         path = SESSIONS_DIR / f"{self.started}.json"
-        path.write_text(json.dumps({"started": self.started, "messages": kept}, ensure_ascii=False, indent=1),
-                        encoding="utf-8")
+        data = {"started": self.started, "provider": self.provider, "messages": kept}
+        path.write_text(json.dumps(data, ensure_ascii=False, indent=1), encoding="utf-8")
         return path
 
 
 def load_latest() -> Session | None:
-    """The most recent saved session, or None. Its turns hold only messages and answers."""
+    """The most recent saved session, or None. Its turns hold only messages and answers, and it keeps its provider."""
     files = sorted(SESSIONS_DIR.glob("*.json")) if SESSIONS_DIR.exists() else []
     if not files:
         return None
     data = json.loads(files[-1].read_text(encoding="utf-8"))
-    session = Session(started=data["started"])
+    session = Session(started=data["started"], provider=data.get("provider") or M14_PROVIDER)
     for message in data["messages"]:
+        label = message.pop("answered_by", None)  # kept in the session, never sent to a model
         if message["role"] == "user":
             session.turns.append([message])
         elif session.turns:
             session.turns[-1].append(message)
+            if label:
+                session.note_answer(label)
     return session

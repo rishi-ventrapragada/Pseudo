@@ -64,6 +64,29 @@ async def test_events_say_which_provider_and_model_did_the_work() -> None:
     assert (answer["provider"], answer["model"], answer["fallback"]) == ("groq", "big-model", False)
 
 
+# ---------- a session stays with one provider ----------
+
+@pytest.mark.anyio
+async def test_a_new_session_belongs_to_the_first_provider_that_answers() -> None:
+    _, _, session = await ask(FakeModel(reply("Hi."), provider=FAKE_LOCAL))
+    assert session.provider == "local" and session.answered_by == {0: "local · tiny-model"}
+
+
+@pytest.mark.anyio
+async def test_a_session_refuses_a_model_from_another_provider() -> None:
+    session = Session(provider="local")  # a private conversation...
+    cloud = FakeModel(reply("never sent"), provider=FAKE_CLOUD)  # ...must never reach the cloud
+    result, events, _ = await ask(cloud, session=session)
+    assert not result.ok and "belongs to local, not groq" in result.reason
+    assert cloud.requests == [] and session.turns == [] and of_kind(events, "sending") == []
+
+
+@pytest.mark.anyio
+async def test_a_fallback_answer_is_labelled_as_one() -> None:
+    _, _, session = await ask(FakeModel(rate_limited("2"), reply("Done."), provider=FAKE_CLOUD))
+    assert session.answered_by == {0: "groq · small-model (fallback)"}
+
+
 # ---------- private mode: never falls back, fails visibly ----------
 
 @pytest.mark.anyio
