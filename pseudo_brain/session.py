@@ -42,6 +42,12 @@ def estimate_tokens(messages: list[dict], tools: list[dict] = ()) -> int:
     return (len(json.dumps(messages, ensure_ascii=False)) + len(json.dumps(list(tools)))) // 4
 
 
+def session_name() -> str:
+    """The time now, to the millisecond: a session started right after another one gets its own file."""
+    now = time.time()  # read the clock once, so seconds and milliseconds belong together
+    return time.strftime("%Y%m%d-%H%M%S", time.localtime(now)) + f"-{int(now * 1000) % 1000:03d}"
+
+
 def is_final_answer(message: dict) -> bool:
     return message["role"] == "assistant" and not message.get("tool_calls") and bool(message.get("content"))
 
@@ -49,7 +55,7 @@ def is_final_answer(message: dict) -> bool:
 @dataclass
 class Session:
     turns: list[list[dict]] = field(default_factory=list)  # each turn: its messages, in order
-    started: str = field(default_factory=lambda: time.strftime("%Y%m%d-%H%M%S"))  # also the file name
+    started: str = field(default_factory=lambda: session_name())  # also the file name
     provider: str = ""  # the provider this session belongs to ("" = not bound yet: the first turn binds it)
     answered_by: dict[int, str] = field(default_factory=dict)  # turn number -> "groq · model (fallback)"
 
