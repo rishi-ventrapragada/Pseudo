@@ -80,6 +80,11 @@ Pseudo's brain is its own agent loop in `pseudo_brain/`, grown from the M3 loop 
 *Why (M15):* `gpt-oss-20b` scored 12/12 and has its own rate-limit budget. `granite4.1:3b` scored 18/18 at about 5 s per read and 31 tokens/s, with no connections outside the laptop. `llama3.2:3b` (10/18), `lfm2.5:8b` (13/18) and two Qwen 4B models (too slow) failed. `qwen3.8-27b` passed (11/12) but is a Preview model that Groq may drop at short notice. Claude Code passed T1, T2 and T4 (6/6) and saw exactly Pseudo's 3 tools.
 *Would change if:* a listed model is retired, or a better free model passes the M15 questions.
 
+### D17. pseudo_hands is never configured in the Claude desktop app (M17)
+`pseudo_hands` is never configured in the Claude desktop app (M17); Claude is used with Pseudo only through Claude Code with `--strict-mcp-config --tools ""` (D16).
+*Why (M17):* the app's device link, switched on by Anthropic-side feature flags, passed `pseudo_hands`' tools to phone, claude.ai and cloud sessions (`+3 local-mcp`), and neither computer use nor the sessions-bridge flag switched it off.
+*Would change if:* the app gets a local setting that stops local MCP tools reaching remote sessions, verified with the M17 log check.
+
 ## LEANING (revisit after Phase 1)
 
 L1 moved to LOCKED as D12 (2026-09-28).

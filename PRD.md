@@ -215,8 +215,10 @@ Goal: use Pseudo day to day, not just through `hermes -p pseudo` in a terminal. 
   - whether the approval popup works with the app as the face;
 - No Claude app configuration changes without a backup and the owner's approval of the exact change.
 - **Done when:** each question has a measured answer, and there is a recommendation (the Claude app, with its configuration listed, or the own React face in M18), decided by criteria written down before measuring.
+- **Result (2026-09-30):** the Claude app is ruled out as the face and brain. It runs `pseudo_hands` on the subscription, but a device link switched on by Anthropic-side feature flags exposes local MCP tools to remote sessions (`+3 local-mcp`), and no local setting switched it off. The chat tests were not run. The self-read fix (skip the face's program in `pick_window`) was measured 4/4 and moves to M18.
 
 ### M18: Pseudo's own face
+- Self-read fix in `pseudo_hands` core: an owner-editable `assistant_apps.txt` skipped by `pick_window`, tested with a window that is not always on top.
 - A React desktop window (Tauri or Electron, chosen in M18's plan) that talks to `pseudo_brain` through a local server. The window only displays; all logic stays in `pseudo_brain` and `pseudo_hands` (D11).
 - It reads the right window: `read_active_window` must read the window the owner was on before switching to Pseudo, never Pseudo's own window (the face, or a terminal running Pseudo). Found in M15's research: `pick_window` skips only `hermes.exe`, so a brain asked from a terminal reads its own chat. The fake-window checks hid this because their test window is always on top.
 - **Done when:** the M14 checks pass through the window, `focus_window` still asks through the native approval popup (D13), and a question asked from the window reads the window the owner was on before switching, never Pseudo's own.
