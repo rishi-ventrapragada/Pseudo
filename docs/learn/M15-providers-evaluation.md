@@ -14,12 +14,12 @@ A **provider** is whoever runs the model: Groq's servers, your own laptop, or An
 
 ## What was built (file by file)
 
-- **In the repo:** no code. Commit `ab9fba0` renumbered the docs (M15 providers, M16 face) and added the "read the window I was on" requirement to M16. Plus this lesson.
+- **In the repo:** no code. Commit `ab9fba0` renumbered the docs (M15 providers, M16 face) and added the "read the window I was on" requirement to the face. After M15, the providers build became M16 and the face moved to M17, taking that requirement with it. D16 records the results. Plus this lesson.
 - **Outside the repo:**
   - Ollama 0.34.4 from its official zip in `%LOCALAPPDATA%\Programs\Ollama`: no tray app, no start-at-login entry, no auto-update. It runs only when started with `OLLAMA_HOST=127.0.0.1:11434`.
   - `~/.ollama/server.json` with `{"disable_ollama_cloud": true}`. Ollama also offers **cloud models** that run on its servers, and this setting turns them off.
-  - Five models, 15.2 GB in total, under `~/.ollama/models`.
-  - A backup at `~/.claude.json.m15-backup`. In the end it wasn't needed.
+  - Five models, 15.2 GB, under `~/.ollama/models`. After the evaluation the four that failed were removed; only `granite4.1:3b` (2 GB) is left.
+  - A backup of `~/.claude.json`, deleted afterwards: Claude Code never recorded the test folder there.
 - **In the scratchpad, not committed** (as in M11 and M13):
   - `m15_common.py`: the six questions, the pass rules, and the privacy helpers.
   - `m15_battery.py`: asks the questions through `pseudo_brain`'s real `run_turn` and the real `pseudo_hands`.
@@ -95,7 +95,7 @@ Every model was then judged by the fixed rules. Failures print only yes/no reaso
 | `granite4.1:3b` | laptop | **18/18** | ~5 s (cold 15 s) | none |
 | `lfm2.5:8b` | laptop | 13/18 | ~11.5 s (cold 30 s) | T2 0/3: stale answer from history; T4 1/3; leaks `<think>` text |
 | `llama3.2:3b` | laptop | 10/18 | ~4.4 s (cold 13.5 s) | T6 0/3: writes a fake `multiply` call as text; T4 0/3: guesses or picks the wrong id |
-| Claude Code (Opus 5.5) | Anthropic | T1/T2 **4/4** | ~13 s | T4 not run (see below) |
+| Claude Code (Opus 5.5) | Anthropic | T1/T2/T4 **6/6** | ~13 s | none |
 
 - `qwen3.5:4b` and `qwen3:4b` were dropped after the speed test: 7 tokens/s, and over a minute per question.
 - During the local questions, the watcher took 805 samples of Ollama's connections and found **0** going outside this laptop.
@@ -110,6 +110,12 @@ session sees: model=claude-opus-5-5 | apiKeySource=none
 ```
 `apiKeySource=none` means the subscription was used, not an API key.
 
+**Claude Code's T4 ran last,** after the owner turned "Help improve Claude" off, because it sends the redacted list of real window titles to Anthropic. `focus_window` isn't in `--allowedTools`, so Claude Code's own permission system refuses it before it reaches `pseudo_hands`:
+```
+T4 PASS tools=['list_open_windows', 'focus_window'] secs=20.0 denied=['mcp__pseudo_hands__focus_window']
+```
+That refusal says the permission "hasn't been granted", so for Claude Code the "says not approved" check also accepts "permission" and "grant".
+
 ## The criteria and the recommendation
 
 | Criterion (set before measuring) | Result |
@@ -117,13 +123,13 @@ session sees: model=claude-opus-5-5 | apiKeySource=none
 | Groq fallback passes (≥ 11/12) and has its own budget | `gpt-oss-20b` ✔ · `qwen3.8-27b` ✔ (but Preview, and ~40% more input tokens per call) |
 | A local model passes (≥ 16/18, no invented tools, no cap hits) | `granite4.1:3b` ✔ · `lfm2.5:8b` ✘ · `llama3.2:3b` ✘ |
 | Local: read ≤ 20 s warm, ≤ 60 s cold, ≥ 10 tokens/s, no outside connections | granite ✔ (the one-time 85 s first run is the exception) |
-| Claude Code: exactly 3 tools, only `pseudo_hands`, billing clean every launch | ✔ (5/5 launches) |
-| Claude Code: T1, T2, T4 | T1/T2 ✔ · T4 **not measured** |
+| Claude Code: exactly 3 tools, only `pseudo_hands`, billing clean every launch | ✔ (7/7 launches) |
+| Claude Code: T1, T2, T4 | ✔ 4/4 and 2/2 |
 
-**Recommendation (proposed, for Rishi to decide):**
+**Recommendation (approved by Rishi as D16):**
 1. **Groq fallback:** `gpt-oss-20b`, used only on a 429 and announced before it's used. Not `qwen3.8-27b`: Groq can drop Preview models at short notice.
 2. **Private mode:** Ollama with `granite4.1:3b`, on `127.0.0.1` only, with cloud off. It never falls back to the cloud.
-3. **Claude Code:** it works as a brain for `pseudo_hands`. But its T4 is unmeasured, and D6 keeps screen data away from any provider that may train on it. So it stays out of real-window use until the "Help improve Claude" setting is confirmed off.
+3. **Claude Code:** it works as a separate brain for `pseudo_hands` over MCP, not as a provider in the list. Real windows are allowed only while "Help improve Claude" stays off (turned off 2026-09-30); D6 keeps screen data away from any provider that may train on it.
 
 ## Try this
 
@@ -151,6 +157,6 @@ session sees: model=claude-opus-5-5 | apiKeySource=none
 
 ## How this connects to Pseudo's final architecture
 
-- **Next build (its own plan):** a committed allowlist, `pseudo_brain/providers.toml`, with each provider's URL, the *name* of its key variable in `.env`, its models and a privacy note. It adds a same-provider fallback on 429, private mode through Ollama, and the provider shown with every answer.
+- **M16 builds it:** a committed allowlist, `pseudo_brain/providers.toml`, with each provider's URL, the *name* of its key variable in `.env`, its models and a privacy note. It adds a same-provider fallback on 429, private mode through Ollama, and the provider shown with every answer.
 - **Backlog notes:** the redactor over-masks non-personal text ("M15" becomes `[PERSON]`, order numbers become `[DATE_TIME]`). Ollama's default context is 4,096 tokens per call, while `pseudo_brain` allows up to about 3,000 estimated input tokens per call, so the private-mode build must check that margin.
-- **D11 held:** three providers and two brains used the same `pseudo_hands` with no changes. M16's face will show which provider answered.
+- **D11 held:** three providers and two brains used the same `pseudo_hands` with no changes. M17's face will show which provider answered.
