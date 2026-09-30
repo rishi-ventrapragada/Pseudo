@@ -18,7 +18,8 @@ import anyio
 
 from pseudo_brain.hands import connect_hands
 from pseudo_brain.loop import run_turn
-from pseudo_brain.model import Model, ModelFailure, load_settings
+from pseudo_brain.model import Model, ModelFailure, load_key
+from pseudo_brain.providers import ProviderRefused, load_allowlist
 from pseudo_brain.session import Session, load_latest
 
 
@@ -64,8 +65,10 @@ async def ask(prompt: str) -> str:
 
 
 async def chat(resume: bool) -> int:
-    settings = load_settings()
-    model, show = Model(settings), printer(settings.api_key)
+    allowlist = load_allowlist()
+    provider = allowlist.get(allowlist.default)
+    api_key = load_key(provider)
+    model, show = Model(provider, api_key), printer(api_key)
     session = (load_latest() if resume else None) or Session()
     print(f"--- SESSION {session.started}: {len(session.turns)} earlier turn(s) loaded ---")
     print("--- CONNECTING TO pseudo_hands (MCP over stdio) ---", flush=True)
@@ -93,7 +96,7 @@ async def chat(resume: bool) -> int:
 def main() -> int:
     try:
         return anyio.run(chat, "--continue" in sys.argv[1:])
-    except ModelFailure as failure:  # only load_settings raises it outside a turn
+    except (ModelFailure, ProviderRefused) as failure:  # a bad allowlist or a missing key, before any turn
         print(f"--- CANNOT START: {failure} ---")
         return 1
     except KeyboardInterrupt:

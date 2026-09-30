@@ -17,6 +17,8 @@ parameter, like beforeEach in Jest, but only for the tests that want it):
   no_real_popups -> (M10, runs for EVERY test) a test that reaches the real
                approval popup fails instead of showing it on screen.
   popup_yes / popup_no -> (M10) the person at the approval popup, faked.
+  anyio_backend -> (M14) async tests run on asyncio.
+  waits     -> (M14) the model's 429 waits are recorded instead of slept.
 """
 
 import sys
@@ -32,6 +34,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 import agent_tools  # noqa: E402  (has to come after the sys.path lines above)
 from pseudo_hands.core import approval, blocked_apps, window_ids, windows  # noqa: E402
 from pseudo_hands.core.windows import RawWindow  # noqa: E402
+from pseudo_brain import model  # noqa: E402
 
 
 class FakeApprover:
@@ -126,3 +129,19 @@ def real_redaction(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> Path:
     monkeypatch.setattr(redactor, "TERMS_FILE", terms)
     monkeypatch.setattr(windows, "redact", redactor.redact)
     return terms
+
+
+@pytest.fixture
+def anyio_backend() -> str:
+    return "asyncio"
+
+
+@pytest.fixture
+def waits(monkeypatch: pytest.MonkeyPatch) -> list:
+    """(M14) Replaces the model's real waiting: each wait is recorded, none is slept."""
+    waited: list = []
+
+    async def fake_wait(seconds: float) -> None:
+        waited.append(seconds)
+    monkeypatch.setattr(model, "wait", fake_wait)
+    return waited

@@ -54,9 +54,9 @@ class Provider:
 
     @property
     def address(self) -> str:
-        """host:port of base_url, e.g. "127.0.0.1:11434"."""
+        """host:port of base_url, e.g. "127.0.0.1:11434" (just the host when the URL has no port)."""
         url = urlparse(self.base_url)
-        return f"{url.hostname}:{url.port}"
+        return f"{url.hostname}:{url.port}" if url.port else str(url.hostname)
 
 
 @dataclass(frozen=True)

@@ -3,7 +3,8 @@
 What it demonstrates: the model is stateless (M1), so every call must resend the
 conversation. The session keeps it, turn by turn, and TRIMS each request to a
 budget, because Groq's free tier allows 8,000 tokens per minute and every call
-resends everything.
+resends everything. Since M16 the budget is the provider's max_prompt_tokens
+(providers.toml): Ollama's context is smaller than Groq's minute budget.
 
 Rules:
   - History is a list of whole TURNS: your message, any tool calls and results, and
@@ -20,7 +21,6 @@ import time
 from dataclasses import dataclass, field
 from pathlib import Path
 
-MAX_PROMPT_TOKENS = 3000  # estimated input per call: a two-call tool question stays well under 8K/min
 SESSIONS_DIR = Path(os.environ.get("LOCALAPPDATA", str(Path.home()))) / "Pseudo" / "sessions"
 
 
@@ -53,19 +53,21 @@ class Session:
         """Add an assistant or tool message to the current turn."""
         self.turns[-1].append(message)
 
-    def messages_for_request(self, system_prompt: str, tools: list[dict]) -> tuple[list[dict], int, int]:
-        """System prompt plus as many recent turns as fit. Returns (messages, estimate, turns dropped)."""
+    def messages_for_request(self, system_prompt: str, tools: list[dict], limit: int) -> tuple[list[dict], int, int]:
+        """System prompt plus as many recent turns as fit in `limit` tokens (the provider's max_prompt_tokens).
+
+        Returns (messages, estimate, turns dropped)."""
         system = [{"role": "system", "content": system_prompt}]
         kept, dropped = list(self.turns), 0  # a copy: trimming a request never deletes history
         while True:
             messages = system + [message for turn in kept for message in turn]
             estimate = estimate_tokens(messages, tools)
-            if estimate <= MAX_PROMPT_TOKENS or len(kept) <= 1:
+            if estimate <= limit or len(kept) <= 1:
                 break
             kept.pop(0)  # the oldest whole turn
             dropped += 1
-        if estimate > MAX_PROMPT_TOKENS:
-            raise TooLarge(estimate, MAX_PROMPT_TOKENS)
+        if estimate > limit:
+            raise TooLarge(estimate, limit)
         return messages, estimate, dropped
 
     def save(self) -> Path:

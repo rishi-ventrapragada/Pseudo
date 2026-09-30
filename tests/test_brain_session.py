@@ -38,16 +38,15 @@ def sessions_dir(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> Path:
 def test_a_small_history_is_sent_whole() -> None:
     session = Session(turns=[turn(1), turn(2)])
     session.start_turn("question 3")
-    messages, _, dropped = session.messages_for_request("fake system prompt", [])
+    messages, _, dropped = session.messages_for_request("fake system prompt", [], 3000)
     assert dropped == 0 and messages[0] == {"role": "system", "content": "fake system prompt"}
     assert [m["content"] for m in messages[1:]] == ["question 1 ", "answer 1", "question 2 ", "answer 2", "question 3"]
 
 
-def test_old_turns_are_dropped_oldest_first_and_whole(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setattr(session_module, "MAX_PROMPT_TOKENS", 400)
+def test_old_turns_are_dropped_oldest_first_and_whole() -> None:
     session = Session(turns=[turn(n, padding=400, with_tool=True) for n in range(1, 6)])
     session.start_turn("the current question")
-    messages, estimate, dropped = session.messages_for_request("fake system prompt", [])
+    messages, estimate, dropped = session.messages_for_request("fake system prompt", [], 400)
     asked = [m["content"].split()[1] for m in messages if m["role"] == "user"]
     assert estimate <= 400 and dropped >= 1 and asked[-1] == "current"
     assert asked[:-1] == [str(n) for n in range(6 - len(asked[:-1]), 6)]  # the most recent turns survive
@@ -56,12 +55,11 @@ def test_old_turns_are_dropped_oldest_first_and_whole(monkeypatch: pytest.Monkey
     assert len(session.turns) == 6  # trimming shaped the request; history keeps everything
 
 
-def test_a_current_turn_over_budget_fails_and_is_kept(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setattr(session_module, "MAX_PROMPT_TOKENS", 50)
+def test_a_current_turn_over_budget_fails_and_is_kept() -> None:
     session = Session(turns=[turn(1)])
     session.start_turn("y" * 1000)
     with pytest.raises(TooLarge):
-        session.messages_for_request("fake system prompt", [])
+        session.messages_for_request("fake system prompt", [], 50)
     assert len(session.turns) == 2
 
 

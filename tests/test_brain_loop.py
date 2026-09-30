@@ -1,99 +1,21 @@
 """Tests for M14: pseudo_brain's loop, model client and MCP client.
 
-Everything here is FAKE: a scripted FakeModel plays Groq, and a small in-memory
-MCP server plays pseudo_hands (the real MCP protocol, no subprocess). No network,
-no real windows, and no real waiting (model.wait is replaced).
+Everything here is FAKE (see brain_fakes.py): a scripted FakeModel plays Groq, and a
+small in-memory MCP server plays pseudo_hands (the real MCP protocol, no subprocess).
+No network, no real windows, and no real waiting (the waits fixture replaces it).
+FakeModel's default provider has ONE model, so a 429 waits here as it did in M14;
+M16's fallback between models is tested in test_brain_fallback.py.
 """
 
+import dataclasses
 import json
 
-import httpx2
 import openai
 import pytest
-from mcp.server import MCPServer
-from openai.types.chat import ChatCompletion
 
+from brain_fakes import FAKE_ONE, MARKER, FakeModel, ask, http_response, rate_limited, reply
 from pseudo_brain import loop, model
-from pseudo_brain import session as session_module
-from pseudo_brain.hands import connect_hands
-from pseudo_brain.loop import MAX_ITERATIONS, run_turn
-from pseudo_brain.session import Session
-
-MARKER = "ZEBRA-7731"  # fake screen text: must never appear in an event
-
-
-def fake_read_active_window() -> dict:
-    return {"title": "Fake notes", "app": "notepad.exe", "content": f"Text: call [PERSON] about {MARKER}"}
-
-
-def fake_focus_window(window_id: str) -> dict:
-    return {"window_id": window_id, "status": "not approved"}
-
-
-def fake_broken() -> dict:
-    raise RuntimeError("fake failure")
-
-
-FAKE_HANDS = MCPServer("fake_hands")
-FAKE_HANDS.add_tool(fake_read_active_window, name="read_active_window", description="Read the fake window.")
-FAKE_HANDS.add_tool(fake_focus_window, name="focus_window", description="Focus a fake window.")
-FAKE_HANDS.add_tool(fake_broken, name="broken_tool", description="Always fails.")
-
-
-def reply(content: str | None = None, tools: list = (), tokens: tuple = (100, 10)) -> ChatCompletion:
-    """A fake Groq reply: plain text, or tool calls given as (name, arguments) pairs."""
-    calls = [{"id": f"call_{i}", "type": "function", "function": {"name": n, "arguments": a}}
-             for i, (n, a) in enumerate(tools)]
-    return ChatCompletion.model_validate({
-        "id": "fake", "object": "chat.completion", "created": 0, "model": "fake-model",
-        "choices": [{"index": 0, "finish_reason": "tool_calls" if calls else "stop",
-                     "message": {"role": "assistant", "content": content, "tool_calls": calls or None}}],
-        "usage": {"prompt_tokens": tokens[0], "completion_tokens": tokens[1], "total_tokens": sum(tokens)}})
-
-
-def http_response(status: int, headers: dict | None = None) -> httpx2.Response:
-    return httpx2.Response(status, headers=headers or {}, request=httpx2.Request("POST", "https://fake.invalid/v1"))
-
-
-def rate_limited(seconds: str = "2") -> openai.RateLimitError:
-    return openai.RateLimitError("rate limited", response=http_response(429, {"retry-after": seconds}), body=None)
-
-
-class FakeModel:
-    """Plays Groq: returns the scripted replies in order (the last one repeats), records every request."""
-
-    def __init__(self, *replies) -> None:
-        self.replies, self.requests = list(replies), []
-
-    async def complete(self, request: dict):
-        self.requests.append(request)
-        outcome = self.replies.pop(0) if len(self.replies) > 1 else self.replies[0]
-        if isinstance(outcome, Exception):
-            raise outcome
-        return outcome, {"x-ratelimit-remaining-tokens": "7000", "x-ratelimit-limit-tokens": "8000"}
-
-
-@pytest.fixture
-def anyio_backend() -> str:
-    return "asyncio"
-
-
-@pytest.fixture
-def waits(monkeypatch: pytest.MonkeyPatch) -> list:
-    waited: list = []
-
-    async def fake_wait(seconds: float) -> None:
-        waited.append(seconds)
-    monkeypatch.setattr(model, "wait", fake_wait)
-    return waited
-
-
-async def ask(fake_model: FakeModel, text: str = "What does my active window say?"):
-    events: list = []
-    session = Session()
-    async with connect_hands(FAKE_HANDS) as hands:
-        result = await run_turn(session, text, fake_model, hands, lambda kind, data: events.append((kind, data)))
-    return result, events, session
+from pseudo_brain.loop import MAX_ITERATIONS
 
 
 # ---------- tools come from the server ----------
@@ -159,7 +81,8 @@ async def test_a_model_that_never_answers_stops_at_the_cap_without_an_answer() -
 async def test_a_429_waits_as_long_as_asked_then_succeeds(waits: list) -> None:
     result, events, _ = await ask(FakeModel(rate_limited("2"), reply("Done.")))
     assert result.ok and waits == [2.0]
-    assert ("rate_limited", {"seconds": 2.0, "wait": 1, "of": model.MAX_RATE_LIMIT_WAITS}) in events
+    assert ("rate_limited", {"seconds": 2.0, "wait": 1, "of": model.MAX_RATE_LIMIT_WAITS,
+                             "provider": "Fake cloud", "model": "only-model"}) in events
 
 
 @pytest.mark.anyio
@@ -180,7 +103,7 @@ async def test_a_429_asking_for_too_long_a_wait_fails_without_waiting(waits: lis
 async def test_a_413_fails_at_once() -> None:
     fake = FakeModel(openai.APIStatusError("too large", response=http_response(413), body=None))
     result, _, _ = await ask(fake)
-    assert not result.ok and "bigger than Groq's per-minute token limit" in result.reason and len(fake.requests) == 1
+    assert not result.ok and "bigger than Fake cloud's per-minute token limit" in result.reason and len(fake.requests) == 1
 
 
 @pytest.mark.anyio
@@ -192,8 +115,7 @@ async def test_an_invalid_tool_call_400_asks_the_model_again() -> None:
 
 
 @pytest.mark.anyio
-async def test_an_oversized_question_fails_before_any_model_call(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setattr(session_module, "MAX_PROMPT_TOKENS", 100)
-    fake = FakeModel(reply("never sent"))
+async def test_an_oversized_question_fails_before_any_model_call() -> None:
+    fake = FakeModel(reply("never sent"), provider=dataclasses.replace(FAKE_ONE, max_prompt_tokens=100))
     result, _, _ = await ask(fake, "y" * 2000)
     assert not result.ok and "too large" in result.reason and fake.requests == []
