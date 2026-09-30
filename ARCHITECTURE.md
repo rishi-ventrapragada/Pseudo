@@ -12,7 +12,8 @@ Two parts: the long-term target (so every step has context) and the Phase 1 stru
                        |  local server
                        v
              [ pseudo_brain ]  Pseudo's own agent loop (D15, M14):
-                       |        Groq only, visible 429s, session history
+                       |        allowlisted providers (D16), same-provider fallback,
+                       |        visible 429s, session history
                        |  calls tools via MCP (it is an MCP client)
                        v
              [ Pseudo Hands ]  MCP server on Windows
@@ -29,7 +30,7 @@ Two parts: the long-term target (so every step has context) and the Phase 1 stru
 ```
 
 Key ideas:
-- The model always runs remotely; Pseudo's code is the "hands" and "eyes" that run locally.
+- The model runs remotely (Groq) or, in private mode, on this laptop (Ollama on 127.0.0.1, D16); Pseudo's code is the "hands" and "eyes" that run locally.
 - Text before pixels: read the UI Automation tree (the desktop's DOM) first, local OCR/vision second. Screenshots never leave the laptop.
 - Pseudo Hands is an MCP server so any MCP-capable agent can use it, not just Pseudo's own brain.
 - Pseudo's brain is its own loop (D15). Hermes was the brain from M6 to M13 and stays installed, but M13 ruled out Hermes and Hermes Desktop: harness token cost, hidden provider fallbacks, and Desktop-only tools that bypass redaction.
@@ -155,20 +156,26 @@ pseudo_hands/
 
 ```
 pseudo_brain/           Pseudo's own agent loop (D15, M14), grown from playground/03_agent_loop.py
-  model.py              Groq through AsyncOpenAI (D10), max_retries=0; visible 429 waits (retry-after);
-                        every other failure -> ModelFailure with a plain reason
+  providers.toml        the D16 allowlist: each provider's URL, key VARIABLE name, models, privacy note (M16)
+  providers.py          loads and checks it; refuses the rest (private = 127.0.0.1 only, no "cloud" names)
+  model.py              one provider through AsyncOpenAI (D10), max_retries=0; a 429 moves to the SAME
+                        provider's next model, then waits visibly; other failures -> ModelFailure
+  local_server.py       private mode's own server (Ollama): started on /provider local after checking
+                        cloud is off, 127.0.0.1 only, stopped when pseudo_brain exits (M16)
   hands.py              MCP CLIENT of pseudo_hands over stdio; tools discovered at startup, none named
-  session.py            history as whole turns; trimmed per request to ~3,000 estimated tokens;
+  session.py            history as whole turns, one provider per session; trimmed per request to the
+                        provider's max_prompt_tokens;
                         saved to %LOCALAPPDATA%\Pseudo\sessions\ (your messages + final answers only)
   loop.py               SYSTEM_PROMPT + run_turn(): THE LOOP. Never prints: reports events via on_event
-  terminal.py           thin interface: prints events, reads input, --continue, /new, /quit
+  terminal.py           thin interface: prints events, reads input, --continue, --provider, /provider,
+                        /new, /quit
   __main__.py           python -m pseudo_brain
 face/ (name TBD)        React desktop window, Tauri or Electron (M17), talking to pseudo_brain
                         through a local server and showing the same events. Display only (D11).
 ```
 
 ```
-  you --> terminal.py --text--> loop.run_turn --request--> model.py --> Groq (only)
+  you --> terminal.py --text--> loop.run_turn --request--> model.py --> the current provider (D16)
                   ^                   |   ^
                   +----- events ------+   | tool result (redacted in pseudo_hands core)
                                           v
@@ -180,5 +187,7 @@ face/ (name TBD)        React desktop window, Tauri or Electron (M17), talking t
 | openai (AsyncOpenAI) | The same SDK as Phase 1, async so it can share one event loop with the MCP client. |
 | mcp (Client) | The MCP SDK's client side: starts pseudo_hands over stdio, lists and calls its tools. |
 | anyio | Comes with mcp; runs the event loop, and `input()` in a helper thread so MCP keeps running. |
+| tomllib | Built into Python 3.11+: reads `providers.toml` (M16). No new install. |
+| psutil | Already used by pseudo_hands: `local_server.py` checks what listens on the server's port and stops the processes it started (M16). |
 
 Privacy and approval don't move: blocked apps, redaction and the approval popup stay in `pseudo_hands` core (D6, D11, D13), so they hold for `pseudo_brain` exactly as they did for Hermes.

@@ -37,7 +37,7 @@ First build a mini agent from scratch (LLM call, tool calling, agent loop) befor
 Raw `httpx2` and `openai` SDK only.
 
 ### D10. Provider-agnostic config
-Model endpoint, key, and name live in `.env`. Code uses the OpenAI-compatible API shape.
+Keys live in `.env`, never committed. For `pseudo_brain`, endpoints and model names live in the committed allowlist `pseudo_brain/providers.toml` (D16), so every place Pseudo can send data is reviewed in git. The playground scripts still read `LLM_BASE_URL`, `LLM_API_KEY` and `LLM_MODEL` from `.env`. Code uses the OpenAI-compatible API shape.
 
 ### D11. Swappable brain (flexibility principle)
 Pseudo is the whole assistant experience; the brain inside it (Hermes today) must be replaceable with minimal changes, including by the owner's own agent loop later. Concretely:
@@ -108,7 +108,7 @@ Memory is a dedicated, Obsidian-compatible markdown vault: plain `.md` files tha
 Saved from a successful run, preferring scripts over recorded clicks.
 
 ### L8. What the owner types is sent to the model unredacted
-Text the owner types to Pseudo goes to Groq as typed, by design: redacting it would break tasks that need the real values, such as a name to search for or a number to fill in. Only screen content is redacted, in `pseudo_hands` core before it leaves the laptop (D6).
+Text the owner types to Pseudo goes to the current provider (D16) as typed, by design: redacting it would break tasks that need the real values, such as a name to search for or a number to fill in. Only screen content is redacted, in `pseudo_hands` core before it leaves the laptop (D6).
 *Would change if:* pasted screen content in typed messages turns out to be common enough to need its own check.
 
 ## OPEN
