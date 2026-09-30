@@ -2,7 +2,7 @@
 
 A personal, privacy-first AI desktop assistant for Windows. Screen content will be understood and redacted locally before anything reaches a cloud model.
 
-**Status:** Phases 1-4 complete. Phase 5 (Make it usable) in progress: M13 done (Hermes Desktop ruled out; Pseudo gets its own brain, D15), M14 done: try it with `python -m pseudo_brain`. M15 done (providers evaluated, D16), M16 done (providers: allowlist, same-provider fallback, private mode), M17 (own face) next. See [PRD.md](PRD.md) section 5 for the phase plan, section 11 for Phase 5 and section 12 for the backlog.
+**Status:** Phases 1-4 complete. Phase 5 (Make it usable) in progress: M13 done (Hermes Desktop ruled out; Pseudo gets its own brain, D15), M14 done: try it with `python -m pseudo_brain`. M15 done (providers evaluated, D16), M16 done (providers: allowlist, same-provider fallback, private mode), M17 (Claude desktop app as face and brain? evaluate first) next, then M18 (own face). See [PRD.md](PRD.md) section 5 for the phase plan, section 11 for Phase 5 and section 12 for the backlog.
 
 ## Setup (PowerShell)
 

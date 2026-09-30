@@ -7,7 +7,7 @@ Two parts: the long-term target (so every step has context) and the Phase 1 stru
 ```
           voice / hotkey / typed prompt
                        |
-             [ Pseudo Face ]  own React window, Tauri or Electron (M17);
+             [ Pseudo Face ]  own React window, Tauri or Electron (M18);
                        |       terminal first (M14); voice later
                        |  local server
                        v
@@ -170,7 +170,7 @@ pseudo_brain/           Pseudo's own agent loop (D15, M14), grown from playgroun
   terminal.py           thin interface: prints events, reads input, --continue, --provider, /provider,
                         /new, /quit
   __main__.py           python -m pseudo_brain
-face/ (name TBD)        React desktop window, Tauri or Electron (M17), talking to pseudo_brain
+face/ (name TBD)        React desktop window, Tauri or Electron (M18), talking to pseudo_brain
                         through a local server and showing the same events. Display only (D11).
 ```
 
