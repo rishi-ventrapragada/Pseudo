@@ -1,4 +1,4 @@
-"""Tests for M14: pseudo_brain's session history (trimming, saving, continuing), plus two
+﻿"""Tests for M14: pseudo_brain's session history (trimming, saving, continuing), plus two
 rules about the package itself: the loop never prints, and the brain names no tools.
 All messages here are FAKE; sessions are saved to a temporary folder.
 """
@@ -87,13 +87,13 @@ def test_no_saved_session_means_a_fresh_start(sessions_dir: Path) -> None:
 
 def test_a_saved_session_keeps_its_provider_and_who_answered(sessions_dir: Path) -> None:  # (M16)
     session = Session(turns=[turn(1)], provider="local")
-    session.note_answer("local · tiny-model")
+    session.note_answer("local Â· tiny-model")
     session.start_turn("question 2")  # no answer yet: nothing to label
     saved = json.loads(session.save().read_text(encoding="utf-8"))
     assert saved["provider"] == "local"
-    assert [m.get("answered_by") for m in saved["messages"]] == [None, "local · tiny-model", None]
+    assert [m.get("answered_by") for m in saved["messages"]] == [None, "local Â· tiny-model", None]
     loaded = load_latest()
-    assert loaded.provider == "local" and loaded.answered_by == {0: "local · tiny-model"}
+    assert loaded.provider == "local" and loaded.answered_by == {0: "local Â· tiny-model"}
     messages, _, _ = loaded.messages_for_request("fake system prompt", [], 3000)
     assert all("answered_by" not in m for m in messages)  # a label is never sent to a model
 
@@ -109,7 +109,7 @@ def test_a_session_saved_before_m16_belongs_to_groq(sessions_dir: Path) -> None:
 # ---------- rules about the package ----------
 
 def test_only_the_terminal_prints() -> None:
-    for name in ("loop.py", "session.py", "hands.py", "model.py", "providers.py"):
+    for name in ("loop.py", "session.py", "hands.py", "model.py", "providers.py", "local_server.py"):
         tree = ast.parse((PSEUDO_BRAIN / name).read_text(encoding="utf-8"))
         prints = [n for n in ast.walk(tree)
                   if isinstance(n, ast.Call) and isinstance(n.func, ast.Name) and n.func.id == "print"]
