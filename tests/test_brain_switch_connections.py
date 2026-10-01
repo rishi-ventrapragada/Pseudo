@@ -103,3 +103,4 @@ async def test_a_refused_switch_keeps_groq_as_it_was(world: dict) -> None:
     with pytest.raises(ServerFailure):
         await world["chat"].switch("local")
     assert world["chat"].provider.id == "groq" and open_connections_to(world["port"]) == 1
+    await world["chat"].model.close()  # tidy up inside this test's event loop, or a later test trips on it
