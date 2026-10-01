@@ -10,6 +10,8 @@ pseudo_hands/
     blocked_apps.txt    the apps YOU consider private; edit freely                    (M4)
     redactor.py         redact(text): Presidio + spaCy, fails closed                  (M7)
     india_recognizers.py  +91 phone, Aadhaar, PAN, UPI, long-number shapes          (M7)
+    date_recognizers.py   birthday-shaped dates and ages, by pattern                 (M19)
+    finding_filters.py    codes are never names; weak plate shapes ignored           (M19)
     redaction_terms.txt   your private terms (gitignored; see the .example)         (M7)
     allowed_names.txt   app/site names never masked; no personal names             (M8)
     ui_tree.py          walk one window's UI Automation tree -> raw lines          (M9; M12 skips failing controls)

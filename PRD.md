@@ -2,7 +2,7 @@
 
 Owner: Sai Rishi Ventrapragada
 Repo: https://github.com/rishi-ventrapragada/Pseudo
-Status: Phase 1-4 complete (M11 evaluated OCR and skipped it). Phase 5 (Make it usable) in progress: M13 done (Hermes Desktop ruled out; own brain per D15), M14 done (`pseudo_brain`), M15 done (providers evaluated; D16), M16 done (providers: allowlist, same-provider fallback, private mode), M17 done (Claude desktop app ruled out; D17), M18 done (own face: Electron, over a child-process pipe; D18). Open follow-ups are in section 12, Backlog.
+Status: Phase 1-4 complete (M11 evaluated OCR and skipped it). Phase 5 (Make it usable) in progress: M13 done (Hermes Desktop ruled out; own brain per D15), M14 done (`pseudo_brain`), M15 done (providers evaluated; D16), M16 done (providers: allowlist, same-provider fallback, private mode), M17 done (Claude desktop app ruled out; D17), M18 done (own face: Electron, over a child-process pipe; D18), M19 done (redactor precision; D19). **⚠ Live privacy leak: the redactor misses some Indian names; M20 fixes it next (section 11).** Open follow-ups are in section 12, Backlog.
 Last updated: 2026-10-01
 
 ## 1. What Pseudo is
@@ -223,11 +223,26 @@ Goal: use Pseudo day to day, not just through `hermes -p pseudo` in a terminal. 
 - It reads the right window: `read_active_window` must read the window the owner was on before switching to Pseudo, never Pseudo's own window (the face, or a terminal running Pseudo). Found in M15's research: `pick_window` skips only `hermes.exe`, so a brain asked from a terminal reads its own chat. The fake-window checks hid this because their test window is always on top.
 - **Done when:** the M14 checks pass through the window, `focus_window` still asks through the native approval popup (D13), and a question asked from the window reads the window the owner was on before switching, never Pseudo's own.
 
+### M19: Redactor precision
+- Codes, order numbers, times and weekdays are no longer masked; birth dates, ages and every M7/M8 sensitive case still are (D19).
+- **Done when:** the fixed criteria P1-P8 in the M19 lesson pass, measured with fake text only.
+- **Result (2026-10-01):** ordinary fake lines over-masked 17/41 (41%) → 4/41 (10%). 37/37 earlier sensitive cases and 18/18 new guards (birth dates, ages, names next to codes, full plates) stay masked. M8's 30 titles are still 1/30 changed. The M15 battery scored 12/12 on `gpt-oss-120b`, and the model now reads "order 4471 ships on Monday".
+
+### M20: ⚠ Live privacy leak: missed Indian names (next)
+- **Measured in M19, with fake names:** spaCy's small English model (`en_core_web_sm`) misses some Indian names, and they reach the model unmasked:
+  - "Anil Kumar": leaked in "Call Anil Kumar re CS101", "Call Anil Kumar" and "Anil Kumar - WhatsApp"; caught only in "Chat with Anil Kumar";
+  - "Sneha Reddy": leaked in "Sneha Reddy - CSE-DS", "Chat with Sneha Reddy" and "Meeting with Sneha Reddy" (3 of 3);
+  - "Venkatesh Iyer review": leaked;
+  - a lone first name: "Rahul, 34 years old" keeps "Rahul".
+  - Caught in the same probe: "Priya Sharma", "Rahul Verma", "Lakshmi Narayanan", "Mohammed Irfan", "Harpreet Kaur", "Fatima Shaikh".
+- First measure name recall on a fake set of Indian names (first names, surnames, initials like "S. Ramesh", names in Telugu and Hindi transliteration), then propose a fix against criteria fixed before measuring.
+- **Done when:** recall on that fake set meets the bar set in M20's plan, with no regression on M19's criteria.
+
 ## 12. Backlog
 
 Found while building; not scheduled. Each needs a plan and approval before work starts.
 
-- **Redactor over-masks non-personal text (high priority: fix right after the face, M18).** In M15, "Pseudo M15 notes" became "Pseudo [PERSON] notes" and "order 4471 ships on Monday" became "order [DATE_TIME] ships on [DATE_TIME]", so order numbers and version tags never reach the model. Masking when unsure is by design (D6), so a fix must not weaken real detections.
+- **Redactor over-masks non-personal text. Resolved in M19:** ordinary fake lines over-masked 17/41 → 4/41; the four left are spaCy name guesses (Node, OKR, section, Quiz), pinned as tests. In M15, "Pseudo M15 notes" became "Pseudo [PERSON] notes" and "order 4471 ships on Monday" became "order [DATE_TIME] ships on [DATE_TIME]", so order numbers and version tags never reach the model. Masking when unsure is by design (D6), so a fix must not weaken real detections.
 - **Thinner first reads.** A freshly opened Chromium/Electron window's first read is thinner than later ones (M12: Obsidian gave 65 content chars on its first read vs 290 warm in M11). M12's retry only fires when a read fails or finds nothing inside the window, so a thin-but-not-empty first read isn't retried.
 - **Depth limit misses deep apps.** The UI tree walk stops at depth 12, which misses most of the content in deeply nested apps like Claude desktop (30 controls at depth 12 vs 109 at depth 30).
 - **Plain-text answers.** The model sometimes answers in Markdown (bold, lists) although the system prompt asks for plain text (M14). Either tighten the prompt or render Markdown in the face (M18). **Resolved for the face (M18):** answers are rendered as Markdown, with no raw HTML, images or links. The terminal still prints the raw Markdown.

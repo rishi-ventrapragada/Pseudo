@@ -132,6 +132,8 @@ pseudo_hands/
     blocked_apps.txt    owner-editable list of .exe names
     redactor.py         redact(text): Presidio + spaCy, fail closed (M7)
     india_recognizers.py  +91 phone, Aadhaar, PAN, UPI, long-number patterns (M7)
+    date_recognizers.py   birthday-shaped dates and ages by pattern; spaCy's date guesses are off (M19, D19)
+    finding_filters.py    code-shaped words are never names; weak vehicle-plate shapes ignored (M19, D19)
     redaction_terms.txt   owner's private terms (gitignored; .example committed) (M7)
     allowed_names.txt   app/site names never masked (M8)
     ui_tree.py          walk a window's UI Automation tree -> raw lines (M9); skips failing controls (M12)

@@ -90,6 +90,11 @@ The face talks to `pseudo_brain` only through a child-process pipe (JSON lines o
 *Why:* M5 and M17 showed that anything reachable gets reached (M17: local tools passed to remote sessions).
 *Would change if:* a second device must talk to Pseudo, which would need its own plan.
 
+### D19. What the redactor treats as personal (M19)
+Dates are masked when they could be a birthday (a day and a month, or a year next to a birth word), and so are ages; times, weekdays, relative dates and bare numbers are not. Code-shaped words (capital letters plus digits, like M15 or CS101) are never names. Presidio's weak vehicle-plate shapes (score below 0.4) are ignored; full plates are masked. Everything else still masks at any confidence (D6).
+*Why:* M19 measured 41% of ordinary fake lines over-masked, 11 of 18 spans from spaCy's date guesses.
+*Would change if:* a measured case shows real personal info released by one of these rules.
+
 ## LEANING (revisit after Phase 1)
 
 L1 moved to LOCKED as D12 (2026-09-28).

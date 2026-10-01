@@ -22,6 +22,9 @@ FAKE_TITLES = [
     "Downloads - File Explorer",
     "notes.md - Notepad",
     "New Tab - Google Chrome",
+    "Pseudo M15 notes",  # M19: codes, order numbers and times are no longer masked
+    "Notes: order 4471 ships on Monday, standup at 10:30",
+    "CS101 lecture notes - DOB 12/03/1998 on the form",
 ]
 RUNS = 200
 
