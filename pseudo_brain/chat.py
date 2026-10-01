@@ -6,13 +6,15 @@ at exit. The face needs exactly the same rules, and two copies would drift apart
 rules live here, in a Chat, and the interfaces become thin wrappers (D11): terminal.py
 prints, bridge.py sends JSON lines to the face. Neither decides anything.
 
-The rules (M16, D16), unchanged:
+The rules (M16, D16, and one from M18):
   - A session belongs to ONE provider for life. Switching provider starts a new session,
     and opening a saved session reconnects to THAT session's provider.
   - A refused switch changes nothing: same provider, same session.
   - Connecting to private mode starts its server (Ollama); close() stops every server
     Pseudo started, and only those.
   - Every key in use is added to `secrets`, so an interface can hide it in what it shows.
+  - Switching provider closes the old provider's connections (M18), so private mode keeps no
+    idle connection to the cloud open.
   - Nothing here prints. What happens is reported through on_event, like the loop.
 """
 
@@ -65,9 +67,18 @@ class Chat:
         chosen = self.allowlist.get(provider_id)
         if chosen.id == self.provider.id:
             return False
-        self.model = await self.connect(chosen)
+        await self.use(await self.connect(chosen))
         self.session = Session(provider=chosen.id)
         return True
+
+    async def use(self, model: Model) -> None:
+        """Use this model from now on, and close the old one's connections (M18).
+
+        Before this, the old client stayed open: switching from Groq to private mode left an
+        idle connection to Groq open (from the startup check) for as long as Pseudo ran."""
+        old, self.model = self.model, model
+        if old is not None and old is not model:
+            await old.close()
 
     def new_session(self) -> None:
         """A fresh session on the same provider."""
@@ -77,7 +88,7 @@ class Chat:
         """Continue a saved session on ITS provider. Raises one of REFUSALS, and then nothing has changed."""
         session = load_session(name)
         if session.provider != self.provider.id:
-            self.model = await self.connect(self.allowlist.get(session.provider))
+            await self.use(await self.connect(self.allowlist.get(session.provider)))
         self.session = session
 
     async def ask(self, text: str, hands: Hands) -> TurnResult:

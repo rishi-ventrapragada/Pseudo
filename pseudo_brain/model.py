@@ -103,6 +103,11 @@ class Model:
         if missing:
             raise ModelFailure(f"{where} doesn't have {', '.join(missing)}")
 
+    async def close(self) -> None:
+        """Close this provider's connections (M18). The SDK keeps a finished HTTPS connection
+        open to reuse it (keep-alive), so a Model no longer in use must be closed."""
+        await self.client.close()
+
 
 async def connect_provider(provider: Provider, servers: dict[str, LocalServer],
                            on_event: Callable[[str, dict], None]) -> Model:
