@@ -100,6 +100,11 @@ Pseudo uses AI models and services only in the cloud, through the providers allo
 *Why:* private mode's Ollama took 3.8 GB of disk, and a model runner it left behind held about 6 GB of committed memory for a day (P5-perf). The owner wants the laptop's RAM, GPU and disk for other work.
 *Would change if:* the owner gets hardware to spare, or a privacy need arises that only a local model can meet.
 
+### D21. Names the redactor must know (M20)
+Common Indian first names and surnames are masked from a committed, owner-editable list (`pseudo_hands/core/indian_names.txt`), matched only when Capitalized or in ALL CAPS. So are initials next to a listed name, and any Capitalized word right before a listed surname. spaCy still masks the names it finds; the list only adds masks. Names that are also common English or everyday words (Sunny, Ram, Raja...) and brand-name surnames (Bose, Tata...) are left out; deity and festival names are kept, so "Durga Puja" is masked, failing closed.
+*Why:* M20 measured spaCy's small model catching 61% of fake Indian names in titles (first names alone: 25%), and the medium model needed 205 MB more RAM while still missing more held-out names than the list.
+*Would change if:* a measured model catches the held-out sets as well as the list does, within the laptop's RAM budget (D20).
+
 ## LEANING (revisit after Phase 1)
 
 L1 moved to LOCKED as D12 (2026-09-28).

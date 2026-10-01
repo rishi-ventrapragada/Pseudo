@@ -12,6 +12,8 @@ pseudo_hands/
     india_recognizers.py  +91 phone, Aadhaar, PAN, UPI, long-number shapes          (M7)
     date_recognizers.py   birthday-shaped dates and ages, by pattern                 (M19)
     finding_filters.py    codes are never names; weak plate shapes ignored           (M19)
+    indian_names.txt      common Indian first names and surnames (owner-editable)    (M20)
+    name_recognizers.py   masks the listed names, with initials and surnames         (M20)
     redaction_terms.txt   your private terms (gitignored; see the .example)         (M7)
     allowed_names.txt   app/site names never masked; no personal names             (M8)
     ui_tree.py          walk one window's UI Automation tree -> raw lines          (M9; M12 skips failing controls)

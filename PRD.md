@@ -2,7 +2,7 @@
 
 Owner: Sai Rishi Ventrapragada
 Repo: https://github.com/rishi-ventrapragada/Pseudo
-Status: Phase 1-4 complete (M11 evaluated OCR and skipped it). Phase 5 (Make it usable) in progress: M13 done (Hermes Desktop ruled out; own brain per D15), M14 done (`pseudo_brain`), M15 done (providers evaluated; D16), M16 done (providers: allowlist, same-provider fallback, private mode), M17 done (Claude desktop app ruled out; D17), M18 done (own face: Electron, over a child-process pipe; D18), M19 done (redactor precision; D19). **⚠ Live privacy leak: the redactor misses some Indian names; M20 fixes it next (section 11).** Open follow-ups are in section 12, Backlog.
+Status: Phase 1-4 complete (M11 evaluated OCR and skipped it). Phase 5 (Make it usable) in progress: M13 done (Hermes Desktop ruled out; own brain per D15), M14 done (`pseudo_brain`), M15 done (providers evaluated; D16), M16 done (providers: allowlist, same-provider fallback, private mode), M17 done (Claude desktop app ruled out; D17), M18 done (own face: Electron, over a child-process pipe; D18), M19 done (redactor precision; D19). M20 done (Indian names; D21), with a known gap that M21 addresses next (section 11). Open follow-ups are in section 12, Backlog.
 Last updated: 2026-10-01
 
 ## 1. What Pseudo is
@@ -228,7 +228,7 @@ Goal: use Pseudo day to day, not just through `hermes -p pseudo` in a terminal. 
 - **Done when:** the fixed criteria P1-P8 in the M19 lesson pass, measured with fake text only.
 - **Result (2026-10-01):** ordinary fake lines over-masked 17/41 (41%) → 4/41 (10%). 37/37 earlier sensitive cases and 18/18 new guards (birth dates, ages, names next to codes, full plates) stay masked. M8's 30 titles are still 1/30 changed. The M15 battery scored 12/12 on `gpt-oss-120b`, and the model now reads "order 4471 ships on Monday".
 
-### M20: ⚠ Live privacy leak: missed Indian names (next)
+### M20: Missed Indian names (fixed, with a known gap)
 - **Measured in M19, with fake names:** spaCy's small English model (`en_core_web_sm`) misses some Indian names, and they reach the model unmasked:
   - "Anil Kumar": leaked in "Call Anil Kumar re CS101", "Call Anil Kumar" and "Anil Kumar - WhatsApp"; caught only in "Chat with Anil Kumar";
   - "Sneha Reddy": leaked in "Sneha Reddy - CSE-DS", "Chat with Sneha Reddy" and "Meeting with Sneha Reddy" (3 of 3);
@@ -237,6 +237,12 @@ Goal: use Pseudo day to day, not just through `hermes -p pseudo` in a terminal. 
   - Caught in the same probe: "Priya Sharma", "Rahul Verma", "Lakshmi Narayanan", "Mohammed Irfan", "Harpreet Kaur", "Fatima Shaikh".
 - First measure name recall on a fake set of Indian names (first names, surnames, initials like "S. Ramesh", names in Telugu and Hindi transliteration), then propose a fix against criteria fixed before measuring.
 - **Done when:** recall on that fake set meets the bar set in M20's plan, with no regression on M19's criteria.
+- **Result (2026-10-01):** a committed names list (`indian_names.txt`, D21) with spaCy's small model, chosen over `en_core_web_md` (which needed +205 MB of RAM against a 150 MB cap, and masked "M18" as a place).
+  - Recall on the 68-name set: 61% → 100% (the list was written after measuring this set, so this number proves little). First names alone: 25% → 100%; initials 67% → 99%.
+  - **R2 missed: held-out recall 86%, against a 90% threshold (spaCy alone: 47%).** The remaining gap: rare surnames next to a listed first name ("Keerthana Boddu" keeps "Boddu"). With every held-out name removed from the list, recall falls back to 47%: the list only helps with names it contains. M21 addresses this gap; R2's threshold is unchanged.
+  - Precision: no new over-masking on any set; M19's criteria all still hold; the M15 battery scored 12/12.
+  - **R6 changed** from "at most 2 of 17 over-masked" to "no new over-masking versus before M20". The original was unachievable: spaCy alone already over-masked 4 of the 17 lines (measured only after the threshold was set), and a list can only add masks.
+  - Known gaps: names in lower case ("chat with amit") aren't matched; festival names are masked ("Durga Puja"), failing closed.
 
 ## 12. Backlog
 
