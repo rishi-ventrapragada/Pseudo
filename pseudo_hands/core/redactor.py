@@ -14,6 +14,7 @@ The steps of redact(text):
   3. Presidio finds and masks; "main.py"-style file names are not treated as web addresses.
      Dates and ages come from patterns, not spaCy's guesses (M19, date_recognizers.py), and
      code-shaped words like "M15" are never names, and weak plate shapes are ignored (finding_filters.py).
+     Common Indian names come from a committed list as well as spaCy (M20, name_recognizers.py).
   4. The output is re-checked for phone/Aadhaar/long-number shapes; any leftover raises.
 Fail closed: every finding is masked at any confidence (score_threshold=0), Indian formats
 match by shape (india_recognizers.py), and ANY error raises RedactionError. redact() never
@@ -36,6 +37,7 @@ from presidio_anonymizer.entities import OperatorConfig
 from pseudo_hands.core.date_recognizers import DATE_LEAK_CHECKS, date_recognizers
 from pseudo_hands.core.finding_filters import is_weak_plate, trim_codes
 from pseudo_hands.core.india_recognizers import LEAK_CHECKS, india_recognizers
+from pseudo_hands.core.name_recognizers import name_recognizers
 
 SPACY_MODEL = "en_core_web_sm"  # 12.8 MB; swap for "en_core_web_lg" (400 MB) if names get missed
 # (M19) spaCy's DATE and TIME guesses masked "10:30", "Monday" and "order 4471". They are switched
@@ -127,7 +129,7 @@ def build_analyzer() -> AnalyzerEngine:
     places = PatternRecognizer(supported_entity="LOCATION", name="PseudoIndianPlacesRecognizer",
                                deny_list=load_list(PLACES_FILE, "Indian places"))
     for recognizer in [InPassportRecognizer(), InVoterRecognizer(), InVehicleRegistrationRecognizer(),
-                       InGstinRecognizer(), *india_recognizers(), *date_recognizers(), places]:
+                       InGstinRecognizer(), *india_recognizers(), *date_recognizers(), *name_recognizers(), places]:
         registry.add_recognizer(recognizer)
     return AnalyzerEngine(nlp_engine=nlp, registry=registry, supported_languages=["en"])
 

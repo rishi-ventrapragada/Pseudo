@@ -1,0 +1,79 @@
+# Indian first names and surnames, always masked as [PERSON] (M20, D21).
+# spaCy's small English model missed 39% of fake Indian names in titles (first names alone: 72%),
+# so this list backs it up, the way indian_places.txt backs up place names.
+#
+# How it's matched (name_recognizers.py): whole words, only when Capitalized ("Amit") or in
+# ALL CAPS ("AMIT"); lower case is left alone, so "ram usage" or "pooja holidays" in lower case
+# stay visible. A Capitalized word right before a listed SURNAME is masked too, even if that
+# first name isn't listed ("Yashwanth Chowdary"). Initials next to a listed name go with it.
+#
+# Left out on purpose (spaCy still catches some of them):
+#   - names that are also common English words or tech terms: Sunny, Ruby, Jasmine, Rose, Joy,
+#     Hope, Prince, Lucky, Ram, Dev, Om, Jay;
+#   - names that mostly appear as ordinary Hindi words in titles: Raja, Rani, Amar, Sona, Heera, Moti;
+#   - surnames that are brand names: Bose, Tata, Birla, Bajaj, Mahindra, Godrej, Kotak.
+# Deity and festival names (Durga, Lakshmi, Krishna, Ganesh) ARE listed: "Durga Puja" gets masked.
+# That's accepted, failing closed (D21): an exemption could hide a real person named Durga.
+#
+# Format: a [first names] and a [surnames] section; names separated by commas; anything after a
+# # is a comment. Add the names that matter to you; spelling variants count as separate names.
+
+[first names]
+# common across North India
+Aarav, Aarti, Abhay, Abhinav, Abhishek, Aditi, Aditya, Ajay, Akash, Akhil, Akshay, Alok, Aman, Amit, Amita
+Amol, Anand, Anil, Anita, Anjali, Ankit, Ankita, Anupam, Anurag, Anushka, Archana, Arjun, Arpit, Arti, Arun
+Aruna, Ashish, Ashok, Ashwin, Ayush, Bhavna, Bhavya, Chetan, Deepa, Deepak, Deepika, Dheeraj, Dinesh, Divya
+Gaurav, Geeta, Gita, Gopal, Govind, Harish, Harsh, Hemant, Isha, Ishaan, Jatin, Jaya, Jyoti, Kajal, Kamal
+Kapil, Karan, Kavita, Komal, Kunal, Lalit, Madhu, Mahesh, Manish, Manisha, Manoj, Meena, Megha, Mohit, Mukesh
+Naresh, Neelam, Neeraj, Neha, Nidhi, Nikhil, Nikita, Nisha, Nitin, Pallavi, Pankaj, Pawan, Pooja, Prakash
+Pranav, Prashant, Pratik, Preeti, Prem, Priya, Priyanka, Rachna, Rahul, Rajat, Rajesh, Rajiv, Rakesh, Ramesh
+Rashmi, Ravi, Rekha, Ritu, Rohan, Rohit, Ruchi, Sachin, Sakshi, Sandeep, Sanjay, Sanjana, Santosh, Sarita
+Saurabh, Sourabh, Seema, Shalini, Shikha, Shivam, Shreya, Shubham, Shweta, Siddharth, Smita, Sneha, Sonal
+Sonia, Sudhir, Sumit, Sunil, Sunita, Suresh, Swati, Tanvi, Tarun, Tushar, Uday, Usha, Varun, Vikas, Vikram
+Vinay, Vinod, Vipin, Vishal, Vivek, Yash, Yogesh, Asha, Kiran, Hari, Hema, Uma, Monika, Rakhi, Payal, Ritika
+# Telugu
+Anusha, Bhanu, Bhargav, Bhargavi, Bindu, Chaitanya, Chaithanya, Durga, Gopi, Harsha, Haritha, Hemanth
+Jagadeesh, Kalyan, Keerthana, Keerthi, Lakshmi, Laxmi, Madhavi, Manasa, Mounika, Nagaraju, Naveen, Pavani
+Prasanna, Raghu, Ramana, Ramya, Ravindra, Sai, Sandhya, Sirisha, Sowmya, Sravan, Sravani, Shravan, Srikanth
+Srilatha, Srinivas, Srinivasa, Sreenivas, Shrinivas, Sudheer, Sushma, Swathi, Teja, Tejaswini, Vamsi, Venkat
+Venkata, Venkatesh, Venkatesa, Vyshnavi, Vaishnavi, Yashwanth, Raghavendra, Raghvendra, Narasimha, Lavanya
+# Tamil, Kannada, Malayalam
+Anoop, Arvind, Balaji, Deepthi, Dhanya, Ganesh, Harini, Janani, Jayanthi, Karthik, Karthika, Kavitha
+Kavya, Krishna, Lakshmanan, Madhavan, Manjunath, Meenakshi, Murali, Muthu, Nagesh, Nandini, Narayanan, Padma
+Prabhu, Praveen, Raghavan, Rajeev, Ranjith, Revathi, Sangeetha, Saranya, Senthil, Shreyas, Sreeja
+Sreekumar, Sundar, Suriya, Vignesh, Vijay, Vishnu, Anitha, Divakar, Gayathri, Priyadarshini, Sathish
+# Bengali, Odia, Assamese, Marathi, Gujarati, Punjabi
+Abhijit, Anirban, Arindam, Bikash, Biswajit, Debjani, Indrani, Moumita, Partha, Riya, Sourav, Subhash, Suman
+Pradeep, Omkar, Rutuja, Snehal, Sayali, Pratiksha, Tejas, Hardik, Jignesh, Nirav, Bhavesh, Krupa, Gurpreet
+Harleen, Harpreet, Jaspreet, Manpreet, Simran, Navjot, Amandeep, Kuldeep, Baljit, Rupinder, Sukhwinder
+# Muslim names
+Mohammed, Mohammad, Muhammad, Ahmed, Asif, Ayesha, Aisha, Farhan, Fatima, Imran, Irfan, Javed, Nadeem, Nazia
+Rizwan, Salman, Sameer, Sana, Shahid, Shabana, Tanveer, Zainab, Zoya, Arshad, Faisal, Rehan, Sadia, Anwar
+Yusuf, Iqbal
+# Christian names common in India
+Antony, Mathew, Neethu, Jincy, Merin, Shibu, Binoy
+
+[surnames]
+# North India
+Sharma, Verma, Gupta, Agarwal, Aggarwal, Singh, Kumar, Yadav, Mishra, Tiwari, Tripathi, Pandey, Dubey
+Dwivedi, Chaturvedi, Shukla, Srivastava, Saxena, Joshi, Chauhan, Rathore, Thakur, Rawat, Negi, Bisht
+Bhardwaj, Rastogi, Kapoor, Khanna, Malhotra, Mehra, Arora, Bhatia, Sethi, Chopra, Bansal, Goel, Jain, Mittal
+Garg, Singhal, Chaudhary, Choudhary, Jha, Sinha, Prasad, Pathak, Upadhyay, Dixit, Awasthi, Bajpai, Rai
+Rajput, Sahu, Soni, Devi, Lal, Nath
+# Telugu
+Reddy, Naidu, Rao, Chowdary, Choudary, Varma, Raju, Sastry, Sarma, Murthy, Goud, Kolli, Konda, Gaddam
+Kolla, Dasari, Akula, Kotha, Vemula, Katta, Nalla, Yarlagadda, Kancharla, Talluri
+# Tamil, Kannada, Malayalam
+Iyer, Iyengar, Pillai, Nair, Menon, Kurup, Panicker, Warrier, Nambiar, Gowda, Hegde, Kamath, Shetty, Bhat
+Shenoy, Pai, Subramanian, Sundaram, Krishnan, Narayanan, Ramanathan, Raghavan, Venkataraman, Swamy, Murugan
+Chettiar, Mudaliar
+# Bengali, Odia, Assamese
+Banerjee, Chatterjee, Mukherjee, Ganguly, Das, Dutta, Ghosh, Sen, Roy, Chakraborty, Bhattacharya, Sarkar
+Mondal, Saha, Majumdar, Gogoi, Bora, Baruah, Kalita, Mohanty, Panda, Nayak, Behera
+# Marathi, Gujarati, Punjabi, Goan
+Patil, Deshpande, Kulkarni, Deshmukh, Pawar, Jadhav, Shinde, Bhosale, Gaikwad, Patel, Shah, Desai, Mehta
+Parikh, Trivedi, Pandya, Gill, Sandhu, Sidhu, Dhillon, Grewal, Kaur, Bajwa, Fernandes, D'Souza, Pereira
+Rodrigues, Pinto
+# Muslim surnames
+Khan, Ansari, Siddiqui, Qureshi, Shaikh, Sheikh, Syed, Hussain, Mirza, Pathan, Rizvi, Naqvi, Hashmi
+Farooqui

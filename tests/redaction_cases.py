@@ -6,7 +6,7 @@ measurement script uses the same lists.
   SENSITIVE    every sensitive fake case from M7-M18: (text, pieces that must not survive)
   GUARDS       what M19 touches: birth dates, ages, names next to codes and times, full plates
   RESIDUALS    ordinary lines still over-masked after M19, named in advance (strict xfail)
-  KNOWN_LEAKS  names spaCy's small model misses: a live privacy leak, fixed in M20 (strict xfail)
+  KNOWN_LEAKS  names spaCy's small model missed: the live privacy leak found in M19, fixed by M20's names list
 """
 
 ORDINARY = {

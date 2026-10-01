@@ -161,7 +161,6 @@ def test_known_residuals(line: str) -> None:
     assert redact(line) == line
 
 
-@pytest.mark.xfail(strict=True, reason="LIVE PRIVACY LEAK: spaCy's small model misses these names; fixed in M20")
 @pytest.mark.parametrize("text, secrets", KNOWN_LEAKS)
-def test_known_name_leaks(text: str, secrets: list[str]) -> None:
+def test_the_name_leaks_found_in_m19_are_fixed(text: str, secrets: list[str]) -> None:  # fixed by M20's names list
     assert leaked(text, secrets) == []
