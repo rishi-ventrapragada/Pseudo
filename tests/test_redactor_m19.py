@@ -9,9 +9,9 @@ import pytest
 from presidio_analyzer import RecognizerResult
 
 from pseudo_hands.core import redactor
-from pseudo_hands.core.finding_filters import trim_codes
+from pseudo_hands.core.finding_filters import is_weak_plate, trim_codes
 from pseudo_hands.core.redactor import RedactionError, redact
-from redaction_cases import GUARDS, ORDINARY, SENSITIVE
+from redaction_cases import GUARDS, KNOWN_LEAKS, ORDINARY, ORDINARY_LINES, RESIDUALS, SENSITIVE
 
 
 @pytest.fixture(autouse=True)
@@ -117,3 +117,51 @@ def test_locations_are_never_trimmed() -> None:
 @pytest.mark.parametrize("line", ["Pseudo M15 notes", "Pseudo M15 target", "Order #A-20931 tracking"])
 def test_lines_with_codes_are_no_longer_masked(line: str) -> None:
     assert redact(line) == line
+
+
+# ---------- change 3: Presidio's weak vehicle-plate shapes are ignored ----------
+
+@pytest.mark.parametrize("line", ["MA2201 assignment 3", "CSE1001 lab", "A1234 form"])
+def test_course_codes_shaped_like_old_plates_survive(line: str) -> None:
+    assert redact(line) == line
+
+
+@pytest.mark.parametrize("text, plate", [("Vehicle MH12AB1234 parked", "MH12AB1234"), ("Plate 22BH1234AA", "22BH1234AA"),
+                                         ("Vehicle no. DL1234 parked", "DL1234")])  # a weak shape WITH context
+def test_full_plates_and_plates_with_context_are_still_masked(text: str, plate: str) -> None:
+    assert plate not in redact(text)
+
+
+def test_only_weak_plate_findings_are_dropped() -> None:
+    assert is_weak_plate(RecognizerResult("IN_VEHICLE_REGISTRATION", 0, 6, 0.2))
+    assert not is_weak_plate(RecognizerResult("IN_VEHICLE_REGISTRATION", 0, 10, 0.4))
+    assert not is_weak_plate(RecognizerResult("PERSON", 0, 5, 0.01))
+
+
+# ---------- the fixed criteria, all three changes together ----------
+
+@pytest.mark.parametrize("line, token", [(line, token) for line, token in ORDINARY_LINES if token])
+def test_p3_every_ordinary_token_survives(line: str, token: str) -> None:
+    assert token in redact(line)
+
+
+def test_p4_at_least_37_of_41_ordinary_lines_are_unchanged() -> None:
+    assert len(ORDINARY_LINES) == 41
+    assert sum(redact(line) == line for line, _ in ORDINARY_LINES) >= 37
+
+
+@pytest.mark.parametrize("text, secrets", [case for cases in GUARDS.values() for case in cases])
+def test_p2_every_guard_is_masked(text: str, secrets: list[str]) -> None:
+    assert leaked(text, secrets) == []
+
+
+@pytest.mark.xfail(strict=True, reason="known over-masking left after M19 (spaCy NER guesses), named in advance")
+@pytest.mark.parametrize("line", RESIDUALS)
+def test_known_residuals(line: str) -> None:
+    assert redact(line) == line
+
+
+@pytest.mark.xfail(strict=True, reason="LIVE PRIVACY LEAK: spaCy's small model misses these names; fixed in M20")
+@pytest.mark.parametrize("text, secrets", KNOWN_LEAKS)
+def test_known_name_leaks(text: str, secrets: list[str]) -> None:
+    assert leaked(text, secrets) == []

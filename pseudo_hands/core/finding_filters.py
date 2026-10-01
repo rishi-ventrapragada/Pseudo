@@ -9,6 +9,11 @@ Why it can't release a real name:
   - a code in the MIDDLE of a finding leaves the whole finding masked;
   - "rahul99" and "Rahul99" are not code-shaped (lower-case, or 5+ letters), so they stay masked;
   - LOCATION is left alone: "B-204" next to a building name is part of an address.
+
+The second rule: Presidio's WEAK vehicle-plate shapes (1-3 letters + 4 digits, scored 0.01-0.2
+by Presidio itself) are ignored, because in practice they are course codes (MA2201, CSE1001).
+Full plates (MH12AB1234, the BH series) score 0.4 or more and stay masked, and so does a weak
+shape next to a word like "vehicle" or "registration": Presidio's context boost lifts it to 0.4+.
 """
 
 import re
@@ -19,6 +24,11 @@ from presidio_analyzer import RecognizerResult
 # or digits, capitals, digits (21CS42). Matched case-sensitively, against a whole word.
 CODE_WORD = re.compile(r"[A-Z]{1,4}-?\d{1,6}[A-Z]?|\d{1,3}[A-Z]{1,4}\d{1,4}")
 NAME_LIKE = {"PERSON", "NRP"}  # spaCy's guesses at people and groups (NRP: nationality, religion, politics)
+WEAK_PLATE_SCORE = 0.4  # below this, a vehicle-plate finding is one of Presidio's weak shapes with no context
+
+
+def is_weak_plate(finding: RecognizerResult) -> bool:
+    return finding.entity_type == "IN_VEHICLE_REGISTRATION" and finding.score < WEAK_PLATE_SCORE
 
 
 def trim_codes(text: str, finding: RecognizerResult) -> RecognizerResult | None:
