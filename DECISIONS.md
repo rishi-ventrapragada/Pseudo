@@ -75,7 +75,7 @@ Pseudo's brain is its own agent loop in `pseudo_brain/`, grown from the M3 loop 
 `pseudo_brain` uses only the providers on a committed allowlist; anything else is refused.
 - **Groq (main):** `openai/gpt-oss-120b`. Redacted screen text leaves the laptop. Groq doesn't train on inputs or outputs (services agreement §4.2).
 - **Groq fallback:** `openai/gpt-oss-20b`, used only when the main model returns a 429, and announced before it's used. Groq's limits are per model (measured in M15). Never a fallback to another provider.
-- **Private mode (local):** Ollama on this laptop only (`127.0.0.1`), cloud off, model `granite4.1:3b`. Nothing leaves the laptop. Any model name containing "cloud" is refused. If it fails, it says so; it never falls back to the cloud.
+- **Private mode (local):** Ollama on this laptop only (`127.0.0.1`), cloud off, model `granite4.1:3b`. Nothing leaves the laptop. Any model name containing "cloud" is refused. If it fails, it says so; it never falls back to the cloud. **Disabled since 2026-10-01 (P5-perf, D20):** Ollama was removed to free laptop resources. `providers.toml` keeps the entry with `disabled = "<reason>"`, so `/provider local` is refused with that reason. The code stays; re-enabling needs D20 changed first, Ollama reinstalled, and the `disabled` line deleted.
 - **Claude Code** is not in the allowlist: it's a separate brain that reaches `pseudo_hands` over MCP (D11), launched with only Pseudo's tools (`--strict-mcp-config`, `--tools ""`) on the owner's subscription login, never an API key. Redacted screen text goes to Anthropic under the consumer terms. The owner turned "Help improve Claude" off on 2026-09-30, so Anthropic doesn't train on these chats and keeps them up to 30 days. If that setting is turned back on, Claude Code goes back to fake windows only.
 *Why (M15):* `gpt-oss-20b` scored 12/12 and has its own rate-limit budget. `granite4.1:3b` scored 18/18 at about 5 s per read and 31 tokens/s, with no connections outside the laptop. `llama3.2:3b` (10/18), `lfm2.5:8b` (13/18) and two Qwen 4B models (too slow) failed. `qwen3.8-27b` passed (11/12) but is a Preview model that Groq may drop at short notice. Claude Code passed T1, T2 and T4 (6/6) and saw exactly Pseudo's 3 tools.
 *Would change if:* a listed model is retired, or a better free model passes the M15 questions.
@@ -108,7 +108,7 @@ L1 moved to LOCKED as D12 (2026-09-28).
 Portable across agents. First tool: `list_open_windows`.
 
 ### L3. Perception order
-UI Automation tree first, local OCR second, local vision model (OmniParser / Florence-2) last. 4GB VRAM limits model size.
+UI Automation tree only. No OCR or vision models: none run locally (D20), and screenshots never leave the laptop (D6). A window whose tree is empty can't be read; M11 found that rare (0 of 9 windows and apps). Revisit only if a privacy-safe option fits D20.
 
 ### L4. Model tiering
 Main brain on a free cloud model; cheap model for auxiliary tasks; fallback only to the next model of the same provider, on a 429, announced (D16).
@@ -135,4 +135,4 @@ Text the owner types to Pseudo goes to the current provider (D16) as typed, by d
 
 - O1. Whether Pseudo's coding mode goes through Hermes or a separate coding agent.
 - O2. Remote control from phone (relay pattern like Claude Code Remote Control) and when.
-- O3. Which local vision model actually runs acceptably on a GTX 1650.
+- O3. Closed by D20 (2026-10-01): no local vision models run on this laptop, so which one fits a GTX 1650 no longer matters.

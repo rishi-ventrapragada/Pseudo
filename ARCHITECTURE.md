@@ -18,7 +18,7 @@ Two parts: the long-term target (so every step has context) and the Phase 1 stru
                        v
              [ Pseudo Hands ]  MCP server on Windows
                        |
-     window list . UI Automation tree . local OCR . click/type
+     window list . UI Automation tree . click/type
                        |
      [ Privacy layer ]  blocked apps -> nothing sent
                         redactor (emails, phones, names, passwords, cards)
@@ -30,8 +30,8 @@ Two parts: the long-term target (so every step has context) and the Phase 1 stru
 ```
 
 Key ideas:
-- The model runs remotely (Groq) or, in private mode, on this laptop (Ollama on 127.0.0.1, D16); Pseudo's code is the "hands" and "eyes" that run locally.
-- Text before pixels: read the UI Automation tree (the desktop's DOM) first, local OCR/vision second. Screenshots never leave the laptop.
+- The model runs in the cloud (Groq, D16): Pseudo is cloud-only for AI models (D20). Pseudo's code is the "hands" and "eyes" that run locally, and the redactor (Presidio + spaCy) is the one local model, because it protects what goes to the cloud.
+- Text, not pixels: read the UI Automation tree (the desktop's DOM). No OCR or vision models (D20, L3), and screenshots never leave the laptop (D6).
 - Pseudo Hands is an MCP server so any MCP-capable agent can use it, not just Pseudo's own brain.
 - Pseudo's brain is its own loop (D15). Hermes was the brain from M6 to M13 and stays installed, but M13 ruled out Hermes and Hermes Desktop: harness token cost, hidden provider fallbacks, and Desktop-only tools that bypass redaction.
 
@@ -40,7 +40,7 @@ This is a direction, not a commitment. It will be revisited after Phase 1.
 ### Designed for change (see DECISIONS.md D11)
 
 ```
-   any brain: pseudo_brain (D15) | Hermes | Claude Code | local model
+   any brain: pseudo_brain (D15) | Hermes | Claude Code | another cloud model (D20)
         |  MCP (tools)                  |  OpenAI-compatible API (chat)
         v                               v
    [ MCP wrapper ]  thin, swappable     [ Face ]
@@ -162,10 +162,12 @@ pseudo_hands/
 pseudo_brain/           Pseudo's own agent loop (D15, M14), grown from playground/03_agent_loop.py
   providers.toml        the D16 allowlist: each provider's URL, key VARIABLE name, models, privacy note (M16)
   providers.py          loads and checks it; refuses the rest (private = 127.0.0.1 only, no "cloud" names)
+                        and any provider marked disabled = "<reason>", with that reason (P5-perf)
   model.py              one provider through AsyncOpenAI (D10), max_retries=0; a 429 moves to the SAME
                         provider's next model, then waits visibly; other failures -> ModelFailure
   local_server.py       private mode's own server (Ollama): started on /provider local after checking
-                        cloud is off, 127.0.0.1 only, stopped when pseudo_brain exits (M16)
+                        cloud is off, 127.0.0.1 only, stopped when pseudo_brain exits (M16).
+                        Unused since P5-perf: Ollama removed and `local` disabled (D16, D20)
   hands.py              MCP CLIENT of pseudo_hands over stdio; tools discovered at startup, none named;
                         knows pseudo_hands' pid, for the face's popup permission (M18)
   chat.py               one conversation, shared by every interface: start, switch provider (closing
