@@ -1,4 +1,4 @@
-"""M7/M8: Pseudo's local redactor. redact(text) masks personal info before any model sees it.
+"""M7/M8/M19: Pseudo's local redactor. redact(text) masks personal info before any model sees it.
 
 What it demonstrates: privacy as a plain core function (D6, D11). Microsoft's
 Presidio does the finding, in two halves, like a linter and its --fix:
@@ -12,6 +12,7 @@ The steps of redact(text):
   2. Known app/site names (allowed_names.txt) are split out and passed through untouched;
      every other piece goes through full detection (M8: stops "New Tab" looking like a name).
   3. Presidio finds and masks; "main.py"-style file names are not treated as web addresses.
+     Dates and ages come from patterns, not spaCy's guesses (M19, date_recognizers.py).
   4. The output is re-checked for phone/Aadhaar/long-number shapes; any leftover raises.
 Fail closed: every finding is masked at any confidence (score_threshold=0), Indian formats
 match by shape (india_recognizers.py), and ANY error raises RedactionError. redact() never
@@ -31,9 +32,15 @@ from presidio_analyzer.predefined_recognizers import (
 from presidio_anonymizer import AnonymizerEngine
 from presidio_anonymizer.entities import OperatorConfig
 
+from pseudo_hands.core.date_recognizers import DATE_LEAK_CHECKS, date_recognizers
 from pseudo_hands.core.india_recognizers import LEAK_CHECKS, india_recognizers
 
 SPACY_MODEL = "en_core_web_sm"  # 12.8 MB; swap for "en_core_web_lg" (400 MB) if names get missed
+# (M19) spaCy's DATE and TIME guesses masked "10:30", "Monday" and "order 4471". They are switched
+# off where spaCy's labels become findings; date_recognizers.py masks every birthday-shaped date.
+# (Filtering them out AFTER analysis would be wrong: Presidio keeps only the higher-scoring of two
+# findings on the same span, so spaCy's guess had already replaced the date pattern's finding.)
+SPACY_LABELS_IGNORED = ["DATE", "TIME"]
 HERE = Path(__file__).resolve().parent
 TERMS_FILE = HERE / "redaction_terms.txt"  # the owner's private terms (gitignored)
 ALLOWED_NAMES_FILE = HERE / "allowed_names.txt"  # app/site names never masked (committed)
@@ -107,6 +114,7 @@ def build_analyzer() -> AnalyzerEngine:
     """Load spaCy + every recognizer once (slow, seconds); later calls reuse it."""
     nlp = NlpEngineProvider(nlp_configuration={
         "nlp_engine_name": "spacy", "models": [{"lang_code": "en", "model_name": SPACY_MODEL}],
+        "ner_model_configuration": {"labels_to_ignore": SPACY_LABELS_IGNORED},
     }).create_engine()
     registry = RecognizerRegistry(supported_languages=["en"])
     registry.load_predefined_recognizers(languages=["en"], nlp_engine=nlp)  # email, phone, card, IP, URL, NER...
@@ -117,7 +125,7 @@ def build_analyzer() -> AnalyzerEngine:
     places = PatternRecognizer(supported_entity="LOCATION", name="PseudoIndianPlacesRecognizer",
                                deny_list=load_list(PLACES_FILE, "Indian places"))
     for recognizer in [InPassportRecognizer(), InVoterRecognizer(), InVehicleRegistrationRecognizer(),
-                       InGstinRecognizer(), *india_recognizers(), places]:
+                       InGstinRecognizer(), *india_recognizers(), *date_recognizers(), places]:
         registry.add_recognizer(recognizer)
     return AnalyzerEngine(nlp_engine=nlp, registry=registry, supported_languages=["en"])
 
@@ -152,7 +160,7 @@ def mask_piece(piece: str) -> str:
 
 def check_nothing_left(masked: str) -> None:
     """Belt and braces: if any Indian ID shape or a word@word token survived, refuse the result."""
-    for name, shape in [*LEAK_CHECKS.items(), ("word@word", AT_TOKEN)]:
+    for name, shape in [*LEAK_CHECKS.items(), *DATE_LEAK_CHECKS.items(), ("word@word", AT_TOKEN)]:
         if shape.search(masked):
             raise RedactionError(f"a {name} shape survived masking; text withheld")
 
