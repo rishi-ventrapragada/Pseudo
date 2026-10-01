@@ -10,6 +10,8 @@ python -m pseudo_brain --provider local   private mode: Ollama on this laptop; n
 python -m pseudo_brain --continue         continue the latest saved session, on its own provider
 ```
 
+The face (`face/`, M18) starts `python -m pseudo_brain.bridge` itself; see the main README.
+
 In the chat: `/provider` lists the allowed providers with their privacy notes, `/provider <id>`
 switches (and starts a new session), `/new` starts a fresh session, `/quit` quits.
 
@@ -25,7 +27,10 @@ pseudo_brain/
   session.py       whole-turn history, one provider per session, trimmed per request;
                    saves your messages + answers only
   loop.py          SYSTEM_PROMPT + run_turn(): the loop; reports events, never prints
+  chat.py          one conversation, shared by the terminal and the face: provider, session,
+                   switching (closes the old provider's connections), servers to stop (M18)
   terminal.py      the terminal interface (the only file that prints)
+  bridge.py        the face's interface: JSON lines over stdin/stdout, no port (D18, M18)
   __main__.py      `python -m pseudo_brain`
 ```
 

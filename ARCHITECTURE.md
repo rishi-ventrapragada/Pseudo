@@ -7,9 +7,9 @@ Two parts: the long-term target (so every step has context) and the Phase 1 stru
 ```
           voice / hotkey / typed prompt
                        |
-             [ Pseudo Face ]  own React window, Tauri or Electron (M18);
+             [ Pseudo Face ]  own React window in Electron (M18);
                        |       terminal first (M14); voice later
-                       |  local server
+                       |  child-process pipe (stdin/stdout)
                        v
              [ pseudo_brain ]  Pseudo's own agent loop (D15, M14):
                        |        allowlisted providers (D16), same-provider fallback,
@@ -135,7 +135,9 @@ pseudo_hands/
     redaction_terms.txt   owner's private terms (gitignored; .example committed) (M7)
     allowed_names.txt   app/site names never masked (M8)
     ui_tree.py          walk a window's UI Automation tree -> raw lines (M9); skips failing controls (M12)
-    active_window.py    read_active_window(): pick window, block, redact, cap (M9); retries once (M12)
+    active_window.py    read_active_window(): pick window, block, redact, cap (M9); retries once (M12);
+                        skips the apps in assistant_apps.txt, so it reads the window you were on (M18)
+    assistant_apps.txt  owner-editable list of assistant .exe names (the face, Claude, Hermes) (M18)
     window_ids.py       short ids ("w3") for listed windows, never reused (M10)
     approval.py         the approval gate: native popup, default no (D13, M10)
     focus.py            focus_window(): validate id, block, ask, act (M10)
@@ -162,16 +164,28 @@ pseudo_brain/           Pseudo's own agent loop (D15, M14), grown from playgroun
                         provider's next model, then waits visibly; other failures -> ModelFailure
   local_server.py       private mode's own server (Ollama): started on /provider local after checking
                         cloud is off, 127.0.0.1 only, stopped when pseudo_brain exits (M16)
-  hands.py              MCP CLIENT of pseudo_hands over stdio; tools discovered at startup, none named
+  hands.py              MCP CLIENT of pseudo_hands over stdio; tools discovered at startup, none named;
+                        knows pseudo_hands' pid, for the face's popup permission (M18)
+  chat.py               one conversation, shared by every interface: start, switch provider (closing
+                        the old one's connections), new/open session, ask, stop servers (M18)
   session.py            history as whole turns, one provider per session; trimmed per request to the
                         provider's max_prompt_tokens;
                         saved to %LOCALAPPDATA%\Pseudo\sessions\ (your messages + final answers only)
   loop.py               SYSTEM_PROMPT + run_turn(): THE LOOP. Never prints: reports events via on_event
   terminal.py           thin interface: prints events, reads input, --continue, --provider, /provider,
                         /new, /quit
+  bridge.py             thin interface for the face: JSON lines over stdin/stdout, no port (D18, M18)
   __main__.py           python -m pseudo_brain
-face/ (name TBD)        React desktop window, Tauri or Electron (M18), talking to pseudo_brain
-                        through a local server and showing the same events. Display only (D11).
+face/                   Pseudo's own window (M18): Electron + React, display only (D11)
+  main.js               Electron's main process: one sandboxed window, app:// pages from dist/ only,
+                        relays messages between the page and the brain
+  brain-process.js      starts `python -m pseudo_brain.bridge` as a child process; stops it on quit
+  preload.js            the only door between page and main process: window.pseudo.send / onMessage
+  foreground.js         before each tool runs, lets ONLY pseudo_hands bring its approval popup to
+                        the front (AllowSetForegroundWindow, via koffi)
+  taskbar-flash.js      flashes the taskbar button while a tool runs and you're in another window
+  src/                  the React page: chat, live steps, Markdown answers, provider bar, sessions,
+                        the approval banner
 ```
 
 ```

@@ -11,9 +11,9 @@ import psutil
 import pytest
 
 from brain_fakes import FAKE_HANDS
+from bridge_fakes import run, world  # noqa: F401 - world is a pytest fixture
 from pseudo_brain import bridge
 from pseudo_brain.hands import Hands, connect_hands, find_hands_pid
-from test_brain_bridge import run, world  # noqa: F401 - world is a pytest fixture
 
 HANDS = ["C:\\dev\\Pseudo\\.venv\\Scripts\\python.exe", "-m", "pseudo_hands.mcp_server"]
 

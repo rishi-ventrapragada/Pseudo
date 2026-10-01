@@ -45,6 +45,7 @@ Work only on the current milestone listed in PRD.md (the current phase's scope s
 - One commit per logical step, message format: `M1: add raw HTTP call example`.
 - If a commit message has special characters, use a message file (`git commit -F msg.txt`) because PowerShell quoting breaks.
 - Never force-push. Never rewrite history.
+- Never chain tests and a commit in one command. Run the tests, confirm they pass, then commit as a separate step.
 
 ## 5. Lesson file template (`docs/learn/MX-<name>.md`)
 

@@ -2,8 +2,8 @@
 
 Owner: Sai Rishi Ventrapragada
 Repo: https://github.com/rishi-ventrapragada/Pseudo
-Status: Phase 1-4 complete (M11 evaluated OCR and skipped it). Phase 5 (Make it usable) in progress: M13 done (Hermes Desktop ruled out; own brain per D15), M14 done (`pseudo_brain`), M15 done (providers evaluated; D16), M16 done (providers: allowlist, same-provider fallback, private mode), M17 (can the Claude desktop app be the face and brain? evaluate first) next, then M18 (own face). Open follow-ups are in section 12, Backlog.
-Last updated: 2026-09-30
+Status: Phase 1-4 complete (M11 evaluated OCR and skipped it). Phase 5 (Make it usable) in progress: M13 done (Hermes Desktop ruled out; own brain per D15), M14 done (`pseudo_brain`), M15 done (providers evaluated; D16), M16 done (providers: allowlist, same-provider fallback, private mode), M17 done (Claude desktop app ruled out; D17), M18 done (own face: Electron, over a child-process pipe; D18). Open follow-ups are in section 12, Backlog.
+Last updated: 2026-10-01
 
 ## 1. What Pseudo is
 
@@ -35,13 +35,13 @@ If (2) fails, the milestone is not done.
 | Hardware | One laptop: GTX 1650 (4GB VRAM), Ryzen 5, 16GB RAM. |
 | OS | Windows only for now. Commands are PowerShell. |
 | Privacy | No screenshots or raw screen content ever leave the machine. Screen data is processed locally and redacted before any cloud call. Code files go to the cloud only with per-project permission. |
-| Language | Python for all of Pseudo's own code. |
+| Language | Python for all of Pseudo's own code (the face is display-only React/JavaScript, L5). |
 
 ## 4. Long-term shape (for context only, NOT Phase 1 scope)
 
 - **Brain:** `pseudo_brain`, Pseudo's own agent loop (D15), grown from the Phase 1 loop. It is an MCP client of Pseudo Hands and talks to a free cloud model (Groq) through the OpenAI-compatible API. Hermes Agent stays installed but is not Pseudo's brain (M13).
 - **Pseudo Hands:** an MCP server exposing Windows tools (window list, UI Automation tree, local OCR, click/type) with a local privacy/redaction layer and an approval gate for risky actions.
-- **Pseudo Face:** our own React desktop window (Tauri or Electron) talking to `pseudo_brain` through a local server, plus local voice later. Hermes Desktop was ruled out in M13.
+- **Pseudo Face:** our own React desktop window (Tauri or Electron) talking to `pseudo_brain` over a child-process pipe, plus local voice later. Hermes Desktop was ruled out in M13.
 
 See ARCHITECTURE.md. These later phases may change once the owner understands the foundations. Do not build any of them in Phase 1.
 
@@ -61,7 +61,7 @@ See ARCHITECTURE.md. These later phases may change once the owner understands th
 2. **M15: providers (evaluated).** Which models Pseudo may use, each allowlisted with a privacy note: a Groq fallback model, a local private mode (Ollama), and Claude Code over MCP. Recorded as D16.
 3. **M16: providers build.** The D16 allowlist in `pseudo_brain`: same-provider fallback, private mode, visible switching.
 4. **M17: the Claude desktop app as face and brain? (evaluate first).** Whether the Claude desktop app, running `pseudo_hands` over MCP on the subscription, can be Pseudo's face and brain instead of an own face.
-5. **M18: own face.** A React desktop window talking to `pseudo_brain` through a local server.
+5. **M18: own face.** A React desktop window talking to `pseudo_brain` over a child-process pipe (D18).
 6. **Memory.** The local task memory from section 1, as a dedicated markdown vault (L6).
 7. **Voice.** Local listening and speaking (L5).
 8. **Click and type control.** Acting on whatever is on screen, always behind the approval popup (D13, D14).
@@ -219,7 +219,7 @@ Goal: use Pseudo day to day, not just through `hermes -p pseudo` in a terminal. 
 
 ### M18: Pseudo's own face
 - Self-read fix in `pseudo_hands` core: an owner-editable `assistant_apps.txt` skipped by `pick_window`, tested with a window that is not always on top.
-- A React desktop window (Tauri or Electron, chosen in M18's plan) that talks to `pseudo_brain` through a local server. The window only displays; all logic stays in `pseudo_brain` and `pseudo_hands` (D11).
+- A React desktop window (Electron) that talks to `pseudo_brain` over its stdin/stdout, a child-process pipe with no listening port (D18). The window only displays; all logic stays in `pseudo_brain` and `pseudo_hands` (D11).
 - It reads the right window: `read_active_window` must read the window the owner was on before switching to Pseudo, never Pseudo's own window (the face, or a terminal running Pseudo). Found in M15's research: `pick_window` skips only `hermes.exe`, so a brain asked from a terminal reads its own chat. The fake-window checks hid this because their test window is always on top.
 - **Done when:** the M14 checks pass through the window, `focus_window` still asks through the native approval popup (D13), and a question asked from the window reads the window the owner was on before switching, never Pseudo's own.
 
@@ -227,7 +227,7 @@ Goal: use Pseudo day to day, not just through `hermes -p pseudo` in a terminal. 
 
 Found while building; not scheduled. Each needs a plan and approval before work starts.
 
-- **Redactor over-masks non-personal text (high priority: fix right after the face: after M18, or after M17 if the Claude app becomes the face).** In M15, "Pseudo M15 notes" became "Pseudo [PERSON] notes" and "order 4471 ships on Monday" became "order [DATE_TIME] ships on [DATE_TIME]", so order numbers and version tags never reach the model. Masking when unsure is by design (D6), so a fix must not weaken real detections.
+- **Redactor over-masks non-personal text (high priority: fix right after the face, M18).** In M15, "Pseudo M15 notes" became "Pseudo [PERSON] notes" and "order 4471 ships on Monday" became "order [DATE_TIME] ships on [DATE_TIME]", so order numbers and version tags never reach the model. Masking when unsure is by design (D6), so a fix must not weaken real detections.
 - **Thinner first reads.** A freshly opened Chromium/Electron window's first read is thinner than later ones (M12: Obsidian gave 65 content chars on its first read vs 290 warm in M11). M12's retry only fires when a read fails or finds nothing inside the window, so a thin-but-not-empty first read isn't retried.
 - **Depth limit misses deep apps.** The UI tree walk stops at depth 12, which misses most of the content in deeply nested apps like Claude desktop (30 controls at depth 12 vs 109 at depth 30).
 - **Plain-text answers.** The model sometimes answers in Markdown (bold, lists) although the system prompt asks for plain text (M14). Either tighten the prompt or render Markdown in the face (M18).

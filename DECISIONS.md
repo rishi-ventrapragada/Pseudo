@@ -85,6 +85,11 @@ Pseudo's brain is its own agent loop in `pseudo_brain/`, grown from the M3 loop 
 *Why (M17):* the app's device link, switched on by Anthropic-side feature flags, passed `pseudo_hands`' tools to phone, claude.ai and cloud sessions (`+3 local-mcp`), and neither computer use nor the sessions-bridge flag switched it off.
 *Would change if:* the app gets a local setting that stops local MCP tools reaching remote sessions, verified with the M17 log check.
 
+### D18. The face talks to pseudo_brain only through a child-process pipe (M18)
+The face talks to `pseudo_brain` only through a child-process pipe (JSON lines over stdin/stdout); nothing in Pseudo's own code listens on a network port; the only listener Pseudo starts is private mode's Ollama, on 127.0.0.1 only (D16).
+*Why:* M5 and M17 showed that anything reachable gets reached (M17: local tools passed to remote sessions).
+*Would change if:* a second device must talk to Pseudo, which would need its own plan.
+
 ## LEANING (revisit after Phase 1)
 
 L1 moved to LOCKED as D12 (2026-09-28).
@@ -99,7 +104,7 @@ UI Automation tree first, local OCR second, local vision model (OmniParser / Flo
 Main brain on a free cloud model; cheap model for auxiliary tasks; fallback only to the next model of the same provider, on a 429, announced (D16).
 
 ### L5. Interface
-Pseudo's face is our own web UI: a React window, wrapped with Tauri or Electron, that talks to `pseudo_brain` through a local server (M18). Hermes Desktop was ruled out in M13 (D15); M17 first evaluates the Claude desktop app as face and brain. PySide6 is dropped.
+Pseudo's face is our own web UI: a React window in Electron that talks to `pseudo_brain` over a child-process pipe (M18, D18). Hermes Desktop was ruled out in M13 (D15) and the Claude desktop app in M17 (D17). PySide6 is dropped.
 Voice via openWakeWord + faster-whisper + Piper, all local. Wake word plus push-to-talk.
 
 ### L6. Storage (memory)
