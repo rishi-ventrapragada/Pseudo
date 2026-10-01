@@ -11,6 +11,8 @@ Rules (D16):
   - A provider whose data leaves the laptop must use https.
   - Keys never appear here: key_env is the NAME of the .env variable that holds a key.
   - Only a private provider may have a server that pseudo_brain starts (local_server.py).
+  - A provider can be switched off with disabled = "<reason>" (P5-perf): it stays listed, so you
+    can see why, but using it is refused with that reason. The default provider can't be disabled.
 """
 
 import os
@@ -51,6 +53,7 @@ class Provider:
     timeout_seconds: float
     max_prompt_tokens: int
     server: Server | None = None
+    disabled: str = ""  # a reason here = switched off: using it is refused with this reason
 
     @property
     def address(self) -> str:
@@ -68,7 +71,10 @@ class Allowlist:
         if provider_id not in self.providers:
             raise ProviderRefused(f'"{provider_id}" is not in the allowlist ({PROVIDERS_FILE.name}). '
                                   f"Allowed: {', '.join(self.providers)}")
-        return self.providers[provider_id]
+        provider = self.providers[provider_id]
+        if provider.disabled:
+            raise ProviderRefused(f"{provider_id} is disabled: {provider.disabled}")
+        return provider
 
 
 def load_allowlist(path: Path = PROVIDERS_FILE) -> Allowlist:
@@ -83,6 +89,8 @@ def load_allowlist(path: Path = PROVIDERS_FILE) -> Allowlist:
     providers = {provider_id: checked(provider_id, entry) for provider_id, entry in entries.items()}
     if data.get("default") not in providers:
         raise ProviderRefused(f"the default provider {data.get('default')!r} is not in {path.name}")
+    if providers[data["default"]].disabled:
+        raise ProviderRefused(f"the default provider {data['default']!r} is disabled")
     return Allowlist(providers, data["default"])
 
 
@@ -117,12 +125,15 @@ def checked(provider_id: str, entry: dict) -> Provider:
         cloudy = [m for m in models if "cloud" in m.lower()]
         if cloudy:
             raise refuse(f'"{cloudy[0]}" looks like a cloud model; private mode refuses it')
+    disabled = entry.get("disabled", "")
+    if not isinstance(disabled, str):
+        raise refuse('disabled must be the reason, in quotes, e.g. disabled = "server removed"')
     server = entry.get("server")
     if server is not None and leaves:
         raise refuse("only a private provider may have a server for pseudo_brain to start")
     return Provider(provider_id, entry["name"], entry["base_url"], entry["key_env"], tuple(models), leaves,
                     entry["privacy"], float(entry["timeout_seconds"]), int(entry["max_prompt_tokens"]),
-                    checked_server(server, refuse) if server is not None else None)
+                    checked_server(server, refuse) if server is not None else None, disabled)
 
 
 def checked_server(server: dict, refuse) -> Server:

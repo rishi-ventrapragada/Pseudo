@@ -33,8 +33,9 @@ def describe(provider: Provider) -> str:
     """One line: id, name, models, whether data leaves the laptop, and the privacy note."""
     fallback = f", fallback {', '.join(provider.models[1:])}" if len(provider.models) > 1 else ""
     leaves = "YES" if provider.leaves_laptop else "NO"
+    off = f" | DISABLED: {provider.disabled}" if provider.disabled else ""
     return (f"{provider.id} ({provider.name}): {provider.models[0]}{fallback} | "
-            f"data leaves this laptop: {leaves} | {provider.privacy}")
+            f"data leaves this laptop: {leaves} | {provider.privacy}{off}")
 
 
 def format_event(kind: str, data: dict) -> str | None:

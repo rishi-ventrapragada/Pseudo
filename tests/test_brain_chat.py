@@ -6,6 +6,7 @@ in-memory fake pseudo_hands, and sessions saved to a temporary folder.
 """
 
 import json
+from dataclasses import replace
 from pathlib import Path
 
 import pytest
@@ -176,3 +177,17 @@ def test_a_loaded_session_keeps_its_answer_labels(world: dict) -> None:
                                    {"role": "assistant", "content": "ok", "answered_by": "local · tiny-model"}]
     saved_file = json.loads((session_module.SESSIONS_DIR / "20260101-000000-000.json").read_text(encoding="utf-8"))
     assert saved_file["messages"] == loaded.transcript()  # what is shown is exactly what is saved
+
+
+@pytest.mark.anyio
+async def test_a_disabled_provider_is_refused_and_nothing_changes(world: dict) -> None:
+    chat = Chat(Allowlist({"groq": FAKE_CLOUD, "local": replace(FAKE_LOCAL, disabled="fake reason")}, "groq"),
+                lambda k, d: None, [])
+    await chat.start()
+    before = chat.session
+    saved("local", "20260101-000000-000", ["earlier"])
+    with pytest.raises(ProviderRefused, match="local is disabled: fake reason"):
+        await chat.switch("local")
+    with pytest.raises(ProviderRefused, match="local is disabled: fake reason"):
+        await chat.open_session("20260101-000000-000")
+    assert chat.provider.id == "groq" and chat.session is before and world["connected"] == ["groq"]

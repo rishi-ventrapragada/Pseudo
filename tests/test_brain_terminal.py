@@ -8,6 +8,7 @@ your typing is a scripted list. The real chat() runs; what it prints is checked.
 """
 
 import sys
+from dataclasses import replace
 from pathlib import Path
 
 import pytest
@@ -154,3 +155,8 @@ async def test_a_mistyped_command_is_never_sent_to_the_model(world: dict, capsys
 async def test_a_byte_order_mark_before_a_command_is_ignored(world: dict, capsys) -> None:
     out = await run(world, ["﻿/provider"], capsys)  # PowerShell starts piped text with one (found in M16)
     assert "--- ALLOWED PROVIDERS" in out and world["models"]["groq"][0].requests == []
+
+
+def test_the_provider_list_shows_why_a_provider_is_disabled() -> None:
+    assert terminal.describe(replace(FAKE_LOCAL, disabled="fake reason")).endswith("| DISABLED: fake reason")
+    assert "DISABLED" not in terminal.describe(FAKE_CLOUD)

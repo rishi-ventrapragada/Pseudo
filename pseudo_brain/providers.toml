@@ -15,6 +15,9 @@ timeout_seconds = 60
 max_prompt_tokens = 3000  # a two-call question stays well under Groq's 8K tokens/min
 
 [providers.local]
+# Ollama removed 2026-10-01 to free laptop resources; reinstall to re-enable
+# (P5-perf, D20: Pseudo is cloud-only for models). The code stays; delete the next line to re-enable.
+disabled = "Ollama removed 2026-10-01 to free laptop resources; reinstall to re-enable"
 name = "Private mode (Ollama)"
 base_url = "http://127.0.0.1:11434/v1"
 key_env = ""  # Ollama needs no key
