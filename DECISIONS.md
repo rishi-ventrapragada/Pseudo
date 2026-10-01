@@ -95,6 +95,11 @@ Dates are masked when they could be a birthday (a day and a month, or a year nex
 *Why:* M19 measured 41% of ordinary fake lines over-masked, 11 of 18 spans from spaCy's date guesses.
 *Would change if:* a measured case shows real personal info released by one of these rules.
 
+### D20. Pseudo is cloud-only for AI models and services (P5-perf, 2026-10-01)
+Pseudo uses AI models and services only in the cloud, through the providers allowed in D16. No local models run on this laptop: no Ollama, and no local language, speech or vision models. The laptop stays free for other work. The redactor is the one exception and stays local (Presidio + spaCy, D6), because it is what protects the data going to the cloud.
+*Why:* private mode's Ollama took 3.8 GB of disk, and a model runner it left behind held about 6 GB of committed memory for a day (P5-perf). The owner wants the laptop's RAM, GPU and disk for other work.
+*Would change if:* the owner gets hardware to spare, or a privacy need arises that only a local model can meet.
+
 ## LEANING (revisit after Phase 1)
 
 L1 moved to LOCKED as D12 (2026-09-28).
@@ -110,7 +115,7 @@ Main brain on a free cloud model; cheap model for auxiliary tasks; fallback only
 
 ### L5. Interface
 Pseudo's face is our own web UI: a React window in Electron that talks to `pseudo_brain` over a child-process pipe (M18, D18). Hermes Desktop was ruled out in M13 (D15) and the Claude desktop app in M17 (D17). PySide6 is dropped.
-Voice via openWakeWord + faster-whisper + Piper, all local. Wake word plus push-to-talk.
+Voice through free cloud services (D20), evaluated for privacy when the voice phase starts. Whether a wake word (always listening) is acceptable is part of that evaluation; push-to-talk otherwise.
 
 ### L6. Storage (memory)
 Memory is a dedicated, Obsidian-compatible markdown vault: plain `.md` files that Obsidian can open, though Obsidian isn't needed at runtime. It is separate from the owner's personal vault.

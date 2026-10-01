@@ -12,7 +12,7 @@ Pseudo is the owner's zero-budget **Agentic OS for Windows**: one assistant, liv
 1. **Remembers every task he has done.** Memory is stored locally; only the relevant memories, redacted, are sent to the model.
 2. **Sees and reads his screen.** Everything it reads is redacted before anything leaves the laptop.
 3. **Asks permission before any edit or action**, through a native popup whose default answer is no.
-4. **Talks to him and listens to him**, with local voice.
+4. **Talks to him and listens to him**, through free cloud voice services, evaluated for privacy first (D20).
 5. **Can control whatever he is looking at** to help with any task: click and type, always behind the approval popup.
 
 The name is a nod to pseudonymization: Pseudo's defining feature is that what it sees and remembers is understood and redacted locally before anything reaches a cloud model.
@@ -41,7 +41,7 @@ If (2) fails, the milestone is not done.
 
 - **Brain:** `pseudo_brain`, Pseudo's own agent loop (D15), grown from the Phase 1 loop. It is an MCP client of Pseudo Hands and talks to a free cloud model (Groq) through the OpenAI-compatible API. Hermes Agent stays installed but is not Pseudo's brain (M13).
 - **Pseudo Hands:** an MCP server exposing Windows tools (window list, UI Automation tree, local OCR, click/type) with a local privacy/redaction layer and an approval gate for risky actions.
-- **Pseudo Face:** our own React desktop window (Tauri or Electron) talking to `pseudo_brain` over a child-process pipe, plus local voice later. Hermes Desktop was ruled out in M13.
+- **Pseudo Face:** our own React desktop window (Tauri or Electron) talking to `pseudo_brain` over a child-process pipe, plus voice later (free cloud services, D20). Hermes Desktop was ruled out in M13.
 
 See ARCHITECTURE.md. These later phases may change once the owner understands the foundations. Do not build any of them in Phase 1.
 
@@ -63,7 +63,7 @@ See ARCHITECTURE.md. These later phases may change once the owner understands th
 4. **M17: the Claude desktop app as face and brain? (evaluate first).** Whether the Claude desktop app, running `pseudo_hands` over MCP on the subscription, can be Pseudo's face and brain instead of an own face.
 5. **M18: own face.** A React desktop window talking to `pseudo_brain` over a child-process pipe (D18).
 6. **Memory.** The local task memory from section 1, as a dedicated markdown vault (L6).
-7. **Voice.** Local listening and speaking (L5).
+7. **Voice.** Listening and speaking through free cloud services (D20), evaluated for privacy when this phase starts (L5).
 8. **Click and type control.** Acting on whatever is on screen, always behind the approval popup (D13, D14).
 
 Each step gets its own plan, and its milestone numbers, when it starts.
