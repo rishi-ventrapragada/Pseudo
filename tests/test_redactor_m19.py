@@ -6,8 +6,10 @@ Every input is FAKE, from redaction_cases.py: the sets were fixed before the fix
 from pathlib import Path
 
 import pytest
+from presidio_analyzer import RecognizerResult
 
 from pseudo_hands.core import redactor
+from pseudo_hands.core.finding_filters import trim_codes
 from pseudo_hands.core.redactor import RedactionError, redact
 from redaction_cases import GUARDS, ORDINARY, SENSITIVE
 
@@ -83,3 +85,35 @@ def test_a_numeric_date_left_after_masking_is_a_leak(monkeypatch: pytest.MonkeyP
 @pytest.mark.parametrize("text, secrets", GUARDS["names next to codes and times"])
 def test_names_next_to_codes_and_times_are_still_masked(text: str, secrets: list[str]) -> None:
     assert leaked(text, secrets) == []
+
+
+# ---------- change 2: code-shaped words are never names ----------
+
+def trimmed(text: str, entity: str = "PERSON") -> str | None:
+    """trim_codes on a fake finding that covers the whole text; the text that stays masked."""
+    result = trim_codes(text, RecognizerResult(entity, 0, len(text), 0.85))
+    return None if result is None else text[result.start:result.end]
+
+
+def test_a_finding_made_only_of_codes_is_dropped() -> None:
+    assert trimmed("M15") is None and trimmed("A-20931") is None and trimmed("CS101 21CS42") is None
+
+
+def test_codes_are_trimmed_off_the_edges_and_the_name_stays_masked() -> None:
+    assert trimmed("Q3 OKR") == "OKR"
+    assert trimmed("Rahul Verma M15") == "Rahul Verma"
+    assert trimmed("ECE-2 section", "NRP") == "section"
+
+
+@pytest.mark.parametrize("text", ["Rahul M15 Verma", "rahul99", "Rahul99", "M15,"])
+def test_a_code_in_the_middle_handles_and_glued_punctuation_stay_masked(text: str) -> None:
+    assert trimmed(text) == text
+
+
+def test_locations_are_never_trimmed() -> None:
+    assert trimmed("B-204 Sunrise Apartments", "LOCATION") == "B-204 Sunrise Apartments"
+
+
+@pytest.mark.parametrize("line", ["Pseudo M15 notes", "Pseudo M15 target", "Order #A-20931 tracking"])
+def test_lines_with_codes_are_no_longer_masked(line: str) -> None:
+    assert redact(line) == line

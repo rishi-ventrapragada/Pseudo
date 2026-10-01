@@ -12,7 +12,8 @@ The steps of redact(text):
   2. Known app/site names (allowed_names.txt) are split out and passed through untouched;
      every other piece goes through full detection (M8: stops "New Tab" looking like a name).
   3. Presidio finds and masks; "main.py"-style file names are not treated as web addresses.
-     Dates and ages come from patterns, not spaCy's guesses (M19, date_recognizers.py).
+     Dates and ages come from patterns, not spaCy's guesses (M19, date_recognizers.py), and
+     code-shaped words like "M15" are never names (M19, finding_filters.py).
   4. The output is re-checked for phone/Aadhaar/long-number shapes; any leftover raises.
 Fail closed: every finding is masked at any confidence (score_threshold=0), Indian formats
 match by shape (india_recognizers.py), and ANY error raises RedactionError. redact() never
@@ -33,6 +34,7 @@ from presidio_anonymizer import AnonymizerEngine
 from presidio_anonymizer.entities import OperatorConfig
 
 from pseudo_hands.core.date_recognizers import DATE_LEAK_CHECKS, date_recognizers
+from pseudo_hands.core.finding_filters import trim_codes
 from pseudo_hands.core.india_recognizers import LEAK_CHECKS, india_recognizers
 
 SPACY_MODEL = "en_core_web_sm"  # 12.8 MB; swap for "en_core_web_lg" (400 MB) if names get missed
@@ -148,7 +150,8 @@ def find_personal_info(text: str) -> list:
     analyzer = build_analyzer()
     entities = [e for e in analyzer.get_supported_entities(language="en") if e not in NOT_MASKED]
     findings = analyzer.analyze(text=text, language="en", entities=entities, score_threshold=0.0)
-    return [f for f in findings if not (f.entity_type == "URL" and is_file_name(text[f.start:f.end]))]
+    findings = [trim_codes(text, f) for f in findings]  # M19: "M15" is a code, never a name
+    return [f for f in findings if f and not (f.entity_type == "URL" and is_file_name(text[f.start:f.end]))]
 
 
 def mask_piece(piece: str) -> str:
