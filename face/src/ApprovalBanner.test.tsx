@@ -7,7 +7,7 @@ import { ApprovalBanner, BANNER_TEXT } from './ApprovalBanner';
 describe('ApprovalBanner', () => {
   it('shows the banner, as an alert, while a tool waits', () => {
     const html = renderToStaticMarkup(<ApprovalBanner waiting="focus_window" />);
-    expect(BANNER_TEXT).toBe('Approval popup open, check your screen');
+    expect(BANNER_TEXT).toBe('Working… an approval popup may appear');
     expect(html).toBe(`<p class="approval-banner" role="alert">${BANNER_TEXT}</p>`);
   });
 

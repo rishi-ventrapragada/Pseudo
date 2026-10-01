@@ -3,7 +3,7 @@
 // nothing, D11), so the banner shows for every tool call, until that tool's result arrives.
 import './banner.css';
 
-export const BANNER_TEXT = 'Approval popup open, check your screen';
+export const BANNER_TEXT = 'Working… an approval popup may appear'; // true for reads too (most tools ask nothing)
 
 export function ApprovalBanner({ waiting }: { waiting: string | null }) {
   if (waiting === null) return null;
