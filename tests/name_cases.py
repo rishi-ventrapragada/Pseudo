@@ -9,6 +9,10 @@ were committed BEFORE any names list existed, so the held-out set N2 can't have 
   LOWERCASE    names typed in lower case: measured and reported, not required (a known gap)
   N3           ordinary lines whose words are also names: precision (festival lines reported apart)
   CUE_PHRASES  ordinary lines with "with / by / call / from / hi..." in them: precision
+M21 (committed before any M21 measurement; N2 is spent, because M21's rule was designed after seeing its misses):
+  N4           40 new held-out names, same groups as N2, chosen without checking indian_names.txt
+  N4_CAPS      8 of N4 in ALL CAPS (part of N4's score); N4_LOWERCASE: reported only
+  N5           ordinary lines where a listed first name is followed by a capitalized word (word-level cost, R10)
 A name counts as caught when every word of it with 2+ letters is masked (a lone initial identifies nobody).
 """
 
@@ -58,6 +62,28 @@ CUE_PHRASES = ["Sign in with Google", "Built with React", "Powered by Vercel", "
                "Re: Leave request from HR - Gmail", "Assignment submitted by Group 4", "Shared by Google Drive",
                "Welcome to Notion", "Back to Settings", "Chat with Support", "Hi Team, standup notes",
                "Dear Customer - Gmail", "Export to PDF", "Sort by Date Modified", "Connect with GitHub"]
+
+N4 = {
+    "Telugu": ["Jayaram Nidadavolu", "Sailaja Pemmasani", "Koteswara Rao Bandaru", "Lahari Chilukuri",
+               "Nageswara Pasupuleti", "Pavithra Ganti", "Ramakrishna Mudunuri", "Srujana Velagapudi"],
+    "Hindi belt": ["Ashutosh Kesarwani", "Nupur Maheshwari", "Devendra Bhadoria", "Kanchan Tomar", "Himanshu Lohani",
+                   "Garima Nigam", "Rajkumar Kushwaha"],
+    "Tamil, Kannada, Malayalam": ["Sivaraman Palaniappan", "Abirami Natarajan", "Kumaraswamy Hosamani",
+                                  "Pallavi Bhandarkar", "Sreelakshmi Thampi", "Jithin Kuriakose", "Ananthu Pillai"],
+    "other regions": ["Soumitra Bhowmik", "Ipsita Sengupta", "Chinmay Phadke", "Mrunal Kelkar", "Harshil Thakkar",
+                      "Navneet Sekhon", "Shabnam Kazmi", "Arif Lakdawala", "Pranjal Saikia", "Biraj Mahapatra"],
+    "initials": ["R. Kalaiselvi", "S.V. Ramprasad", "N. Bhaskar", "Deepti K."],
+    "first name only": ["Meghana", "Siddhesh", "Vaibhavi", "Raghunandan"],
+}
+N4_CAPS = [name.upper() for name in ["Sailaja Pemmasani", "Nupur Maheshwari", "Abirami Natarajan", "Chinmay Phadke",
+                                     "Shabnam Kazmi", "N. Bhaskar", "Meghana", "Pranjal Saikia"]]
+N4_LOWERCASE = ["lahari chilukuri", "garima", "jithin", "ipsita sengupta", "harshil thakkar", "srujana"]
+
+N5 = ["Lakshmi Vilas Bank statement", "Kalyan Jewellers - Google Chrome", "Gita Press Books catalogue",
+      "Arjun Award winners list", "Sai Baba Temple timings", "Krishna River bridge photos", "Hari Om Traders invoice",
+      "Vishnu Sahasranamam audio", "Uday Express timetable", "Aditya Birla Capital login", "Prem Ratan Dhan Payo songs",
+      "Ganesh Talkies show times"]
+N5_FESTIVALS = ["Ganesh Chaturthi Sale", "Krishna Janmashtami Offers", "Durga Puja Pandal Map"]
 
 
 def names(group_dict: dict) -> list[str]:
