@@ -7,10 +7,13 @@
  * earlier, while your last keystroke went to the face, so Windows kept the popup BEHIND
  * the face, and it timed out as no (M18, V6).
  *
- * The fix: the face, which did get your input, passes that right on with Windows'
- * AllowSetForegroundWindow when you press Ask, and only to the ONE process the bridge named
- * as pseudo_hands (ready.hands_pid). Never to ASFW_ANY ("any process"). Windows takes the
- * right back as soon as you give input to another program.
+ * The fix: the face, the window you're using, passes that right on with Windows'
+ * AllowSetForegroundWindow, and only to the ONE process the bridge named as pseudo_hands
+ * (ready.hands_pid). Never to ASFW_ANY ("any process").
+ *
+ * When: on every tool_call event, right before the tool runs. Windows takes the right back at
+ * your next input, so the first version, which granted when you pressed Ask, never worked
+ * with Enter: the key's own key-up, a moment later, cancelled it (M18, V6).
  *
  * If anything is off (no pid yet, an odd pid, koffi can't load), nothing is granted. The
  * popup still appears, possibly behind the face, and still means no after 20 s (D13).
@@ -31,9 +34,10 @@ class ForegroundGrant {
     this.handsPid = null;
   }
 
-  /** Every message from the brain passes here; only `ready` names pseudo_hands' process. */
+  /** Every message from the brain passes here: `ready` names pseudo_hands' process, `tool_call` grants. */
   fromBrain(message) {
     if (message.type === 'ready') this.handsPid = isProcessId(message.hands_pid) ? message.hands_pid : null;
+    else if (message.type === 'event' && message.kind === 'tool_call') this.grant();
   }
 
   /** The brain stopped, and its pseudo_hands with it: forget the pid. */
@@ -41,8 +45,8 @@ class ForegroundGrant {
     this.handsPid = null;
   }
 
-  /** You pressed Ask: let pseudo_hands' process, and only it, bring its popup to the front. */
-  onAsk() {
+  /** A tool is about to run: let pseudo_hands' process, and only it, bring its popup to the front. */
+  grant() {
     if (this.handsPid === null) return false;
     return this.allow(this.handsPid) === true;
   }

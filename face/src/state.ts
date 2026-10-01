@@ -21,6 +21,7 @@ export type State = {
   session: string; // the session's name (when it started)
   turns: Turn[];
   working: string | null; // what Pseudo is doing right now; null = waiting for you
+  toolWaiting: string | null; // a tool that is running (its approval popup may be open); null = none
   notice: string; // the last switch or refusal, in plain words
   sessions: SessionItem[] | null; // the saved-sessions panel; null = closed
 };
@@ -33,7 +34,8 @@ export type Action =
   | { type: 'restarting' };
 
 export const initial: State = {
-  phase: 'starting', providers: [], provider: '', session: '', turns: [], working: null, notice: '', sessions: null,
+  phase: 'starting', providers: [], provider: '', session: '', turns: [], working: null, toolWaiting: null, notice: '',
+  sessions: null,
 };
 
 /** A saved session's messages -> turns: each question with the answer that followed it. */
@@ -68,16 +70,17 @@ function fromBrain(state: State, message: FromBrain): State {
       const working = kind === 'tool_call'
         ? `Running ${data.name}. If it needs your approval, a popup asks you; nothing happens until you answer.`
         : step ?? state.working;
-      return { ...state, turns, working };
+      const toolWaiting = kind === 'tool_call' ? String(data.name) : kind === 'tool_result' ? null : state.toolWaiting;
+      return { ...state, turns, working, toolWaiting };
     }
     case 'turn_done':
-      return { ...state, working: null, turns: updateRunning(state.turns, () => ({ running: false })) };
+      return { ...state, working: null, toolWaiting: null, turns: updateRunning(state.turns, () => ({ running: false })) };
     case 'switched':
       return { ...state, provider: message.provider, session: message.session.name, turns: [], working: null,
-               notice: `Switched to ${message.provider}. This is a new session: a session keeps one provider.` };
+               toolWaiting: null, notice: `Switched to ${message.provider}. This is a new session: a session keeps one provider.` };
     case 'session':
       return { ...state, provider: message.provider, session: message.name, turns: turnsFrom(message.messages),
-               working: null, sessions: null,
+               working: null, toolWaiting: null, sessions: null,
                notice: message.messages.length ? `Continuing a saved session on ${message.provider}.`
                                                : `New session on ${message.provider}.` };
     case 'sessions':
@@ -85,13 +88,13 @@ function fromBrain(state: State, message: FromBrain): State {
     case 'refused': {
       const last = state.turns[state.turns.length - 1];
       if (last?.running && !last.steps.length) { // the question itself was refused: it was never sent
-        return { ...state, working: null,
+        return { ...state, working: null, toolWaiting: null,
                  turns: updateRunning(state.turns, () => ({ failed: `Not sent: ${message.reason}`, running: false })) };
       }
-      return { ...state, working: null, notice: message.reason };
+      return { ...state, working: null, toolWaiting: null, notice: message.reason };
     }
     case 'brain_stopped':
-      return { ...state, phase: 'stopped', working: null,
+      return { ...state, phase: 'stopped', working: null, toolWaiting: null,
                turns: updateRunning(state.turns, () => ({ failed: 'The brain stopped before answering.', running: false })) };
   }
 }

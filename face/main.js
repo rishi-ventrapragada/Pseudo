@@ -23,8 +23,9 @@
  *     no developer tools).
  *   - IPC is accepted only from our own page, and only the message types the brain knows.
  *
- * When you press Ask, this process lets pseudo_hands' process (only that one) bring its
- * approval popup to the front, above this window (foreground.js).
+ * Before each tool runs, this process lets pseudo_hands' process (only that one) bring its
+ * approval popup to the front, above this window (foreground.js), and flashes the taskbar
+ * button if you're in another window (taskbar-flash.js).
  */
 
 const path = require('node:path');
@@ -32,6 +33,7 @@ const { pathToFileURL } = require('node:url');
 const { app, BrowserWindow, Menu, ipcMain, nativeTheme, net, protocol, session } = require('electron');
 const { BrainProcess } = require('./brain-process');
 const { ForegroundGrant, windowsAllow } = require('./foreground');
+const { TaskbarFlash } = require('./taskbar-flash');
 
 const DIST = path.join(__dirname, 'dist');
 const PAGE = 'app://pseudo/index.html';
@@ -46,13 +48,19 @@ app.enableSandbox(); // every renderer is sandboxed, whatever its window says
 let win = null;
 let quitting = false;
 const grant = new ForegroundGrant(windowsAllow());
+const flash = new TaskbarFlash(
+  (on) => win && !win.isDestroyed() && win.flashFrame(on),
+  () => Boolean(win && !win.isDestroyed() && win.isFocused()),
+);
 const brain = new BrainProcess(
   (message) => {
-    grant.fromBrain(message); // `ready` names pseudo_hands' process
+    grant.fromBrain(message); // `ready` names pseudo_hands' process; `tool_call` grants
+    flash.fromBrain(message); // `tool_call` flashes if you're elsewhere; its result stops it
     toPage(message);
   },
   (code) => {
     grant.brainStopped();
+    flash.brainStopped();
     if (!quitting) toPage({ type: 'brain_stopped', code }); // the page offers a Restart button
   },
 );
@@ -96,7 +104,6 @@ ipcMain.on('pseudo:send', (event, message) => {
   for (const field of FIELDS) {
     if (typeof message[field] === 'string') clean[field] = message[field];
   }
-  if (clean.type === 'ask') grant.onAsk(); // before the brain can reach a popup
   brain.send(clean);
 });
 

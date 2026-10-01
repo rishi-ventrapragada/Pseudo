@@ -21,7 +21,7 @@ Rules:
   - A byte-order mark is stripped (PowerShell adds one; M16), and a question starting with "/"
     is never sent to the model (M16): the face has buttons, not commands.
   - hands_pid names the pseudo_hands process, so the face can let only it bring the approval
-    popup to the front when you press Ask (face/foreground.js). None if it isn't certain.
+    popup to the front before each tool runs (face/foreground.js). None if it isn't certain.
   - This file decides nothing (D11): chat.py holds the rules, loop.py the loop.
 """
 

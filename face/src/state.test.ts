@@ -31,6 +31,19 @@ describe('reduce', () => {
     expect(state.working).toContain('Running focus_window. If it needs your approval, a popup asks you');
   });
 
+  it('keeps the approval banner up while a tool waits for its result, and only then', () => {
+    const call = brain({ type: 'event', kind: 'tool_call', data: { name: 'focus_window', arguments: '{}' } });
+    const asked = run(brain(READY), { type: 'asked', text: 'focus it' });
+    expect(asked.toolWaiting).toBeNull();
+    const waiting = reduce(asked, call);
+    expect(waiting.toolWaiting).toBe('focus_window');
+    expect(reduce(waiting, brain({ type: 'event', kind: 'sending', data: {} })).toolWaiting).toBe('focus_window');
+    for (const end of [brain({ type: 'event', kind: 'tool_result', data: { name: 'focus_window' } }), brain({ type: 'turn_done', ok: false }),
+                       brain({ type: 'brain_stopped', code: 1 }), brain({ type: 'refused', reason: 'x' })]) {
+      expect(reduce(waiting, end).toolWaiting).toBeNull();
+    }
+  });
+
   it('marks a refused question as not sent', () => {
     const state = run(brain(READY), { type: 'asked', text: '/new' }, brain({ type: 'refused', reason: 'that looks like a command' }));
     expect(state.turns[0]).toMatchObject({ failed: 'Not sent: that looks like a command', running: false });

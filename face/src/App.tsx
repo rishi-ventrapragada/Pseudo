@@ -3,6 +3,7 @@
 // message to the brain (protocol.ts), through window.pseudo (preload.js).
 
 import { useEffect, useReducer, useRef, useState } from 'react';
+import { ApprovalBanner } from './ApprovalBanner';
 import { Markdown } from './Markdown';
 import type { ToBrain } from './protocol';
 import { PrivacyNote, ProviderBar } from './ProviderBar';
@@ -116,6 +117,7 @@ export function App() {
       )}
 
       <footer className="bottom">
+        <ApprovalBanner waiting={state.toolWaiting} />
         <p className={state.working ? 'status working' : 'status'} aria-live="polite">{status}</p>
         {state.phase === 'stopped' ? (
           <div className="stopped" role="alert">
