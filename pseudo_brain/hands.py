@@ -9,6 +9,8 @@ Privacy: pseudo_hands has already blocked, redacted and capped everything in its
 core (D6, D11) before it reaches this file. This file only relays. A tool result
 goes back to the loop, which keeps it in memory; it is never printed or saved.
 The approval popup for actions is shown by the pseudo_hands process itself (D13).
+M18: Hands also knows that process's pid, so the face can let ONLY it bring the popup
+to the front (face/foreground.js).
 """
 
 import json
@@ -18,17 +20,43 @@ from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Any
 
+import psutil
 from mcp import Client, StdioServerParameters
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 MAX_RESULT_CHARS = 6000  # one tool result, as sent to the model (pseudo_hands already caps its own)
 NO_ARGUMENTS = {"type": "object", "properties": {}}
+HANDS_MODULE = "pseudo_hands.mcp_server"
 
 
 def pseudo_hands_process() -> StdioServerParameters:
     """How to start pseudo_hands: the same command Hermes used in M6."""
-    return StdioServerParameters(command=sys.executable, args=["-m", "pseudo_hands.mcp_server"],
+    return StdioServerParameters(command=sys.executable, args=["-m", HANDS_MODULE],
                                  cwd=str(REPO_ROOT))
+
+
+def command_line(process: psutil.Process) -> str:
+    try:
+        return " ".join(process.cmdline())
+    except psutil.Error:  # it just exited, or isn't ours to read: it isn't pseudo_hands
+        return ""
+
+
+def find_hands_pid(me: psutil.Process | None = None) -> int | None:
+    """The pid of the pseudo_hands process that shows the approval popup; None if unsure (M18).
+
+    The venv's python.exe is a small launcher that starts the real Python as its child, so
+    TWO of our child processes run pseudo_hands' command line. The real one, which shows the
+    popup, is the one with no such child. Anything else (none, or two real ones) gives None,
+    and then the face grants nothing.
+    """
+    try:
+        found = [p for p in (me or psutil.Process()).children(recursive=True) if HANDS_MODULE in command_line(p)]
+        pids = {p.pid for p in found}
+        real = [p.pid for p in found if not any(child.pid in pids for child in p.children())]
+    except psutil.Error:
+        return None
+    return real[0] if len(real) == 1 else None
 
 
 def to_openai_tool(tool: Any) -> dict:
@@ -55,8 +83,9 @@ def result_text(result: Any) -> str:
 class Hands:
     """An open connection to pseudo_hands: the tools it published, and a way to call them."""
 
-    def __init__(self, client: Client, tools: list) -> None:
+    def __init__(self, client: Client, tools: list, pid: int | None = None) -> None:
         self._client = client
+        self.pid = pid  # the pseudo_hands process (None for an in-memory server in tests)
         self.names = [tool.name for tool in tools]
         self.schemas = [to_openai_tool(tool) for tool in tools]
 
@@ -82,4 +111,4 @@ async def connect_hands(target: Any = None) -> AsyncIterator[Hands]:
     """Start pseudo_hands over stdio (or use an in-memory server in tests) and discover its tools."""
     async with Client(target if target is not None else pseudo_hands_process()) as client:
         tools = (await client.list_tools()).tools
-        yield Hands(client, tools)
+        yield Hands(client, tools, find_hands_pid() if target is None else None)

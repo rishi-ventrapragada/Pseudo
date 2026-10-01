@@ -22,12 +22,16 @@
  *     (camera, microphone, notifications...) is refused, and there is no menu (no reload,
  *     no developer tools).
  *   - IPC is accepted only from our own page, and only the message types the brain knows.
+ *
+ * When you press Ask, this process lets pseudo_hands' process (only that one) bring its
+ * approval popup to the front, above this window (foreground.js).
  */
 
 const path = require('node:path');
 const { pathToFileURL } = require('node:url');
 const { app, BrowserWindow, Menu, ipcMain, nativeTheme, net, protocol, session } = require('electron');
 const { BrainProcess } = require('./brain-process');
+const { ForegroundGrant, windowsAllow } = require('./foreground');
 
 const DIST = path.join(__dirname, 'dist');
 const PAGE = 'app://pseudo/index.html';
@@ -41,9 +45,17 @@ app.enableSandbox(); // every renderer is sandboxed, whatever its window says
 
 let win = null;
 let quitting = false;
-const brain = new BrainProcess(toPage, (code) => {
-  if (!quitting) toPage({ type: 'brain_stopped', code }); // the page offers a Restart button
-});
+const grant = new ForegroundGrant(windowsAllow());
+const brain = new BrainProcess(
+  (message) => {
+    grant.fromBrain(message); // `ready` names pseudo_hands' process
+    toPage(message);
+  },
+  (code) => {
+    grant.brainStopped();
+    if (!quitting) toPage({ type: 'brain_stopped', code }); // the page offers a Restart button
+  },
+);
 
 /** A message for the page: from the brain, or brain_stopped from here. */
 function toPage(message) {
@@ -84,6 +96,7 @@ ipcMain.on('pseudo:send', (event, message) => {
   for (const field of FIELDS) {
     if (typeof message[field] === 'string') clean[field] = message[field];
   }
+  if (clean.type === 'ask') grant.onAsk(); // before the brain can reach a popup
   brain.send(clean);
 });
 

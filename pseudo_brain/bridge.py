@@ -7,7 +7,7 @@ link from pseudo_brain to pseudo_hands (M14). No port is opened, so no other pro
 web page can reach the brain (D18: the M5 and M17 lesson, "anything reachable gets reached").
 
 Face -> brain:  ask {text} | provider {id} | new_session | list_sessions | open_session {name} | quit
-Brain -> face:  ready {providers, provider, session, tools} | event {kind, data} | refused {reason}
+Brain -> face:  ready {providers, provider, session, tools, hands_pid} | event {kind, data} | refused {reason}
                 | switched {provider, session} | session {name, provider, messages}
                 | sessions {items} | turn_done {ok}
 `event` carries every event the loop, the model and the private server report (loop.py).
@@ -20,6 +20,8 @@ Rules:
     is refused as busy. list_sessions and quit always work; quit stops a running question.
   - A byte-order mark is stripped (PowerShell adds one; M16), and a question starting with "/"
     is never sent to the model (M16): the face has buttons, not commands.
+  - hands_pid names the pseudo_hands process, so the face can let only it bring the approval
+    popup to the front when you press Ask (face/foreground.js). None if it isn't certain.
   - This file decides nothing (D11): chat.py holds the rules, loop.py the loop.
 """
 
@@ -148,7 +150,8 @@ async def serve(receive: Receive, write: Write) -> int:
         async with connect_hands() as hands, anyio.create_task_group() as tasks:
             bridge.hands = hands
             bridge.send("ready", providers=[provider_info(p) for p in bridge.chat.allowlist.providers.values()],
-                        provider=bridge.chat.provider.id, session=bridge.session_info(), tools=hands.names)
+                        provider=bridge.chat.provider.id, session=bridge.session_info(), tools=hands.names,
+                        hands_pid=hands.pid)
             while await bridge.handle(await receive(), tasks):
                 pass
             tasks.cancel_scope.cancel()  # quitting: a question still running is stopped, not waited for

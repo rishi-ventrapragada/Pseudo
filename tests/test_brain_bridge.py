@@ -124,7 +124,7 @@ async def test_ready_lists_the_providers_and_the_tools(world: dict) -> None:
     ready = face.replies("ready")[0]
     assert code == 0 and ready["provider"] == "groq" and ready["session"]["messages"] == []
     assert [(p["id"], p["leaves_laptop"]) for p in ready["providers"]] == [("groq", True), ("local", False)]
-    assert ready["tools"] == ["read_active_window", "focus_window", "broken_tool"]
+    assert ready["tools"] == ["read_active_window", "focus_window", "broken_tool"] and ready["hands_pid"] is None
 
 
 @pytest.mark.anyio
