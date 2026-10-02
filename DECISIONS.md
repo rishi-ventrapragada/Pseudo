@@ -111,6 +111,12 @@ Besides the hand list (D21), the redactor masks about 49,000 Indian name words g
 *Why:* on a fresh held-out set (N6), M22 measured recall at 67% with the hand list and 99% with both, for +3 ms per title and +13 MB. Wikidata is CC0, so the list can be committed to a public repo. Rejected: the electoral-roll surname list (research-only terms), `name-dataset` (built from the 2021 Facebook leak), an unattributed Hugging Face list (no provenance). Lok Dhaba's licence couldn't be verified.
 *Would change if:* recall on a future held-out set drops, or a source with a verified, redistributable licence covers rare surnames better.
 
+### D23. Memory: a local vault, searched with SQLite FTS5 (M23; was L6)
+Pseudo's memory is one markdown note per answered task in `%LOCALAPPDATA%\Pseudo\memory\tasks\` (not synced; Obsidian can open it). Only `pseudo_hands` core touches it, sandboxed to that folder. Notes are redacted before saving and again when found. Every save goes through the approval popup (default no). `pseudo_brain` reaches the vault only through two brain-only MCP tools the model never sees. Relevant memories are found with SQLite FTS5 (Porter stemming, BM25), from an index kept in memory and refreshed by modification time. At most 3 memories, 1,400 characters in all, join a question, as notes rather than instructions.
+From L6, still true: the vault is plain `.md` files that Obsidian can open, though Obsidian isn't needed at runtime, and it is separate from the owner's personal vault. Only `pseudo_hands` core touches the vault, sandboxed to it; `pseudo_brain` reaches it only through two brain-only MCP tools.
+*Why:* M23 measured FTS5 at 83% Recall@3 on held-out questions (pure-Python BM25: 73%), at 3.3 ms and +2 MB for 1,000 notes. Only the chosen, redacted memories leave the laptop, to the provider already in use. Cloud embeddings would send every note and question to a second company (D6, D16).
+*Would change if:* real use shows too many missed paraphrases, or a free embedding provider fits D16.
+
 ## LEANING (revisit after Phase 1)
 
 L1 moved to LOCKED as D12 (2026-09-28).
@@ -128,12 +134,7 @@ Main brain on a free cloud model; cheap model for auxiliary tasks; fallback only
 Pseudo's face is our own web UI: a React window in Electron that talks to `pseudo_brain` over a child-process pipe (M18, D18). Hermes Desktop was ruled out in M13 (D15) and the Claude desktop app in M17 (D17). PySide6 is dropped.
 Voice through free cloud services (D20), evaluated for privacy when the voice phase starts. Whether a wake word (always listening) is acceptable is part of that evaluation; push-to-talk otherwise.
 
-### L6. Storage (memory)
-Memory is a dedicated, Obsidian-compatible markdown vault: plain `.md` files that Obsidian can open, though Obsidian isn't needed at runtime. It is separate from the owner's personal vault.
-- `pseudo_brain` is sandboxed to that vault: paths are resolved and anything outside it is refused, as in the M3 sandbox.
-- Memory text is redacted before it is sent to the model (D6).
-- Memory writes go through the approval popup at first (D13).
-- SQLite only if structured task history is needed later.
+L6 moved to LOCKED as D23 (2026-10-02).
 
 ### L7. Routines
 Saved from a successful run, preferring scripts over recorded clicks.

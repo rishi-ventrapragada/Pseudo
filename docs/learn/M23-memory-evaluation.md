@@ -90,5 +90,5 @@ Notice DEV was perfect for K1 (16/16) but TEST wasn't (73%). That gap is exactly
 ## How this connects to Pseudo's final architecture
 
 - **M24 builds it:** FTS5 in `pseudo_hands` core, beside the redactor and the approval popup. Notes are redacted before saving and again when found, every save asks you first, and at most 3 memories (1,400 characters, ≤ 400 tokens) join a question.
-- **D23 is proposed, not yet recorded:** the memory design, with these numbers, waits for your approval.
+- **D23 records the design** (approved 2026-10-02), with these numbers; L6 moved to LOCKED as part of it.
 - **Known limits to watch in real use:** paraphrases with no shared word, and questions that name a person the note stores as [PERSON]. If they hurt, the plan's fallbacks are saving short keywords with each note, or revisiting embeddings.
