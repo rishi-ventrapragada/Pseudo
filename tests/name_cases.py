@@ -13,6 +13,10 @@ M21 (committed before any M21 measurement; N2 is spent, because M21's rule was d
   N4           40 new held-out names, same groups as N2, chosen without checking indian_names.txt
   N4_CAPS      8 of N4 in ALL CAPS (part of N4's score); N4_LOWERCASE: reported only
   N5           ordinary lines where a listed first name is followed by a capitalized word (word-level cost, R10)
+M22 (committed before any dataset was downloaded or measured; N4 is spent, it showed the list's limit):
+  N6           40 new held-out names, same groups as N2/N4, chosen without checking any list or dataset
+  N6_CAPS      8 of N6 in ALL CAPS (part of N6's score); N6_LOWERCASE: reported only
+  O6           ordinary lines a big names list might over-mask (films, trains, temples, brands): word-level cost
 A name counts as caught when every word of it with 2+ letters is masked (a lone initial identifies nobody).
 """
 
@@ -84,6 +88,33 @@ N5 = ["Lakshmi Vilas Bank statement", "Kalyan Jewellers - Google Chrome", "Gita 
       "Vishnu Sahasranamam audio", "Uday Express timetable", "Aditya Birla Capital login", "Prem Ratan Dhan Payo songs",
       "Ganesh Talkies show times"]
 N5_FESTIVALS = ["Ganesh Chaturthi Sale", "Krishna Janmashtami Offers", "Durga Puja Pandal Map"]
+
+N6 = {
+    "Telugu": ["Satyanarayana Mutyala", "Hymavathi Kancharla", "Raghuveer Tummala", "Sirisha Atluri",
+               "Venkateswarlu Gorrepati", "Jahnavi Movva", "Ravindranath Kotha", "Lavanya Dasari"],
+    "Hindi belt": ["Shashank Bajpai", "Ritika Khandelwal", "Dharmendra Chaurasia", "Pragati Dubey",
+                   "Yogendra Rathore", "Shalini Bansal", "Mithilesh Kanaujia"],
+    "Tamil, Kannada, Malayalam": ["Elango Muthukumaran", "Revathi Chidambaram", "Basavaraj Hiremath",
+                                  "Sahana Shanbhag", "Nithin Varghese", "Anjitha Pulikkal", "Thangavel Arumugam"],
+    "other regions": ["Arindam Bhattacharjee", "Madhurima Dasgupta", "Sushant Gaikwad", "Hetal Parikh",
+                      "Manjot Grewal", "Rukhsar Pathan", "Lalthanpuii Ralte", "Subhashree Pradhan",
+                      "Irfan Lone", "Clifford Rodrigues"],
+    "initials": ["K.R. Sudhakar", "M. Chandrasekhar", "T. Vasantha", "Gayathri S."],
+    "first name only": ["Nagendra", "Pavani", "Ishwari", "Tanmay"],
+}
+N6_CAPS = [n.upper() for n in ["Hymavathi Kancharla", "Ritika Khandelwal", "Revathi Chidambaram", "Hetal Parikh",
+                               "Rukhsar Pathan", "M. Chandrasekhar", "Pavani", "Subhashree Pradhan"]]
+N6_LOWERCASE = ["sirisha atluri", "shalini", "nithin", "madhurima dasgupta", "sushant gaikwad", "lavanya"]
+
+O6 = ["Chennai Express - Netflix", "Mumbai Indians vs Chennai Super Kings - Hotstar", "Apollo Pharmacy order status",
+      "Infosys Springboard course", "Ganga Aarti live stream", "Taj Mahal tickets - ASI", "Kerala Blasters fixtures",
+      "Udupi Grand menu", "Indian Oil fuel bill", "Golden Temple langar timings", "Sundaram Finance EMI",
+      "Vande Bharat Express booking - IRCTC", "Haldiram Namkeen offers", "Saravana Bhavan reviews",
+      "Shatabdi Express PNR status", "Gateway of India photos", "Meenakshi Temple darshan", "Sabarmati Ashram visit",
+      "Hampi travel guide", "Malgudi Days episode 3", "Panchatantra stories PDF", "Kalki trailer - YouTube",
+      "Bahubali soundtrack - Spotify", "Lotus Temple visiting hours", "Narmada Bachao Andolan notes",
+      "Tirupati Balaji darshan booking", "Brahmaputra river map", "Chandrayaan mission update",
+      "Gandhi Jayanti holiday notice", "Ashoka pillar history"]
 
 
 def names(group_dict: dict) -> list[str]:

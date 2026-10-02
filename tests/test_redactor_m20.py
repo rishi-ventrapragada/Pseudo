@@ -41,7 +41,7 @@ def test_r1_every_name_in_n1_is_masked_in_every_context() -> None:
     assert recall(names(N1)) == 1.0
 
 
-@pytest.mark.xfail(strict=True, reason="R2 MISSED in M20: 86% vs 90% (rare surnames next to a listed first name); M21")
+@pytest.mark.xfail(strict=True, reason="R2 MISSED in M20: 86% vs 90% (rare surnames next to a listed first name); M21 didn't fix it, see M22")
 def test_r2_held_out_recall_is_at_least_90_percent() -> None:
     assert recall(names(N2) + N2_CAPS) >= 0.90
 

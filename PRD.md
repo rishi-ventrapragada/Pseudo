@@ -255,6 +255,10 @@ Goal: use Pseudo day to day, not just through `hermes -p pseudo` in a terminal. 
   - Cost: ordinary words masked on N5 went from 6 to 14 ("Uday Express", "Gita Press"). R1, R4-R7 and R9 held.
   - Finding: a rule anchored on the list only reaches names next to listed ones. Recall on unseen names stays at spaCy's level until the list knows more names.
 
+### M22: A large names list from a public dataset
+- Build a much larger list of Indian name words from a public dataset whose licence allows it, matched by a set lookup instead of one big regex, and measure it on a third held-out set N6, committed before any download or measurement. Word-level over-masking is reported.
+- **Done when:** R2, held-out recall on N6 (incl. ALL CAPS) of at least 90%, with M21's other criteria unchanged; or, if no candidate reaches it, the result is recorded and nothing ships.
+
 ## 12. Backlog
 
 Found while building; not scheduled. Each needs a plan and approval before work starts.
