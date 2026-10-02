@@ -97,6 +97,7 @@ Dates are masked when they could be a birthday (a day and a month, or a year nex
 
 ### D20. Pseudo is cloud-only for AI models and services (P5-perf, 2026-10-01)
 Pseudo uses AI models and services only in the cloud, through the providers allowed in D16. No local models run on this laptop: no Ollama, and no local language, speech or vision models. The laptop stays free for other work. The redactor is the one exception and stays local (Presidio + spaCy, D6), because it is what protects the data going to the cloud.
+Windows' own voices (including optional voice packs such as English (India)) are allowed: they're part of the OS, and M25 measured them at +54 MB with no network use. Windows' speech recognizer isn't used (M25: it failed on accuracy, RAM and privacy).
 *Why:* private mode's Ollama took 3.8 GB of disk, and a model runner it left behind held about 6 GB of committed memory for a day (P5-perf). The owner wants the laptop's RAM, GPU and disk for other work.
 *Would change if:* the owner gets hardware to spare, or a privacy need arises that only a local model can meet.
 
@@ -117,6 +118,11 @@ From L6, still true: the vault is plain `.md` files that Obsidian can open, thou
 *Why:* M23 measured FTS5 at 83% Recall@3 on held-out questions (pure-Python BM25: 73%), at 3.3 ms and +2 MB for 1,000 notes. Only the chosen, redacted memories leave the laptop, to the provider already in use. Cloud embeddings would send every note and question to a second company (D6, D16).
 *Would change if:* real use shows too many missed paraphrases, or a free embedding provider fits D16.
 
+### D24. Voice: Groq Whisper listens, Windows' voices speak (M25)
+Pseudo listens through Groq's `whisper-large-v3` (the same provider as chat, D16) and speaks with Windows' own voices through SAPI (English (India) Heera or Ravi, or Zira; the default is picked in M26); nothing spoken leaves the laptop. Push-to-talk only: the microphone is open only while you hold the button or key, for at most 30 seconds, and audio is never written to disk or saved in sessions or memory. A clip whose loudest 100 ms is below −45 dBFS is never sent. Whisper segments with `no_speech_prob` > 0.6 and `avg_logprob` < −1.0 are dropped. Whisper gets `language="en"` and never a prompt containing personal words. The transcript is treated like typed text (L8): it isn't redacted, and it's shown in the input box before it's sent.
+*Why (M25):* on 156 fake clips, `whisper-large-v3` passed every criterion (WER 1.2% clean and 2.5% noisy on Indian voices, 74% of name words, 0.26 s, +8 MB, Groq only). Turbo failed on names (55%) and turned clicks into "Thank you.". Windows' recognizer failed on accuracy (63% WER), RAM (+111 MB) and privacy (it keeps files tuned to the voices it hears), and it's deprecated. Windows' voices passed (first audio in 0.045 s, 4% round-trip errors, no network). Orpheus needs console terms and is a Preview model. Redacting transcripts would hide nothing from Groq and broke 12 of 26 commands.
+*Would change if:* Groq retires `whisper-large-v3`, real use shows names misheard too often, or a free cloud voice fits D16 without console terms.
+
 ## LEANING (revisit after Phase 1)
 
 L1 moved to LOCKED as D12 (2026-09-28).
@@ -132,7 +138,7 @@ Main brain on a free cloud model; cheap model for auxiliary tasks; fallback only
 
 ### L5. Interface
 Pseudo's face is our own web UI: a React window in Electron that talks to `pseudo_brain` over a child-process pipe (M18, D18). Hermes Desktop was ruled out in M13 (D15) and the Claude desktop app in M17 (D17). PySide6 is dropped.
-Voice through free cloud services (D20), evaluated for privacy when the voice phase starts. Whether a wake word (always listening) is acceptable is part of that evaluation; push-to-talk otherwise.
+Voice (D24, M25): Groq's Whisper listens and Windows' voices speak, push-to-talk only. M25 ruled out a wake word: a local wake model breaks D20, and streaming everything to the cloud breaks privacy. A global hotkey may come later.
 
 L6 moved to LOCKED as D23 (2026-10-02).
 
