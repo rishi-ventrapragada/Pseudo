@@ -70,6 +70,7 @@ Keep each lesson under 200 lines. Plain language. Explain every new term the fir
 - File tools are restricted to an allowed directory; resolve paths and reject anything outside it.
 - Agent loops always have a max-iterations cap.
 - No screen content, screenshots, or personal files are sent to any model in Phase 1.
+- Cleanup may only delete folders and files the script itself created in that run. Remove any links to real folders (junctions, symlinks) before deleting a test snapshot, and check before deleting.
 
 ## 7. Governance
 
