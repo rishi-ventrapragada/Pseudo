@@ -2,7 +2,7 @@
 
 A personal, privacy-first AI desktop assistant for Windows. Screen content will be understood and redacted locally before anything reaches a cloud model.
 
-**Status:** Phases 1-4 complete. Phase 5 (Make it usable) in progress: M13 done (Hermes Desktop ruled out; Pseudo gets its own brain, D15), M14 done: try it with `python -m pseudo_brain`. M15 done (providers evaluated, D16), M16 done (providers: allowlist, same-provider fallback, private mode), M17 done (Claude desktop app ruled out, D17), M18 done: Pseudo has its own window (see below). See [PRD.md](PRD.md) section 5 for the phase plan, section 11 for Phase 5 and section 12 for the backlog.
+**Status:** Phases 1-4 complete. Phase 5 (Make it usable) in progress: M13 done (Hermes Desktop ruled out; Pseudo gets its own brain, D15), M14 done: try it with `python -m pseudo_brain`. M15 done (providers evaluated, D16), M16 done (providers: allowlist, same-provider fallback, private mode), M17 done (Claude desktop app ruled out, D17), M18 done: Pseudo has its own window (see below). Phase 6 (Memory) in progress: M23 done (memory search evaluated, D23), M24 done: Pseudo remembers answered tasks, with your approval (see below). See [PRD.md](PRD.md) section 5 for the phase plan, section 11 for Phase 5, section 12 for Phase 6 and section 13 for the backlog.
 
 ## Setup (PowerShell)
 
@@ -24,6 +24,13 @@ python playground/00_check_setup.py
 ```
 
 `.env` is gitignored. Never commit it and never paste its contents anywhere.
+
+## Memory (M24)
+
+After each answered question, Pseudo asks in a popup whether to save it to memory (default no).
+A saved task is redacted first and stored as a markdown note in `%LOCALAPPDATA%\Pseudo\memory\tasks`,
+on this laptop only. Later questions get up to 3 relevant past tasks, redacted again.
+To view, edit or delete notes, open the folder `%LOCALAPPDATA%\Pseudo\memory` as a vault in Obsidian.
 
 ## The face: Pseudo's own window (M18)
 

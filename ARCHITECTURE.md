@@ -147,6 +147,11 @@ pseudo_hands/
     window_ids.py       short ids ("w3") for listed windows, never reused (M10)
     approval.py         the approval gate: native popup, default no (D13, M10)
     focus.py            focus_window(): validate id, block, ask, act (M10)
+    memory.py           save_memory(): redact the task, ask in the popup, write a NEW note to
+                        %LOCALAPPDATA%\Pseudo\memory\tasks (links refused) (M24, D23)
+    memory_search.py    search_memories(): FTS5 in memory, refreshed by modification time; re-redacts,
+                        at most 3 memories / 1,400 chars; any failure -> none (M24, D23)
+    memory_background.txt  150 FAKE notes for word statistics only, never returned (M24)
   show_windows.py       thin CLI demo (M4)
   mcp_server.py         thin MCP wrapper (M5)
   build_names_list.py   maintenance tool, run by hand: rebuilds indian_names_large.txt from Wikidata (M22)
@@ -174,11 +179,13 @@ pseudo_brain/           Pseudo's own agent loop (D15, M14), grown from playgroun
                         cloud is off, 127.0.0.1 only, stopped when pseudo_brain exits (M16).
                         Unused since P5-perf: Ollama removed and `local` disabled (D16, D20)
   hands.py              MCP CLIENT of pseudo_hands over stdio; tools discovered at startup, none named;
-                        knows pseudo_hands' pid, for the face's popup permission (M18)
+                        knows pseudo_hands' pid, for the face's popup permission (M18); hides the two
+                        memory tools from the model and calls them for the brain (M24)
   chat.py               one conversation, shared by every interface: start, switch provider (closing
-                        the old one's connections), new/open session, ask, stop servers (M18)
+                        the old one's connections), new/open session, ask, stop servers (M18);
+                        searches memory before a question, offers answered tasks to it after (M24)
   session.py            history as whole turns, one provider per session; trimmed per request to the
-                        provider's max_prompt_tokens;
+                        provider's max_prompt_tokens; memories join a request, never the history (M24);
                         saved to %LOCALAPPDATA%\Pseudo\sessions\ (your messages + final answers only)
   loop.py               SYSTEM_PROMPT + run_turn(): THE LOOP. Never prints: reports events via on_event
   terminal.py           thin interface: prints events, reads input, --continue, --provider, /provider,
@@ -205,6 +212,16 @@ face/                   Pseudo's own window (M18): Electron + React, display onl
                                hands.py --MCP stdio--> pseudo_hands (blocked apps, redactor, popup)
 ```
 
+Memory (M24, D23): two brain-only tools around each question.
+```
+  chat.ask --search_memories(question)--> pseudo_hands: scan vault, rank (FTS5), re-redact, cap
+      |  <---- up to 3 redacted memories ----+
+      |--> loop.run_turn: the memories ride along as one extra system message (this question only)
+      |--> answered? save_memory(question, answer, tools, provider, model) --> pseudo_hands:
+               redact -> approval popup (default no) -> new note in %LOCALAPPDATA%\Pseudo\memory\tasks
+  Obsidian can open %LOCALAPPDATA%\Pseudo\memory: you view, edit and delete notes there.
+```
+
 | Library | Why |
 |---|---|
 | openai (AsyncOpenAI) | The same SDK as Phase 1, async so it can share one event loop with the MCP client. |
@@ -212,5 +229,6 @@ face/                   Pseudo's own window (M18): Electron + React, display onl
 | anyio | Comes with mcp; runs the event loop, and `input()` in a helper thread so MCP keeps running. |
 | tomllib | Built into Python 3.11+: reads `providers.toml` (M16). No new install. |
 | psutil | Already used by pseudo_hands: `local_server.py` checks what listens on the server's port and stops the processes it started (M16). |
+| sqlite3 (FTS5) | Built into Python: memory search's full-text index, kept in memory (M23, M24). No new install. |
 
 Privacy and approval don't move: blocked apps, redaction and the approval popup stay in `pseudo_hands` core (D6, D11, D13), so they hold for `pseudo_brain` exactly as they did for Hermes.
