@@ -3,7 +3,8 @@ Not a test file itself.
 
 The REAL bridge runs on in-memory pipes. A fake face (below) writes lines to it and reads
 every byte it writes back. Everything else is FAKE: brain_fakes' providers and scripted
-models, the in-memory fake pseudo_hands, and sessions in a temporary folder.
+models, the in-memory fake pseudo_hands, and sessions in a temporary folder. (M26) Spoken
+answers use FAKE_WAV instead of the Windows voice, so no bridge test touches SAPI.
 Test files import `world` (a pytest fixture) and `run` from here.
 """
 
@@ -14,7 +15,7 @@ import anyio
 import pytest
 
 from brain_fakes import FAKE_CLOUD, FAKE_HANDS, FAKE_LOCAL, FakeModel, reply
-from pseudo_brain import bridge
+from pseudo_brain import bridge, bridge_voice
 from pseudo_brain import chat as chat_module
 from pseudo_brain import session as session_module
 from pseudo_brain.hands import connect_hands
@@ -22,6 +23,7 @@ from pseudo_brain.providers import Allowlist
 
 
 READ_THEN_ANSWER = [reply(tools=[("read_active_window", "{}")]), reply("Your window says BLUE.")]
+FAKE_WAV = b"RIFF" + bytes(40) + bytes(32000)  # a 44-byte header and 1 s of silence: never played, never on disk
 
 
 class GatedModel(FakeModel):
@@ -76,6 +78,8 @@ def world(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> dict:
     monkeypatch.setattr(session_module, "SESSIONS_DIR", tmp_path / "sessions")
     monkeypatch.setattr(bridge, "load_allowlist", lambda: Allowlist({"groq": FAKE_CLOUD, "local": FAKE_LOCAL}, "groq"))
     monkeypatch.setattr(bridge, "connect_hands", lambda: connect_hands(FAKE_HANDS))
+    world["spoken"] = []
+    monkeypatch.setattr(bridge_voice, "synthesize", lambda text: world["spoken"].append(text) or FAKE_WAV)
 
     async def fake_connect(provider, servers, on_event):
         if provider.id in world["refuse"]:

@@ -7,9 +7,10 @@ link from pseudo_brain to pseudo_hands (M14). No port is opened, so no other pro
 web page can reach the brain (D18: the M5 and M17 lesson, "anything reachable gets reached").
 
 Face -> brain:  ask {text} | provider {id} | new_session | list_sessions | open_session {name} | quit
+                | transcribe {audio} | speak_answers {on}    (M26: voice, in bridge_voice.py)
 Brain -> face:  ready {providers, provider, session, tools, hands_pid} | event {kind, data} | refused {reason}
                 | switched {provider, session} | session {name, provider, messages}
-                | sessions {items} | turn_done {ok}
+                | sessions {items} | turn_done {ok} | transcript {text, note, seconds} | speech {audio, reason}
 `event` carries every event the loop, the model and the private server report (loop.py).
 
 Rules:
@@ -32,13 +33,15 @@ from collections.abc import Awaitable, Callable
 import anyio
 from anyio.abc import TaskGroup
 
+from pseudo_brain import bridge_voice
+from pseudo_brain.bridge_voice import VOICE_REFUSALS
 from pseudo_brain.chat import REFUSALS, Chat
 from pseudo_brain.hands import Hands, connect_hands
 from pseudo_brain.providers import load_allowlist
 from pseudo_brain.session import list_sessions
 
 BOM = "﻿"
-JOBS = ("ask", "provider", "new_session", "open_session")  # they change the conversation: one at a time
+JOBS = ("ask", "provider", "new_session", "open_session", "transcribe")  # one at a time
 BUSY = "busy: Pseudo is still working on the last request; wait for it to finish"
 
 Receive = Callable[[], Awaitable[bytes]]  # the next line from the face; b"" = the face closed the pipe
@@ -63,6 +66,8 @@ class Bridge:
         self.chat: Chat | None = None
         self.hands: Hands | None = None
         self.busy = False
+        self.tasks: TaskGroup | None = None  # where background work runs (M26: speaking an answer)
+        self.speak_answers = True  # M26, D24: on by default; the face's switch turns it off
 
     def send(self, message_type: str, **fields) -> None:
         """One protocol line. ASCII-only JSON, so no pipe encoding can garble it; keys hidden."""
@@ -74,6 +79,8 @@ class Bridge:
     def event(self, kind: str, data: dict) -> None:
         """The loop's on_event: every event goes to the face as it happens."""
         self.send("event", kind=kind, data=data)
+        if kind == "answer":
+            bridge_voice.on_answer(self, data)  # M26: spoken in the background, if speaking is on
 
     def session_info(self) -> dict:
         session = self.chat.session
@@ -91,6 +98,8 @@ class Bridge:
             return False
         if kind == "list_sessions":
             self.send("sessions", items=list_sessions())
+        elif kind == "speak_answers":
+            bridge_voice.set_speaking(self, message)
         elif kind not in JOBS:
             self.send("refused", reason="not a message the brain understands")
         elif self.busy:
@@ -110,13 +119,15 @@ class Bridge:
                     self.send("switched", provider=self.chat.provider.id, session=self.session_info())
                 else:
                     self.send("refused", reason=f"already using {self.chat.provider.id}")
+            elif kind == "transcribe":
+                await bridge_voice.transcribe_job(self, message)
             elif kind == "open_session":
                 await self.chat.open_session(message.get("name"))
                 self.send("session", **self.session_info())
             else:
                 self.chat.new_session()
                 self.send("session", **self.session_info())
-        except REFUSALS as refusal:  # nothing changed; the reason says why
+        except REFUSALS + VOICE_REFUSALS as refusal:  # nothing changed; the reason says why
             self.send("refused", reason=str(refusal))
         finally:
             self.busy = False
@@ -148,7 +159,7 @@ async def serve(receive: Receive, write: Write) -> int:
             bridge.send("refused", reason=f"can't start: {refusal}")
             return 1
         async with connect_hands() as hands, anyio.create_task_group() as tasks:
-            bridge.hands = hands
+            bridge.hands, bridge.tasks = hands, tasks
             bridge.send("ready", providers=[provider_info(p) for p in bridge.chat.allowlist.providers.values()],
                         provider=bridge.chat.provider.id, session=bridge.session_info(), tools=hands.names,
                         hands_pid=hands.pid)
