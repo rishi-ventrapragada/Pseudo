@@ -2,7 +2,7 @@
 
 Owner: Sai Rishi Ventrapragada
 Repo: https://github.com/rishi-ventrapragada/Pseudo
-Status: Phase 1-4 complete (M11 evaluated OCR and skipped it). Phase 5 (Make it usable) in progress: M13 done (Hermes Desktop ruled out; own brain per D15), M14 done (`pseudo_brain`), M15 done (providers evaluated; D16), M16 done (providers: allowlist, same-provider fallback, private mode), M17 done (Claude desktop app ruled out; D17), M18 done (own face: Electron, over a child-process pipe; D18), M19 done (redactor precision; D19). M20 done (Indian names; D21), but recall on fresh held-out names was only 57%. M21 tried a rule for that gap and didn't ship it. M22 done (a 49,000-word names list from Wikidata; D22): held-out recall 99% (section 11). Phase 6 (Memory): M23 done (local keyword search with SQLite FTS5; D23), M24 done (Pseudo remembers answered tasks, with your approval). Phase 7 (Voice) planned: M25 evaluates first. Open follow-ups are in section 14, Backlog.
+Status: Phase 1-4 complete (M11 evaluated OCR and skipped it). Phase 5 (Make it usable) in progress: M13 done (Hermes Desktop ruled out; own brain per D15), M14 done (`pseudo_brain`), M15 done (providers evaluated; D16), M16 done (providers: allowlist, same-provider fallback, private mode), M17 done (Claude desktop app ruled out; D17), M18 done (own face: Electron, over a child-process pipe; D18), M19 done (redactor precision; D19). M20 done (Indian names; D21), but recall on fresh held-out names was only 57%. M21 tried a rule for that gap and didn't ship it. M22 done (a 49,000-word names list from Wikidata; D22): held-out recall 99% (section 11). Phase 6 (Memory): M23 done (local keyword search with SQLite FTS5; D23), M24 done (Pseudo remembers answered tasks, with your approval). Phase 7 (Voice) in progress: M25 done (listen through Groq's `whisper-large-v3`, speak with Windows' own voices). Open follow-ups are in section 14, Backlog.
 Last updated: 2026-10-02
 
 ## 1. What Pseudo is
@@ -318,6 +318,42 @@ Goal: you can talk to Pseudo and it talks back. Cloud first (D20), with privacy 
 - A tie goes to the option that sends less off the laptop, then to the faster one.
 - Also answered: what leaves the laptop, to whom and for how long; whether the transcript goes through redact() before reaching the model; how push-to-talk should work (a button, a key, a global hotkey; a wake word later).
 - **Done when:** each candidate is measured against the criteria, with a recommendation.
+- **Result (2026-10-02): Pseudo listens through Groq's `whisper-large-v3` (S2) and speaks with Windows' own voices (T1).** Measured on 156 fake spoken clips (26 sentences × Heera, Ravi and Zira × clean and noisy) and 4 non-speech clips, against the criteria fixed in the plan.
+  - **S2 passes every criterion.** On the Indian voices:
+    - word error rate 1.2% clean and 2.5% noisy (A1);
+    - 68 of 92 name words exactly right, 73.9% (A2);
+    - numbers and codes 31 of 32 (A3);
+    - no non-speech clip became a message, and no speech clip was dropped (A4);
+    - transcript in 0.26 s median, 0.29 s at the 90th percentile (L1);
+    - +7.9 MB RAM, at most 0.14 CPU-seconds per clip, and nothing running between questions (R1-R3);
+    - connections to Groq only, and nothing written to disk (P1, P2);
+    - a production model (P3); the free plan allows 2,000 requests a day (C1).
+
+    Misses: rare names ("Keerthana Boddu" → "Kirthana Baudu"), "Reddy" → "ready", other spellings of the same name ("Mohammad", "Saurav", which the exact-spelling rule counts as wrong), "CS101" → "CASE 101", and "Groq" in every clip ("Groke", "grog").
+  - **S1 (`whisper-large-v3-turbo`) fails A2 and A4.** Only 55.4% of name words were right. The clicks clip came back as "Thank you." with a no-speech probability of 0, so Whisper's own silence check couldn't catch it. S2's clicks clip came back as "you" and was dropped only narrowly (average log-probability −1.04 against a −1.0 cut).
+  - **S3 (Windows' recognizer) fails A1-A3, R2, R3 and P2, and is deprecated (P3).**
+    - Word error rate 62.7% clean and 108% noisy on the Indian voices ("Remind me to call Keerthana Boddu at four" → "the mind me to cordia to the board to add four").
+    - 2 of 92 name words right.
+    - +111 MB RAM.
+    - It sent nothing over the network, but it keeps recognizer files tuned to the voices it hears in `%LOCALAPPDATA%\Microsoft\Speech` (+6.3 MB in one run).
+  - **T1 (Windows voices) passes.**
+    - First audio in 0.045 s for a 300-character answer (L2).
+    - Spoken answers, transcribed back, had 4.1% (Heera), 3.7% (Ravi) and 1.7% (Zira) word errors (Q1), mostly "You're" heard as "You are" and brand names ("Pseudo" → "sudo").
+    - +54 MB RAM, at most 0.22 CPU-seconds per answer, no network, nothing written.
+    - Heera and Ravi come from an optional Windows voice pack (79.2 MB). Pseudo reaches them through SAPI with pywin32, so there's no new dependency.
+  - **T2 (Groq Orpheus) is unavailable.** Groq refused it with `model_terms_required` (its terms must be accepted in Groq's console), and it's a Preview model. Not pursued.
+  - **Privacy.**
+    - With S2, the recorded clip goes to Groq: your voice, and anything else said while you hold the key. Groq doesn't train on it (§4.2) and keeps it only in troubleshooting or abuse logs, for up to 30 days. Zero Data Retention, a setting in Groq's console, turns that off.
+    - With T1, nothing leaves the laptop.
+  - **The transcript is not redacted before the model; L8 applies.**
+    - Groq already has the audio, so redacting the transcript would hide nothing from Groq.
+    - redact() changes 12 of the 26 fake commands: all 23 name words become [PERSON], the phone number becomes [IN_PHONE], "UPI" becomes [LOCATION], and "Send S. Ramesh" loses "Send".
+    - Memory still redacts at save (D23). M26 puts the transcript in the input box before anything is sent.
+  - **Push-to-talk, for M26.**
+    - A mic button in the face, plus holding a key while the face is focused.
+    - A global hotkey later: Electron's fires only on key-down, so it would be a toggle.
+    - No wake word for now: it means always listening, and a local wake model breaks D20 while streaming everything to the cloud breaks privacy.
+  - **Limits.** These are synthetic voices, not people, and an Indian-English voice only approximates the accent. Real-voice accuracy is unknown until real use.
 
 ### M26: Voice build
 - Push-to-talk in the face. It records only while you hold it, for at most 30 seconds, and releases the microphone afterwards. The face may use the microphone only, and only for its own page.
