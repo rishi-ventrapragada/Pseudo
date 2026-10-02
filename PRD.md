@@ -2,7 +2,7 @@
 
 Owner: Sai Rishi Ventrapragada
 Repo: https://github.com/rishi-ventrapragada/Pseudo
-Status: Phase 1-4 complete (M11 evaluated OCR and skipped it). Phase 5 (Make it usable) in progress: M13 done (Hermes Desktop ruled out; own brain per D15), M14 done (`pseudo_brain`), M15 done (providers evaluated; D16), M16 done (providers: allowlist, same-provider fallback, private mode), M17 done (Claude desktop app ruled out; D17), M18 done (own face: Electron, over a child-process pipe; D18), M19 done (redactor precision; D19). M20 done (Indian names; D21), but recall on fresh held-out names was only 57%. M21 tried a rule for that gap and didn't ship it. M22 done (a 49,000-word names list from Wikidata; D22): held-out recall 99% (section 11). Open follow-ups are in section 12, Backlog.
+Status: Phase 1-4 complete (M11 evaluated OCR and skipped it). Phase 5 (Make it usable) in progress: M13 done (Hermes Desktop ruled out; own brain per D15), M14 done (`pseudo_brain`), M15 done (providers evaluated; D16), M16 done (providers: allowlist, same-provider fallback, private mode), M17 done (Claude desktop app ruled out; D17), M18 done (own face: Electron, over a child-process pipe; D18), M19 done (redactor precision; D19). M20 done (Indian names; D21), but recall on fresh held-out names was only 57%. M21 tried a rule for that gap and didn't ship it. M22 done (a 49,000-word names list from Wikidata; D22): held-out recall 99% (section 11). Phase 6 (Memory) planned: M23 evaluates first. Open follow-ups are in section 13, Backlog.
 Last updated: 2026-10-02
 
 ## 1. What Pseudo is
@@ -54,6 +54,7 @@ See ARCHITECTURE.md. These later phases may change once the owner understands th
 | 3 | Privacy layer | Local redaction (Presidio + Indian recognizers + owner rules), applied to window titles. |
 | 4 | Reading and acting (complete) | UI Automation tree reader, `focus_window`, approval gate (native popup, D13). Local OCR evaluated in M11 and skipped for now. |
 | 5 | Make it usable | Use Pseudo day to day, not just through `hermes -p pseudo` in a terminal. M13 ruled out Hermes Desktop, so Pseudo gets its own brain (`pseudo_brain`, D15, M14) and its own face (M18; M17 first evaluates the Claude desktop app). |
+| 6 | Memory | Pseudo remembers every task in a local markdown vault and sends only relevant, redacted memories to the model (L6). |
 
 ### Roadmap toward the vision (section 1)
 
@@ -264,7 +265,24 @@ Goal: use Pseudo day to day, not just through `hermes -p pseudo` in a terminal. 
   - Cost: median redaction 8.9 → 12.1 ms (limit +5 ms), RAM +13 MB (limit +150 MB), start-up unchanged. Matching moved from one big regex per rule to a set lookup: at 50,000 names a regex took 12 s to compile and 17 ms per title.
   - Known gaps: a surname that is also an English word ("Irfan Lone") is filtered out; names Wikidata doesn't know still depend on spaCy; lower case still isn't matched. The M15 battery scored 12/12 on `gpt-oss-120b`.
 
-## 12. Backlog
+## 12. Phase 6 scope: Memory
+
+Goal: Pseudo remembers every task you've done, in a dedicated Obsidian-compatible markdown vault on this laptop (L6), and sends only the relevant memories, redacted, to the model (D6). Fake data only while building and measuring.
+
+### M23: How to find relevant memories (evaluate first)
+- Compare two local keyword searches, BM25 in pure Python (K1) and SQLite FTS5 with its built-in BM25 (K2), on a fake task history (150 redacted notes) and fake queries. The history and queries are committed before any measurement; 20 tuning queries are kept apart from 40 held-out test queries.
+- Criteria, fixed in the plan: Recall@3 on held-out answerable queries of at least 80% (Q1); at least 8 of 10 unrelated questions get no memory (Q2); search at most 50 ms median with 1,000 notes, re-scanning the vault each time (S1); `pseudo_hands` RAM at most +30 MB (R1); no second provider (P1).
+- Ruled out on paper: local embedding models (D20); Groq embeddings (none exist); Gemini's free tier (it uses the data to improve Google's products); Voyage AI (it needs a manual account and would send every note and every question to a second company). Voyage is revisited only if K1 and K2 both miss Q1.
+- **Done when:** each candidate is measured against the criteria, with a recommendation.
+
+### M24: Memory build
+- Memory lives in `pseudo_hands` core, beside the redactor and the approval popup. `pseudo_brain` reaches it only through two brain-only MCP tools, `search_memories` and `save_memory`, which the model never sees.
+- One note per answered task: date, provider, model and tools used in its properties, then the question and the answer, all redacted before saving. File names are the date and time only. Tool results (screen content) are never saved.
+- Every save goes through the approval popup (default no). Memories are re-redacted when found, so your own edits in Obsidian are masked too. At most 3 memories, about 400 tokens, are added to a request, as notes rather than instructions, and are never stored in session history.
+- The vault is `%LOCALAPPDATA%\Pseudo\memory`, which isn't synced. You view, edit and delete notes in Obsidian; Pseudo itself only creates and reads them, inside that folder only. Any failure saves nothing or sends no memories.
+- **Done when:** with fake tasks, an approved save writes a redacted note; a denied or timed-out save writes nothing; a related question in a new session receives that memory within the budget; a fake phone number typed into a note goes out as `[IN_PHONE]`; sandbox and fail-closed tests pass; the M15 battery still scores 12/12.
+
+## 13. Backlog
 
 Found while building; not scheduled. Each needs a plan and approval before work starts.
 
