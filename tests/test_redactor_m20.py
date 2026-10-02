@@ -1,7 +1,8 @@
 """Tests for M20: common Indian names are masked from a committed list (D21). Every name is FAKE (name_cases.py).
 
-The criteria, as finally approved: R1 N1 recall 100%; R2 held-out recall >= 90% is MISSED (86%), so it's a
-strict xfail that will pass loudly once M21 reaches it; R3 first names alone and initials >= 90%;
+The criteria, as finally approved: R1 N1 recall 100%; R2 held-out recall >= 90% was MISSED in M20 (86%) and
+passes since M22's Wikidata list (N2 is spent by now, so test_redactor_m22.py's N6 is the real check);
+R3 first names alone and initials >= 90%;
 R5 cue phrases no worse than before M20 (2/16); R6 no new over-masking versus before M20.
 """
 
@@ -41,8 +42,7 @@ def test_r1_every_name_in_n1_is_masked_in_every_context() -> None:
     assert recall(names(N1)) == 1.0
 
 
-@pytest.mark.xfail(strict=True, reason="R2 MISSED in M20: 86% vs 90% (rare surnames next to a listed first name); M21 didn't fix it, see M22")
-def test_r2_held_out_recall_is_at_least_90_percent() -> None:
+def test_r2_held_out_recall_is_at_least_90_percent() -> None:  # missed in M20 (86%), passes since M22
     assert recall(names(N2) + N2_CAPS) >= 0.90
 
 
@@ -60,7 +60,7 @@ def test_r6_no_new_over_masking_of_words_that_are_also_names() -> None:
 
 
 def test_festival_names_are_masked_failing_closed() -> None:
-    assert redact("Durga Puja holidays") == "[PERSON] Puja holidays"
+    assert redact("Durga Puja holidays") == "[PERSON] holidays"  # since M22 "Puja" is a Wikidata surname too
     assert all(redact(line) != line for line in N3_FESTIVALS)
 
 
