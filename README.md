@@ -2,7 +2,7 @@
 
 A personal, privacy-first AI desktop assistant for Windows. Screen content will be understood and redacted locally before anything reaches a cloud model.
 
-**Status:** Phases 1-4 complete. Phase 5 (Make it usable) in progress: M13 done (Hermes Desktop ruled out; Pseudo gets its own brain, D15), M14 done: try it with `python -m pseudo_brain`. M15 done (providers evaluated, D16), M16 done (providers: allowlist, same-provider fallback, private mode), M17 done (Claude desktop app ruled out, D17), M18 done: Pseudo has its own window (see below). Phase 6 (Memory) in progress: M23 done (memory search evaluated, D23), M24 done: Pseudo remembers answered tasks, with your approval (see below). See [PRD.md](PRD.md) section 5 for the phase plan, section 11 for Phase 5, section 12 for Phase 6 and section 13 for the backlog.
+**Status:** Phases 1-4 complete. Phase 5 (Make it usable) in progress: M13 done (Hermes Desktop ruled out; Pseudo gets its own brain, D15), M14 done: try it with `python -m pseudo_brain`. M15 done (providers evaluated, D16), M16 done (providers: allowlist, same-provider fallback, private mode), M17 done (Claude desktop app ruled out, D17), M18 done: Pseudo has its own window (see below). Phase 6 (Memory): M23 done (memory search evaluated, D23), M24 done: Pseudo remembers answered tasks, with your approval (see below). Phase 7 (Voice): M25 done (voice evaluated, D24), M26 done: talk to Pseudo and hear it answer (see below). See [PRD.md](PRD.md) section 5 for the phase plan, section 11 for Phase 5, section 12 for Phase 6, section 13 for Phase 7 and section 14 for the backlog.
 
 ## Setup (PowerShell)
 
@@ -31,6 +31,21 @@ After each answered question, Pseudo asks in a popup whether to save it to memor
 A saved task is redacted first and stored as a markdown note in `%LOCALAPPDATA%\Pseudo\memory\tasks`,
 on this laptop only. Later questions get up to 3 relevant past tasks, redacted again.
 To view, edit or delete notes, open the folder `%LOCALAPPDATA%\Pseudo\memory` as a vault in Obsidian.
+
+## Voice (M26)
+
+In the face, click **Start talking** (or hold **Ctrl+Space**) and speak. Click again (or let go) when you
+have finished; recording stops by itself after 30 seconds. What you said appears in the input box: read
+it, fix it if needed, and press Enter. Nothing you say is ever sent as a question by itself.
+
+- Your recording goes to Groq's `whisper-large-v3` (the provider your questions already go to) straight
+  from memory, and is never saved. A silent recording never leaves the laptop. Private mode has no voice input.
+- Answers are read aloud on this laptop with Windows' Ravi voice (English (India)). Untick **Speak answers**
+  to mute (the face remembers it); **Stop speaking** stops the current answer.
+- Needs the English (India) voice pack (Settings > Time & language > Speech > Add voices), and for your real
+  microphone, Windows' microphone access for desktop apps (Settings > Privacy & security > Microphone).
+- Groq keeps API data only in troubleshooting or abuse logs, for up to 30 days. Zero Data Retention, in
+  Groq's console under Data Controls, turns that off.
 
 ## The face: Pseudo's own window (M18)
 

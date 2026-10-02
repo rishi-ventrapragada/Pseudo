@@ -33,6 +33,9 @@ pseudo_brain/
                    memory: search before each question, offer each answered task after (M24)
   terminal.py      the terminal interface (the only file that prints)
   bridge.py        the face's interface: JSON lines over stdin/stdout, no port (D18, M18)
+  bridge_voice.py  voice over the bridge: transcribe {audio} in, transcript and speech out (M26)
+  voice_in.py      a push-to-talk recording -> words: 30 s cap, silence gate, Groq Whisper (M26, D24)
+  voice_out.py     an answer -> speech with Windows' Ravi voice, in memory, never on disk (M26, D24)
   __main__.py      `python -m pseudo_brain`
 ```
 
@@ -46,3 +49,9 @@ Memory (M24, D23): before each question Pseudo finds up to 3 relevant past tasks
 1,400 characters at most) and adds them to that question only. After each ANSWERED question it
 offers the task to memory, and `pseudo_hands` asks you in the approval popup first. Notes live in
 `%LOCALAPPDATA%\Pseudo\memory\tasks`; open `%LOCALAPPDATA%\Pseudo\memory` in Obsidian to view, edit or delete them.
+
+Voice (M26, D24): the face sends a push-to-talk recording; `voice_in.py` refuses anything over 30 seconds,
+never sends a silent one, and asks the provider's `transcribe_model` (only Groq has one, so private mode
+has no voice input). The words come back for the input box and are never sent as a question by themselves
+(L8). Each answer is spoken by `voice_out.py` with a Windows voice, on this laptop, unless Speak answers is
+off. Recordings and speech exist only in memory; the log gets counts, never words.

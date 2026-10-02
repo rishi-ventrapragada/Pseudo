@@ -2,7 +2,7 @@
 
 Owner: Sai Rishi Ventrapragada
 Repo: https://github.com/rishi-ventrapragada/Pseudo
-Status: Phase 1-4 complete (M11 evaluated OCR and skipped it). Phase 5 (Make it usable) in progress: M13 done (Hermes Desktop ruled out; own brain per D15), M14 done (`pseudo_brain`), M15 done (providers evaluated; D16), M16 done (providers: allowlist, same-provider fallback, private mode), M17 done (Claude desktop app ruled out; D17), M18 done (own face: Electron, over a child-process pipe; D18), M19 done (redactor precision; D19). M20 done (Indian names; D21), but recall on fresh held-out names was only 57%. M21 tried a rule for that gap and didn't ship it. M22 done (a 49,000-word names list from Wikidata; D22): held-out recall 99% (section 11). Phase 6 (Memory): M23 done (local keyword search with SQLite FTS5; D23), M24 done (Pseudo remembers answered tasks, with your approval). Phase 7 (Voice) in progress: M25 done (listen through Groq's `whisper-large-v3`, speak with Windows' own voices). Open follow-ups are in section 14, Backlog.
+Status: Phase 1-4 complete (M11 evaluated OCR and skipped it). Phase 5 (Make it usable) in progress: M13 done (Hermes Desktop ruled out; own brain per D15), M14 done (`pseudo_brain`), M15 done (providers evaluated; D16), M16 done (providers: allowlist, same-provider fallback, private mode), M17 done (Claude desktop app ruled out; D17), M18 done (own face: Electron, over a child-process pipe; D18), M19 done (redactor precision; D19). M20 done (Indian names; D21), but recall on fresh held-out names was only 57%. M21 tried a rule for that gap and didn't ship it. M22 done (a 49,000-word names list from Wikidata; D22): held-out recall 99% (section 11). Phase 6 (Memory): M23 done (local keyword search with SQLite FTS5; D23), M24 done (Pseudo remembers answered tasks, with your approval). Phase 7 (Voice): M25 done (listen through Groq's `whisper-large-v3`, speak with Windows' own voices; D24), M26 done (push-to-talk in the face; answers spoken with Windows' Ravi voice). Open follow-ups are in section 14, Backlog.
 Last updated: 2026-10-02
 
 ## 1. What Pseudo is
@@ -362,6 +362,30 @@ Goal: you can talk to Pseudo and it talks back. Cloud first (D20), with privacy 
 - The transcript goes into the input box. Nothing is sent until you press Enter or Ask (L8).
 - Answers are spoken with Windows' Ravi voice (English (India), the fewest round-trip errors among the Indian voices in M25). `pseudo_brain` synthesizes them in memory and the face plays them. Markdown is stripped, placeholders like [PERSON] are read as plain words, and speech stops after 1,500 characters. A "Speak answers" switch mutes it, and the face remembers the choice. Recording stops any speech first, so Pseudo never hears itself.
 - **Done when:** with fake WAVs fed through Chromium's fake microphone (the real microphone is never opened), a spoken question is transcribed into the input box by the button and by Ctrl+Space, answered and spoken; muted answers aren't spoken; a silent clip sends nothing to Groq; recording stops at 30 seconds; no audio file appears on disk; only the bridge talks to Groq, and nothing else leaves the laptop; tests pass, and the M15 battery scores 12/12.
+- **Result (2026-10-02): built.**
+  - **What was built:**
+    - `pseudo_brain/voice_in.py` turns a recording into words through `whisper-large-v3`.
+    - `voice_out.py` makes each answer's speech with Ravi, in memory.
+    - `bridge_voice.py` carries both over the pipe.
+    - In the face, `permissions.js` lets the page use the microphone (audio only, our page only). `recorder.ts` records and resamples, `speaker.ts` plays, and `useVoice.ts` wires the mic button, Ctrl+Space and the Speak answers switch.
+  - **End to end,** with real Groq and the real face. Chromium's fake microphone played a fake WAV, and the profile, sessions and memory vault were temporary.
+    - **Talking:** the button and Ctrl+Space each put "Say hello to me in one short sentence." into the input box, word for word (7.6 s and 7.1 s recordings). Nothing was asked until Ask was pressed.
+    - **Speaking:** the answer was spoken (1.2 s of audio). With Speak answers off, the next answer wasn't.
+    - **Silence and the cap:** a silent recording was never sent ("Didn't hear anything, so nothing was sent"). A recording left running stopped itself at 30.0 s.
+    - **Privacy:** no audio file appeared on disk (0 of 131 changed files had an audio signature). Only the bridge talked outside the laptop, and only to addresses `api.groq.com` resolved to; the face and `pseudo_hands` made no outside connections. Windows' microphone-use record for the face's program is unchanged, so the real microphone was never opened.
+    - **RAM:** renderer 80 → 99 MB, bridge 96 → 109 MB.
+  - **30 new Python tests and 11 face tests.** They cover:
+    - a silent recording never reaches the speech model;
+    - no prompt is ever sent, and no file is opened while transcribing;
+    - private mode can never get a speech model;
+    - the page gets the microphone only for audio, and only from `app://pseudo`;
+    - an answer starting with a SAPI command is read as text. With SAPI's default flag, `<silence msec="20000"/>` was obeyed: 21.2 s of audio against 5.0 s.
+  - **The M15 battery scored 12/12.**
+  - **Found while verifying (not caused by M26):** the memory popup opens behind the face and isn't topmost, so it times out as no and nothing is saved. A snapshot of the code from before M26 (`53bdf11`) behaves the same.
+  - **Known limits:**
+    - It was tested with synthetic voices only.
+    - "Groq" is never transcribed right ("Groke", "grog"), so read the transcript before pressing Enter.
+    - Real use needs Windows' microphone access for desktop apps.
 
 ## 14. Backlog
 

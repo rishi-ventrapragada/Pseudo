@@ -8,7 +8,7 @@ Two parts: the long-term target (so every step has context) and the Phase 1 stru
           voice / hotkey / typed prompt
                        |
              [ Pseudo Face ]  own React window in Electron (M18);
-                       |       terminal first (M14); voice later
+                       |       terminal first (M14); push-to-talk voice (M26)
                        |  child-process pipe (stdin/stdout)
                        v
              [ pseudo_brain ]  Pseudo's own agent loop (D15, M14):
@@ -191,6 +191,11 @@ pseudo_brain/           Pseudo's own agent loop (D15, M14), grown from playgroun
   terminal.py           thin interface: prints events, reads input, --continue, --provider, /provider,
                         /new, /quit
   bridge.py             thin interface for the face: JSON lines over stdin/stdout, no port (D18, M18)
+  bridge_voice.py       the bridge's voice messages: transcribe in, transcript and speech out (M26)
+  voice_in.py           push-to-talk recording -> words: 30 s cap, silence gate (-45 dBFS), the provider's
+                        transcribe_model (Groq's whisper-large-v3), Whisper's silent segments dropped (M26, D24)
+  voice_out.py          answer -> speech: Markdown stripped, placeholders as words, Windows' Ravi voice through
+                        SAPI, into memory (M26, D24)
   __main__.py           python -m pseudo_brain
 face/                   Pseudo's own window (M18): Electron + React, display only (D11)
   main.js               Electron's main process: one sandboxed window, app:// pages from dist/ only,
@@ -199,9 +204,11 @@ face/                   Pseudo's own window (M18): Electron + React, display onl
   preload.js            the only door between page and main process: window.pseudo.send / onMessage
   foreground.js         before each tool runs, lets ONLY pseudo_hands bring its approval popup to
                         the front (AllowSetForegroundWindow, via koffi)
+  permissions.js        the one permission the page may get: the microphone, audio only, our page only (M26)
   taskbar-flash.js      flashes the taskbar button while a tool runs and you're in another window
   src/                  the React page: chat, live steps, Markdown answers, provider bar, sessions,
-                        the approval banner
+                        the approval banner; (M26) recorder.ts, speaker.ts, useVoice.ts, VoiceControls.tsx:
+                        the mic button, Ctrl+Space, the Speak answers switch
 ```
 
 ```
@@ -222,6 +229,16 @@ Memory (M24, D23): two brain-only tools around each question.
   Obsidian can open %LOCALAPPDATA%\Pseudo\memory: you view, edit and delete notes there.
 ```
 
+Voice (M26, D24): the face is the microphone and the speakers; pseudo_brain holds the rules.
+```
+  face: mic button / hold Ctrl+Space -> microphone (audio only, our page only) -> recording in memory, <= 30 s
+        -> 16 kHz mono PCM16, base64 --transcribe--> bridge_voice -> voice_in: > 30 s refused; quieter than
+        -45 dBFS never sent; else WAV in memory -> Groq whisper-large-v3 (language "en", no prompt)
+        <--transcript-- the words go into the input box; YOU press Enter (the typed-text path, L8)
+  answer event -> voice_out: spoken_text -> Windows' Ravi voice (SAPI) into memory --speech--> face plays it
+        (unless Speak answers is off; starting a recording stops it first)
+```
+
 | Library | Why |
 |---|---|
 | openai (AsyncOpenAI) | The same SDK as Phase 1, async so it can share one event loop with the MCP client. |
@@ -230,5 +247,7 @@ Memory (M24, D23): two brain-only tools around each question.
 | tomllib | Built into Python 3.11+: reads `providers.toml` (M16). No new install. |
 | psutil | Already used by pseudo_hands: `local_server.py` checks what listens on the server's port and stops the processes it started (M16). |
 | sqlite3 (FTS5) | Built into Python: memory search's full-text index, kept in memory (M23, M24). No new install. |
+| pywin32 (SAPI) | Already installed: Windows' speech API through COM speaks answers with Windows' own voices, into memory (M26). |
+| wave, array | Built into Python: WAV files in memory, and 16-bit samples for the silence gate (M26). No new install. |
 
 Privacy and approval don't move: blocked apps, redaction and the approval popup stay in `pseudo_hands` core (D6, D11, D13), so they hold for `pseudo_brain` exactly as they did for Hermes.
