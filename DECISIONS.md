@@ -103,6 +103,7 @@ Pseudo uses AI models and services only in the cloud, through the providers allo
 ### D21. Names the redactor must know (M20)
 Common Indian first names and surnames are masked from a committed, owner-editable list (`pseudo_hands/core/indian_names.txt`), matched only when Capitalized or in ALL CAPS. So are initials next to a listed name, and any Capitalized word right before a listed surname. spaCy still masks the names it finds; the list only adds masks. Names that are also common English or everyday words (Sunny, Ram, Raja...) and brand-name surnames (Bose, Tata...) are left out; deity and festival names are kept, so "Durga Puja" is masked, failing closed.
 *Why:* M20 measured spaCy's small model catching 61% of fake Indian names in titles (first names alone: 25%), and the medium model needed 205 MB more RAM while still missing more held-out names than the list.
+*Limit (M21):* the list only masks the names on it. On fresh held-out names (N4) recall is 57%, the same as spaCy alone, so the name leak is only partly fixed. A rule anchored on the list (M21's rule 4) didn't change that and wasn't shipped.
 *Would change if:* a measured model catches the held-out sets as well as the list does, within the laptop's RAM budget (D20).
 
 ## LEANING (revisit after Phase 1)
