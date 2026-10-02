@@ -99,7 +99,8 @@ class Model:
         except openai.APIStatusError as error:
             raise ModelFailure(f"{where} refused to list its models ({error.status_code})") from None
         available = {listed.id for listed in page.data}
-        missing = [name for name in self.provider.models if name not in available]
+        speech = (self.provider.transcribe_model,) if self.provider.transcribe_model else ()  # M26
+        missing = [name for name in self.provider.models + speech if name not in available]
         if missing:
             raise ModelFailure(f"{where} doesn't have {', '.join(missing)}")
 

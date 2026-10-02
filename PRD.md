@@ -356,11 +356,12 @@ Goal: you can talk to Pseudo and it talks back. Cloud first (D20), with privacy 
   - **Limits.** These are synthetic voices, not people, and an Indian-English voice only approximates the accent. Real-voice accuracy is unknown until real use.
 
 ### M26: Voice build
-- Push-to-talk in the face. It records only while you hold it, for at most 30 seconds, and releases the microphone afterwards. The face may use the microphone only, and only for its own page.
-- Audio stays in memory only: it is never written to disk, and never saved in sessions or memory. Silence sends nothing.
-- Speech to text and spoken answers use M25's choices. Any cloud service goes through the D16 allowlist, so no new company is added.
-- The transcript is handled as M25 decides.
-- **Done when:** set in M26's plan, after M25's result.
+- Push-to-talk in the face: click the mic button to start and again to stop, or hold Ctrl+Space while the face is focused. Recording stops by itself at 30 seconds, and the microphone is released as soon as it stops. The face may use the microphone (audio only, never the camera), and only for its own page.
+- The clip goes from the face to `pseudo_brain` over the pipe, in memory only: never written to disk, never saved in sessions or memory. `pseudo_brain` refuses a clip over 30 seconds, never sends one quieter than −45 dBFS, and drops Whisper's silent segments (D24).
+- Speech to text uses Groq's `whisper-large-v3`, listed in `providers.toml` beside the chat models (D16). Voice input works only on a provider that has a speech model, so private mode never sends audio anywhere. A 429 is shown with the wait; there is no fallback model (turbo failed M25).
+- The transcript goes into the input box. Nothing is sent until you press Enter or Ask (L8).
+- Answers are spoken with Windows' Ravi voice (English (India), the fewest round-trip errors among the Indian voices in M25). `pseudo_brain` synthesizes them in memory and the face plays them. Markdown is stripped, placeholders like [PERSON] are read as plain words, and speech stops after 1,500 characters. A "Speak answers" switch mutes it, and the face remembers the choice. Recording stops any speech first, so Pseudo never hears itself.
+- **Done when:** with fake WAVs fed through Chromium's fake microphone (the real microphone is never opened), a spoken question is transcribed into the input box by the button and by Ctrl+Space, answered and spoken; muted answers aren't spoken; a silent clip sends nothing to Groq; recording stops at 30 seconds; no audio file appears on disk; only the bridge talks to Groq, and nothing else leaves the laptop; tests pass, and the M15 battery scores 12/12.
 
 ## 14. Backlog
 

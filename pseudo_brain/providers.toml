@@ -9,8 +9,9 @@ name = "Groq"
 base_url = "https://api.groq.com/openai/v1"
 key_env = "LLM_API_KEY"
 models = ["openai/gpt-oss-120b", "openai/gpt-oss-20b"]  # first = main; the rest = 429 fallbacks, in order
+transcribe_model = "whisper-large-v3"  # M26, D24: speech to text for push-to-talk; no fallback (turbo failed M25)
 leaves_laptop = true
-privacy = "Redacted screen text goes to Groq, which doesn't train on it (services agreement 4.2)."
+privacy = "Redacted screen text and, when you use the mic, your recorded voice go to Groq, which doesn't train on them (services agreement 4.2)."
 timeout_seconds = 60
 max_prompt_tokens = 3000  # a two-call question stays well under Groq's 8K tokens/min
 

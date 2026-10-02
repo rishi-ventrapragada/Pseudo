@@ -71,6 +71,7 @@ def test_the_committed_allowlist_matches_d16() -> None:
     assert not local.leaves_laptop and local.address == "127.0.0.1:11434"
     assert local.server.command[-1] == "serve" and local.server.cloud_off_key == "disable_ollama_cloud"
     assert local.disabled == REASON and not groq.disabled
+    assert groq.transcribe_model == "whisper-large-v3" and not local.transcribe_model  # M26, D24
 
 
 def test_the_committed_allowlist_holds_no_key() -> None:
@@ -161,3 +162,17 @@ def test_a_disabled_provider_stays_listed_but_is_refused(tmp_path: Path) -> None
 def test_disabled_must_be_a_reason_and_the_default_cant_be_disabled(tmp_path: Path) -> None:
     assert "disabled must be the reason" in refusal(tmp_path, changed("local", disabled=True))
     assert "the default provider 'groq' is disabled" in refusal(tmp_path, changed("groq", disabled="fake reason"))
+
+
+# ---------- M26: the speech-to-text model ----------
+
+def test_a_cloud_provider_may_name_a_transcribe_model(tmp_path: Path) -> None:
+    allowlist = load_allowlist(write_list(tmp_path, changed("groq", transcribe_model="ears")))
+    assert allowlist.get("groq").transcribe_model == "ears"
+    assert load_allowlist(write_list(tmp_path, GOOD)).get("groq").transcribe_model == ""  # none = no voice input
+
+
+def test_a_transcribe_model_must_be_a_name_and_never_on_a_private_provider(tmp_path: Path) -> None:
+    for bad in ("", 42, ["ears"]):
+        assert "transcribe_model must be a model name" in refusal(tmp_path, changed("groq", transcribe_model=bad))
+    assert "D20" in refusal(tmp_path, changed("local", transcribe_model="local-ears"))

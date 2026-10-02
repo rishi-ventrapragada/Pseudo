@@ -13,6 +13,9 @@ Rules (D16):
   - Only a private provider may have a server that pseudo_brain starts (local_server.py).
   - A provider can be switched off with disabled = "<reason>" (P5-perf): it stays listed, so you
     can see why, but using it is refused with that reason. The default provider can't be disabled.
+  - (M26, D24) transcribe_model names the provider's speech-to-text model for push-to-talk. Only a
+    provider whose data leaves the laptop may have one (D20: no local speech models). A provider
+    without one gets no voice input, so private mode never sends your voice anywhere.
 """
 
 import os
@@ -54,6 +57,7 @@ class Provider:
     max_prompt_tokens: int
     server: Server | None = None
     disabled: str = ""  # a reason here = switched off: using it is refused with this reason
+    transcribe_model: str = ""  # M26: speech to text for push-to-talk; "" = no voice input on this provider
 
     @property
     def address(self) -> str:
@@ -131,9 +135,14 @@ def checked(provider_id: str, entry: dict) -> Provider:
     server = entry.get("server")
     if server is not None and leaves:
         raise refuse("only a private provider may have a server for pseudo_brain to start")
+    transcribe = entry.get("transcribe_model", "")
+    if not isinstance(transcribe, str) or ("transcribe_model" in entry and not transcribe):
+        raise refuse("transcribe_model must be a model name, in quotes")
+    if transcribe and not leaves:
+        raise refuse("a private provider can't have a transcribe_model (D20: no local speech models)")
     return Provider(provider_id, entry["name"], entry["base_url"], entry["key_env"], tuple(models), leaves,
                     entry["privacy"], float(entry["timeout_seconds"]), int(entry["max_prompt_tokens"]),
-                    checked_server(server, refuse) if server is not None else None, disabled)
+                    checked_server(server, refuse) if server is not None else None, disabled, transcribe)
 
 
 def checked_server(server: dict, refuse) -> Server:

@@ -166,5 +166,15 @@ async def test_the_check_refuses_an_unreachable_provider_or_a_missing_model() ->
         await fake.check()
 
 
+@pytest.mark.anyio
+async def test_the_check_also_wants_the_speech_model() -> None:  # M26: a retired Whisper stops Pseudo at start
+    fake = Model(dataclasses.replace(FAKE_CLOUD, transcribe_model="ears-model"), "fake-key")
+    fake.client = listing("big-model", "small-model")
+    with pytest.raises(ModelFailure, match="doesn't have ears-model"):
+        await fake.check()
+    fake.client = listing("big-model", "small-model", "ears-model")
+    await fake.check()
+
+
 def test_fake_one_has_a_single_model() -> None:  # the M14 tests rely on it: a 429 there must wait
     assert len(FAKE_ONE.models) == 1
