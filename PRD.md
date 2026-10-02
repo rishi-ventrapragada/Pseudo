@@ -12,7 +12,7 @@ Pseudo is the owner's zero-budget **Agentic OS for Windows**: one assistant, liv
 1. **Remembers every task he has done.** Memory is stored locally; only the relevant memories, redacted, are sent to the model.
 2. **Sees and reads his screen.** Everything it reads is redacted before anything leaves the laptop.
 3. **Asks permission before any edit or action**, through a native popup whose default answer is no.
-4. **Talks to him and listens to him**, through free cloud voice services, evaluated for privacy first (D20).
+4. **Talks to him and listens to him**, listening through Groq's speech-to-text and speaking with Windows' own voices, push-to-talk only (D24).
 5. **Can control whatever he is looking at** to help with any task: click and type, always behind the approval popup.
 
 The name is a nod to pseudonymization: Pseudo's defining feature is that what it sees and remembers is understood and redacted locally before anything reaches a cloud model.
