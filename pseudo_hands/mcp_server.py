@@ -21,6 +21,8 @@ from mcp.types import ToolAnnotations
 
 from pseudo_hands.core.active_window import read_active_window
 from pseudo_hands.core.focus import focus_window
+from pseudo_hands.core.memory import save_memory
+from pseudo_hands.core.memory_search import search_memories
 from pseudo_hands.core.windows import list_open_windows
 
 LIST_OPEN_WINDOWS_DESCRIPTION = (
@@ -42,6 +44,17 @@ FOCUS_WINDOW_DESCRIPTION = (
     "every call in a popup on their screen. If the status is 'not approved', nothing happened: "
     "tell the user and don't retry unless they ask. Private apps can't be focused."
 )
+SEARCH_MEMORIES_DESCRIPTION = (
+    "Find up to 3 of the user's past tasks relevant to a question, from Pseudo's local memory. Each "
+    "comes back redacted, with labels like [PERSON]; never guess what they hide. An empty list means "
+    "nothing relevant. Pseudo's own brain calls this before each question; its model never sees it."
+)
+SAVE_MEMORY_DESCRIPTION = (
+    "Save one finished task (the question, the answer, the tools used, the provider and model) to "
+    "Pseudo's local memory. It is redacted first, and the user must approve every save in a popup. "
+    "If the status is 'not approved', nothing was saved. Pseudo's own brain calls this after each "
+    "answer; its model never sees it."
+)
 
 server = MCPServer("pseudo_hands", log_level="WARNING")  # (P5-tune) no INFO chatter on stderr; warnings and errors still show
 server.add_tool(
@@ -62,6 +75,19 @@ server.add_tool(
     description=FOCUS_WINDOW_DESCRIPTION,
     annotations=ToolAnnotations(read_only_hint=False, destructive_hint=False,
                                 idempotent_hint=True, open_world_hint=False),
+)
+server.add_tool(
+    search_memories,  # M24: brain-only (pseudo_brain hides it from the model). Redacts again, caps, fails closed.
+    name="search_memories",
+    description=SEARCH_MEMORIES_DESCRIPTION,
+    annotations=ToolAnnotations(read_only_hint=True, open_world_hint=False),
+)
+server.add_tool(
+    save_memory,  # M24: brain-only too. Redaction and the approval popup run inside it, in core (D13, D23).
+    name="save_memory",
+    description=SAVE_MEMORY_DESCRIPTION,
+    annotations=ToolAnnotations(read_only_hint=False, destructive_hint=False,
+                                idempotent_hint=False, open_world_hint=False),
 )
 
 if __name__ == "__main__":

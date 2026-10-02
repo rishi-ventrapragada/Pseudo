@@ -28,7 +28,8 @@ from pseudo_hands.mcp_server import LIST_OPEN_WINDOWS_DESCRIPTION, server
 REPO_ROOT = Path(__file__).resolve().parent.parent
 PSEUDO_HANDS = REPO_ROOT / "pseudo_hands"
 SECRET_TITLE = "Vault: bank PIN 4321"
-ALL_TOOLS = ["list_open_windows", "read_active_window", "focus_window"]  # M9 and M10 added one each
+ALL_TOOLS = ["list_open_windows", "read_active_window", "focus_window",  # M9 and M10 added one each
+             "search_memories", "save_memory"]  # M24: brain-only (pseudo_brain hides them from the model)
 HANDLES = itertools.count(101)  # (M10) every fake window gets its own handle, so its own id
 
 

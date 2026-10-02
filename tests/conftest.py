@@ -19,6 +19,8 @@ parameter, like beforeEach in Jest, but only for the tests that want it):
   popup_yes / popup_no -> (M10) the person at the approval popup, faked.
   anyio_backend -> (M14) async tests run on asyncio.
   waits     -> (M14) the model's 429 waits are recorded instead of slept.
+  temp_vault -> (M24, runs for EVERY test) the memory vault is a fresh temporary folder, and the
+               search index starts empty. The real vault in %LOCALAPPDATA% is never touched.
 """
 
 import sys
@@ -32,7 +34,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "playground"))
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 import agent_tools  # noqa: E402  (has to come after the sys.path lines above)
-from pseudo_hands.core import approval, blocked_apps, window_ids, windows  # noqa: E402
+from pseudo_hands.core import approval, blocked_apps, memory, memory_search, window_ids, windows  # noqa: E402
 from pseudo_hands.core.windows import RawWindow  # noqa: E402
 from pseudo_brain import model  # noqa: E402
 
@@ -129,6 +131,15 @@ def real_redaction(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> Path:
     monkeypatch.setattr(redactor, "TERMS_FILE", terms)
     monkeypatch.setattr(windows, "redact", redactor.redact)
     return terms
+
+
+@pytest.fixture(autouse=True)
+def temp_vault(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> Path:
+    """(M24) Every test gets its own empty memory folder (not created yet: memory creates it on a save)."""
+    folder = tmp_path / "memory" / "tasks"
+    monkeypatch.setattr(memory, "TASKS_DIR", folder)
+    monkeypatch.setattr(memory_search, "_index", None)
+    return folder
 
 
 @pytest.fixture

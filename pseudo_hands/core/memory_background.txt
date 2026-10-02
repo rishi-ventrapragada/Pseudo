@@ -1,0 +1,155 @@
+# Background notes for memory search (M24, D23). FAKE tasks, never shown or sent: copied from tests/memory_cases.py (M23).
+# Why they exist: the search ranks a note by how RARE its matching words are among all notes. With only a few
+# real notes, every word looks common and nothing passes the "relevant enough" cut-off, which M23 tuned on these
+# 150 notes. So they're indexed next to your notes for word statistics only, and never returned.
+# One note per line: question | answer.
+Why does my Flask app return 500 on login? | SECRET_KEY was missing in config.py; load it from .env and restart.
+React useEffect runs twice in dev | StrictMode double-invokes effects in development; production runs it once.
+Fix TypeError cannot read properties of undefined (map) in ProductList | products was undefined at first; default to [].
+Python venv not activating in PowerShell | The execution policy blocked Activate.ps1; set RemoteSigned for the user.
+Explain this regex in the VS Code window | It matches Indian PIN codes: six digits, the first one 1-9.
+Why is my pytest fixture not found? | conftest.py was in the wrong folder; move it next to the tests.
+Flask login works locally but the session is lost after redirect | Set SESSION_COOKIE_SAMESITE to Lax and use HTTPS.
+Summarise the TypeScript error in the terminal | string or null is not assignable to string; check for null first.
+Speed up the slow SQL query on the reports page | Add an index on orders created_at and avoid SELECT *.
+How do I debounce the search box in React? | Use a 300 ms setTimeout inside useEffect and clear it on change.
+What's due for the DBMS assignment? | ER diagram and normalisation to 3NF for the library system, due [DATE_TIME].
+Summarise the Operating Systems lecture notes on paging | Pages, frames, page tables and the TLB; faults read disk.
+When is the Computer Networks mid-sem exam? | The notice says [DATE_TIME] in the [LOCATION] block at 10 am.
+Check my lab record format for Data Structures | Each experiment needs aim, algorithm, code, output and result.
+Explain the difference between TCP and UDP for my viva | TCP is reliable and connection-oriented; UDP is faster.
+Draft an email to [PERSON] asking for an assignment extension | A polite request citing illness, for three more days.
+What topics are in the Machine Learning syllabus unit 3? | Decision trees, random forests, bias-variance, cross-validation.
+Summarise the attendance warning on the college portal | Compiler Design attendance is 68%, below the 75% rule.
+Help me plan revision for the end-semester exams | Two subjects a day, past papers on weekends, OS and DBMS first.
+Format my project report references in IEEE style | Numbered by citation order, initials first, titles in quotes.
+How much is this month's electricity bill? | The TSSPDCL bill is Rs 1,840, due [DATE_TIME]; pay it by UPI.
+Is my Airtel postpaid bill higher than usual? | The Rs 799 plan plus Rs 236 of roaming charges from last week.
+When is the credit card payment due? | HDFC statement: total due Rs 12,450, minimum Rs 620, due [DATE_TIME].
+Did the water bill payment go through? | Yes, the water board page shows the payment as successful.
+Compare broadband plans on the ACT Fibernet page | 150 Mbps for Rs 849 or 300 Mbps for Rs 1,149, both with OTT apps.
+Gas cylinder booking status | The Indane booking is confirmed; delivery expected within two days.
+Set a reminder for the electricity bill every month | Pseudo can't set reminders; the due date is around the 15th.
+Why was I charged a late fee on the credit card? | The payment posted one day after the due date.
+Split the Swiggy dinner bill with my roommates | Rs 1,260 split four ways is Rs 315 each.
+Is the Jio recharge plan cheaper than Airtel? | Jio Rs 299 for 28 days vs Airtel Rs 319; Jio is Rs 20 cheaper.
+Check the train ticket PNR status on IRCTC | The waitlist moved to RAC 12 on the Godavari Express, [DATE_TIME].
+Find flights from [LOCATION] to [LOCATION] next weekend | IndiGo at 6:10 am is the cheapest at Rs 3,980.
+What time does the Vande Bharat leave from the station? | Departure 6:00 am from platform 1, arriving 2:15 pm.
+Compare hotels near the beach in Goa | Two options under Rs 3,000 a night; the second has free breakfast.
+Packing list for the Manali trip | Warm jacket, gloves, power bank, ID copies and medicines.
+Cancel the bus ticket on RedBus and check the refund | Cancelled; Rs 540 comes back in 5-7 working days.
+How long is the drive to [LOCATION]? | About 4 hours 30 minutes on the highway, with one toll.
+Visa documents checklist for the conference abroad | Passport, invitation letter, bank statements, photos, form.
+Is my flight delayed? | The airline page shows a 45 minute delay; the new departure is 9:25 pm.
+Book a cab to the airport for the early flight | Pseudo can't book; Uber shows Rs 620 for a 4:30 am pickup.
+Summarise the standup notes in Notion | Frontend blocked on the API; backend fixing auth; QA testing payments.
+What did [PERSON] say in the project sync? | The deadline moved by a week; the demo is now on [DATE_TIME].
+Prepare an agenda for the client call | Status update, open bugs, timeline risks and next steps.
+List the action items from the team meeting | Update the README, fix the CI pipeline, review two pull requests.
+When is my next meeting today? | Google Calendar shows a design review at 3 pm.
+Summarise the Zoom chat from the sprint retro | Too many meetings; people want fewer interruptions, clearer tickets.
+Draft minutes for the club committee meeting | Budget approved for the tech fest; volunteers needed for registration.
+Who is presenting in tomorrow's review? | [PERSON] presents the dashboard and [PERSON] the API changes.
+Reschedule the one-on-one with my manager | Pseudo can't change calendars; suggest Thursday 11 am in a reply.
+What was decided in the architecture meeting? | Move to Postgres, keep the REST API, add caching later.
+Track my Amazon order for the headphones | Out for delivery today, expected by 7 pm.
+Compare two laptops on Flipkart | The Ryzen 7 one has 16 GB RAM and a better display for Rs 4,000 more.
+Return the shoes that don't fit on Myntra | Return requested; pickup tomorrow, refund to the original payment.
+Is the air fryer cheaper in the sale? | Sale price Rs 5,499 instead of Rs 6,999; a bank offer adds 10% off.
+What's in my cart on BigBasket? | Rice, dal, milk, vegetables and detergent; Rs 1,920 in total.
+Find a cheaper phone case with good reviews | One for Rs 299 with 4.3 stars from 2,000 reviews.
+Why was my order cancelled by the seller? | The seller marked it out of stock; the refund has started.
+Check the warranty for the mixer grinder | Two years on the motor, one on the product; keep the invoice.
+Write a review for the backpack I bought | Sturdy and roomy, the 15 inch laptop sleeve fits; stiff zips.
+Gift ideas under Rs 1,000 for a birthday | A book, a plant, a coffee mug set or earbuds on sale.
+When is my doctor appointment at the clinic? | Practo booking with [PERSON] at 5:30 pm on [DATE_TIME].
+Summarise the blood test report | Vitamin D is low at 18 ng/mL; everything else is in the normal range.
+What does the prescription say about the antibiotic dose? | One tablet twice a day after food for five days.
+Find a dentist open on Sunday nearby | Two clinics are open until 1 pm; one has online booking.
+How should I track my daily water intake? | Pseudo can't track it; a notes table with times works.
+Is the health insurance claim approved? | Still under review; the hospital documents were uploaded [DATE_TIME].
+Compare gym membership plans | Quarterly Rs 4,500, yearly Rs 12,000 with a free trainer session.
+Summarise the eye checkup results | Slight myopia, -0.75 in both eyes; glasses recommended for screen work.
+Order medicines from the pharmacy app | Pseudo can't order; the cart has the vitamin D supplements.
+What exercises did the physiotherapist suggest? | Neck stretches and shoulder rolls, three times a day.
+Tailor my resume for the frontend developer role | Lead with React, TypeScript and Vercel projects; cut the old internship.
+Summarise the job description on LinkedIn | Two years of React, REST APIs and testing; hybrid in [LOCATION].
+Draft a cover letter for the startup internship | A short letter about building Pseudo and shipping side projects.
+When is the technical interview? | [PERSON] scheduled it for [DATE_TIME] at 11 am on Google Meet.
+Prepare answers for common HR interview questions | Strengths, weaknesses, why this company, salary expectations.
+Track the status of my job applications | Five applied: two in review, one rejected, two with no response.
+What did the recruiter's email say about the offer? | The offer letter is attached; confirm the joining date by Friday.
+Practise a system design question for the interview | Design a URL shortener: hashing, database, cache, redirects.
+Update my GitHub profile README for recruiters | Pinned projects, tech stack badges and a short intro.
+Negotiate the salary offer politely | Thank them, cite market data and ask for a 10% higher base.
+How much tax do I owe this year? | Under the new regime about Rs 18,000 after the standard deduction.
+Summarise my bank statement for September | Biggest spends: rent, food delivery and travel; saved Rs 9,500.
+Was my SIP investment debited this month? | Yes, Rs 2,000 went to the index fund on the 5th.
+Compare fixed deposit rates across banks | Small finance banks offer 8%, the big banks around 7%.
+Did the salary credit come in? | Credited on the 1st; the amount matches last month.
+Explain the mutual fund statement | The NAV rose 4% this quarter; the total value is up Rs 1,200.
+Which ITR form should I file? | ITR-1 for salary income under Rs 50 lakh and one house.
+Track my monthly budget in the spreadsheet | Food is over budget by Rs 1,500; travel is under budget.
+Why did my CIBIL score drop? | A new credit card enquiry and higher card utilisation.
+Set up UPI autopay for the SIP | The mandate is approved in the bank app; the first debit is next month.
+Message the landlord about the leaking tap | A polite message asking for a plumber this week.
+Is the rent paid for this month? | The Rs 14,000 rent transfer went through on the 3rd.
+Check the internet outage on the ISP page | An area outage is reported; service back by evening.
+Find a plumber nearby with good ratings | Urban Company shows two plumbers with 4.7 stars.
+Draft the rental agreement renewal email | Asking to renew for 11 months at the same rent.
+What does the society notice say about water supply? | No water on Sunday from 9 am to 2 pm for tank cleaning.
+Set up the new Wi-Fi router | Change the admin password, switch to WPA3, rename the network.
+Grocery list for the week | Vegetables, eggs, bread, rice, oil and fruit.
+Why does the electricity keep tripping at home? | The geyser and AC together overload the MCB; use one at a time.
+Find a cleaning service for the flat | A two-hour deep clean for Rs 1,499 this weekend.
+Reply to the professor about the project deadline | Thanked [PERSON] and confirmed submission by Friday.
+Summarise the unread emails in Gmail | Three newsletters, one bank alert and a meeting invite.
+Draft a follow-up to the recruiter | Asking politely for an update after last week's interview.
+Unsubscribe from promotional emails | Found unsubscribe links in four newsletters.
+Write an apology email for missing the meeting | A short apology, the reason, and an offer to catch up tomorrow.
+What's the latest email from the bank about? | A KYC update reminder; nothing to do if it's already done.
+Translate the Hindi email into English | It invites the family to a housewarming on Sunday.
+Write a thank-you email after the interview | Thanked the panel and mentioned the system design discussion.
+Find the email with the hackathon registration link | The organiser's email from last Tuesday has the link.
+Summarise the long email thread about the trip | Dates agreed, Rs 6,000 per person, train booked.
+Explain how the agent loop works in Pseudo | Send history and tools, run the tools asked for, repeat until an answer.
+What is MCP and why does Pseudo use it? | A standard protocol for tools, so any brain can use pseudo_hands.
+Summarise the Coursera lecture on neural networks | Layers, activations, backpropagation and gradient descent.
+Recommend a course to learn TypeScript | The official handbook plus a free project-based course.
+Explain BM25 for search | It ranks documents by matching words, rewards rare words, and adjusts for length.
+How does the redactor mask names? | Presidio with spaCy plus the Indian name lists, failing closed.
+What's the difference between precision and recall? | Precision avoids false alarms; recall avoids misses.
+Summarise the YouTube tutorial on Docker | Images, containers, volumes and docker compose basics.
+Make flashcards for Python decorators | Five cards on wrapping functions, functools.wraps and arguments.
+Explain async and await in Python | Coroutines give up control while waiting, so one thread runs many tasks.
+Why did the Vercel deployment fail? | Build error: the NEXT_PUBLIC_API_URL environment variable was missing.
+Fix the merge conflict in package.json | Kept both dependencies and reran npm install.
+Set up GitHub Actions to run pytest | A workflow on push with Python 3.11 that installs requirements.txt.
+Supabase row level security blocks inserts | Add an insert policy for authenticated users.
+How do I undo the last git commit without losing changes? | git reset --soft HEAD~1 keeps the changes staged.
+Docker container exits immediately | The CMD finished; run the server in the foreground.
+Rotate the leaked API key | Revoke it in the dashboard, create a new one, and update .env only.
+Why is the Supabase query slow? | No index on user_id; add one and select only the columns needed.
+Configure a custom domain on Vercel | Add the domain, then a CNAME record at the registrar.
+Clean up old git branches | Deleted the merged branches locally and on origin.
+What's new on Netflix this week? | Two new series and a Telugu movie in the top ten.
+Find showtimes at the nearby theatre | Evening shows at 6:45 and 9:50 pm on PVR screen 3.
+Make a study playlist on Spotify | Lo-fi and instrumental tracks, about two hours long.
+Summarise the cricket match score | India won by 6 wickets with 2 overs left.
+Recommend a strategy game for the laptop | A light turn-based game that runs on a GTX 1650.
+What's the IPL schedule for this weekend? | Two matches on Saturday and one on Sunday evening.
+Book tickets for the concert | Pseudo can't book; BookMyShow has seats from Rs 999.
+Summarise the movie reviews | Mostly positive: the music is praised, the length criticised.
+Which podcast episode covered AI agents? | Episode 42, on tool use and agent loops.
+Find a book like the one I just finished | Two science fiction novels with similar themes.
+Ideas for mom's birthday celebration | Dinner at home, a cake and a photo album.
+What time is the family function on Sunday? | The invitation says 11 am at the [LOCATION] function hall.
+Diwali shopping list | Lamps, sweets, gifts for the cousins and new clothes.
+Remind me what my sister asked me to buy | A charger and two notebooks, from the chat with [PERSON].
+Plan the Sankranti trip home | Leave Friday night by bus, come back Monday morning.
+Draft a wedding wishes message for my cousin | Warm wishes for a happy married life, in English and Telugu.
+Find a gift for my father under Rs 2,000 | A smartwatch on sale or a good pair of sandals.
+What did dad say about the house repairs? | Painting starts next month; the budget is about Rs 40,000.
+Help my brother with his maths homework | Quadratic equations: factorisation and the formula.
+Book the venue for grandma's 80th birthday | Pseudo can't book; two halls quoted under Rs 25,000.
