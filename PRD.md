@@ -2,7 +2,7 @@
 
 Owner: Sai Rishi Ventrapragada
 Repo: https://github.com/rishi-ventrapragada/Pseudo
-Status: Phase 1-4 complete (M11 evaluated OCR and skipped it). Phase 5 (Make it usable) in progress: M13 done (Hermes Desktop ruled out; own brain per D15), M14 done (`pseudo_brain`), M15 done (providers evaluated; D16), M16 done (providers: allowlist, same-provider fallback, private mode), M17 done (Claude desktop app ruled out; D17), M18 done (own face: Electron, over a child-process pipe; D18), M19 done (redactor precision; D19). M20 done (Indian names; D21), but recall on fresh held-out names was only 57%. M21 tried a rule for that gap and didn't ship it. M22 done (a 49,000-word names list from Wikidata; D22): held-out recall 99% (section 11). Phase 6 (Memory) in progress: M23 done (local keyword search with SQLite FTS5; D23), M24 done (Pseudo remembers answered tasks, with your approval). Open follow-ups are in section 13, Backlog.
+Status: Phase 1-4 complete (M11 evaluated OCR and skipped it). Phase 5 (Make it usable) in progress: M13 done (Hermes Desktop ruled out; own brain per D15), M14 done (`pseudo_brain`), M15 done (providers evaluated; D16), M16 done (providers: allowlist, same-provider fallback, private mode), M17 done (Claude desktop app ruled out; D17), M18 done (own face: Electron, over a child-process pipe; D18), M19 done (redactor precision; D19). M20 done (Indian names; D21), but recall on fresh held-out names was only 57%. M21 tried a rule for that gap and didn't ship it. M22 done (a 49,000-word names list from Wikidata; D22): held-out recall 99% (section 11). Phase 6 (Memory): M23 done (local keyword search with SQLite FTS5; D23), M24 done (Pseudo remembers answered tasks, with your approval). Phase 7 (Voice) planned: M25 evaluates first. Open follow-ups are in section 14, Backlog.
 Last updated: 2026-10-02
 
 ## 1. What Pseudo is
@@ -55,6 +55,7 @@ See ARCHITECTURE.md. These later phases may change once the owner understands th
 | 4 | Reading and acting (complete) | UI Automation tree reader, `focus_window`, approval gate (native popup, D13). Local OCR evaluated in M11 and skipped for now. |
 | 5 | Make it usable | Use Pseudo day to day, not just through `hermes -p pseudo` in a terminal. M13 ruled out Hermes Desktop, so Pseudo gets its own brain (`pseudo_brain`, D15, M14) and its own face (M18; M17 first evaluates the Claude desktop app). |
 | 6 | Memory | Pseudo remembers every task in a local markdown vault and sends only relevant, redacted memories to the model (L6). |
+| 7 | Voice | Talk to Pseudo and hear it answer: push-to-talk first, through free voice services evaluated for privacy first (D20, L5). |
 
 ### Roadmap toward the vision (section 1)
 
@@ -293,7 +294,39 @@ Goal: Pseudo remembers every task you've done, in a dedicated Obsidian-compatibl
   - 35 new tests: the vault's sandbox (symlinks, junctions, hard links, files that aren't notes, oversized notes, names from input), save and search failing closed, the model never seeing the memory tools, memories never entering session history.
   - Known limits: paraphrases with no shared word (Backlog). spaCy masked a fake project name as [LOCATION], which removes a word search could use. A masked phone number can be labelled [PHONE_NUMBER] or [IN_PHONE].
 
-## 13. Backlog
+## 13. Phase 7 scope: Voice
+
+Goal: you can talk to Pseudo and it talks back. Cloud first (D20), with privacy evaluated before anything is built: audio can't be redacted the way text can. Fake audio only (generated with Windows' voices) while building and measuring.
+
+### M25: How Pseudo should listen and speak (evaluate first)
+- Speech to text: Groq's Whisper (`whisper-large-v3-turbo` S1, `whisper-large-v3` S2; the same provider as today, D16) vs Windows' built-in speech recognizer (S3: local, part of the OS, en-US only, deprecated since September 2024).
+- Text to speech: Windows' built-in voices (T1, including the English (India) voices Heera and Ravi, an optional Windows voice pack) vs Groq's Orpheus (T2, `canopylabs/orpheus-v1-english`, a Preview model), the only cloud voice that fits D16.
+- Ruled out on paper: Windows' online dictation (it sends audio to Microsoft, a company not in D16, and takes the microphone only); Voice Access (no API); local Whisper or neural voices (D20); other cloud voice services (a second company, a card, or an unofficial endpoint).
+- Fake audio: 26 fake sentences (Pseudo commands, Indian names, Indian English, numbers and codes) and 4 non-speech clips, committed before any audio is generated. Each sentence is spoken by two English (India) voices and one US voice, clean and with background noise. Nothing is tuned on them.
+- Criteria, fixed in the plan:
+  - A1: word error rate at most 10% on the Indian voices' clean clips, at most 15% on their noisy clips;
+  - A2: at least 70% of name words exactly right;
+  - A3: at least 90% of numbers and codes exactly right;
+  - A4: no non-speech clip produces a message, and no speech clip is dropped (a fixed silence rule);
+  - L1: transcript ready in at most 1.5 s median, 3 s at the 90th percentile;
+  - L2: first spoken audio within 1.5 s for a 300-character answer;
+  - C1: free, with room for at least 200 spoken questions and answers a day;
+  - R1: nothing runs between questions; R2: at most +100 MB of RAM; R3: at most 1 CPU-second per clip or answer;
+  - P1: data goes only to Groq or nowhere, checked by network connections; P2: nothing left on disk;
+  - P3: production models only. A Preview model, or the deprecated Windows recognizer (S3), may only win as an option with a stable fallback, with its deprecation risk noted;
+  - Q1: spoken answers at least 90% intelligible, measured by transcribing them back.
+- A tie goes to the option that sends less off the laptop, then to the faster one.
+- Also answered: what leaves the laptop, to whom and for how long; whether the transcript goes through redact() before reaching the model; how push-to-talk should work (a button, a key, a global hotkey; a wake word later).
+- **Done when:** each candidate is measured against the criteria, with a recommendation.
+
+### M26: Voice build
+- Push-to-talk in the face. It records only while you hold it, for at most 30 seconds, and releases the microphone afterwards. The face may use the microphone only, and only for its own page.
+- Audio stays in memory only: it is never written to disk, and never saved in sessions or memory. Silence sends nothing.
+- Speech to text and spoken answers use M25's choices. Any cloud service goes through the D16 allowlist, so no new company is added.
+- The transcript is handled as M25 decides.
+- **Done when:** set in M26's plan, after M25's result.
+
+## 14. Backlog
 
 Found while building; not scheduled. Each needs a plan and approval before work starts.
 
