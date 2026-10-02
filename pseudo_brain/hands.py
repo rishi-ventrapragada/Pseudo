@@ -11,6 +11,9 @@ goes back to the loop, which keeps it in memory; it is never printed or saved.
 The approval popup for actions is shown by the pseudo_hands process itself (D13).
 M18: Hands also knows that process's pid, so the face can let ONLY it bring the popup
 to the front (face/foreground.js).
+M24: the one exception to "nothing here names a tool". The two memory tools are BRAIN-ONLY: they
+are left out of what the model sees and can call, so neither the model nor text on the screen
+can make Pseudo search or write its memory. The brain calls them itself (chat.py), via memory().
 """
 
 import json
@@ -27,6 +30,7 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 MAX_RESULT_CHARS = 6000  # one tool result, as sent to the model (pseudo_hands already caps its own)
 NO_ARGUMENTS = {"type": "object", "properties": {}}
 HANDS_MODULE = "pseudo_hands.mcp_server"
+MEMORY_TOOLS = ("search_memories", "save_memory")  # (M24) brain-only: never offered to the model
 
 
 def pseudo_hands_process() -> StdioServerParameters:
@@ -86,8 +90,9 @@ class Hands:
     def __init__(self, client: Client, tools: list, pid: int | None = None) -> None:
         self._client = client
         self.pid = pid  # the pseudo_hands process (None for an in-memory server in tests)
-        self.names = [tool.name for tool in tools]
-        self.schemas = [to_openai_tool(tool) for tool in tools]
+        self.names = [tool.name for tool in tools if tool.name not in MEMORY_TOOLS]  # what the model may call
+        self.schemas = [to_openai_tool(tool) for tool in tools if tool.name not in MEMORY_TOOLS]
+        self.has_memory = all(name in {tool.name for tool in tools} for name in MEMORY_TOOLS)
 
     async def call(self, name: str, arguments: str) -> tuple[str, bool]:
         """Run one tool the model asked for. Returns (text for the model, is_error)."""
@@ -104,6 +109,17 @@ class Hands:
         except Exception as error:  # noqa: BLE001 - the server crashed or hung up; report the type only
             return f"ERROR: the tool call failed ({type(error).__name__})", True
         return result_text(result), bool(result.is_error)
+
+    async def memory(self, name: str, arguments: dict) -> dict | None:
+        """(M24) The brain's own call to a memory tool. Its structured result, or None if anything failed."""
+        if name not in MEMORY_TOOLS or not self.has_memory:
+            return None
+        try:
+            result = await self._client.call_tool(name, arguments)
+        except Exception:  # noqa: BLE001 - the server crashed or hung up: treat as "no memory"
+            return None
+        data = result.structured_content
+        return data if isinstance(data, dict) and not result.is_error else None
 
 
 @asynccontextmanager

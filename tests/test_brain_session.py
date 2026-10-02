@@ -38,7 +38,7 @@ def sessions_dir(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> Path:
 def test_a_small_history_is_sent_whole() -> None:
     session = Session(turns=[turn(1), turn(2)])
     session.start_turn("question 3")
-    messages, _, dropped = session.messages_for_request("fake system prompt", [], 3000)
+    messages, _, dropped, _ = session.messages_for_request("fake system prompt", [], 3000)
     assert dropped == 0 and messages[0] == {"role": "system", "content": "fake system prompt"}
     assert [m["content"] for m in messages[1:]] == ["question 1 ", "answer 1", "question 2 ", "answer 2", "question 3"]
 
@@ -46,7 +46,7 @@ def test_a_small_history_is_sent_whole() -> None:
 def test_old_turns_are_dropped_oldest_first_and_whole() -> None:
     session = Session(turns=[turn(n, padding=400, with_tool=True) for n in range(1, 6)])
     session.start_turn("the current question")
-    messages, estimate, dropped = session.messages_for_request("fake system prompt", [], 400)
+    messages, estimate, dropped, _ = session.messages_for_request("fake system prompt", [], 400)
     asked = [m["content"].split()[1] for m in messages if m["role"] == "user"]
     assert estimate <= 400 and dropped >= 1 and asked[-1] == "current"
     assert asked[:-1] == [str(n) for n in range(6 - len(asked[:-1]), 6)]  # the most recent turns survive
@@ -94,7 +94,7 @@ def test_a_saved_session_keeps_its_provider_and_who_answered(sessions_dir: Path)
     assert [m.get("answered_by") for m in saved["messages"]] == [None, "local Â· tiny-model", None]
     loaded = load_latest()
     assert loaded.provider == "local" and loaded.answered_by == {0: "local Â· tiny-model"}
-    messages, _, _ = loaded.messages_for_request("fake system prompt", [], 3000)
+    messages, _, _, _ = loaded.messages_for_request("fake system prompt", [], 3000)
     assert all("answered_by" not in m for m in messages)  # a label is never sent to a model
 
 

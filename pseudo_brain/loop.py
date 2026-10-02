@@ -11,10 +11,12 @@ asks for, repeat until it answers in plain text, stop at a hard cap) with four c
      never shown or stored as an answer.
 Since M16 every question starts on the provider's main model, uses the provider's own
 token budget, and its events say which provider and model did the work (D16).
+Since M24 a question can bring memories (past tasks, already redacted by pseudo_hands). They join
+every request of this turn, and are never added to the session's history (session.py).
 """
 
 from collections.abc import Callable
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 import openai
 from openai.types.chat import ChatCompletionMessage
@@ -48,6 +50,7 @@ class TurnResult:
     calls: int = 0
     tokens_in: int = 0
     tokens_out: int = 0
+    tools: list[str] = field(default_factory=list)  # (M24) the tools called, in order: saved with the memory
 
 
 def assistant_to_dict(message: ChatCompletionMessage) -> dict:
@@ -67,8 +70,11 @@ def fail(result: TurnResult, reason: str, on_event: EventSink) -> TurnResult:
     return result
 
 
-async def run_turn(session: Session, text: str, model, hands: Hands, on_event: EventSink) -> TurnResult:
-    """One question, answered through as many tool calls as needed (at most MAX_ITERATIONS model calls)."""
+async def run_turn(session: Session, text: str, model, hands: Hands, on_event: EventSink,
+                   memories: list[str] = (), intro: str = "") -> TurnResult:
+    """One question, answered through as many tool calls as needed (at most MAX_ITERATIONS model calls).
+
+    `memories` (M24): redacted past tasks, best first, introduced by `intro`."""
     result, provider = TurnResult(), model.provider
     if session.provider and session.provider != provider.id:  # D16: history never moves to another provider
         return fail(result, f"this session belongs to {session.provider}, not {provider.id}; "
@@ -78,12 +84,13 @@ async def run_turn(session: Session, text: str, model, hands: Hands, on_event: E
     model.use_main()
     for call_number in range(1, MAX_ITERATIONS + 1):
         try:
-            messages, estimate, dropped = session.messages_for_request(SYSTEM_PROMPT, hands.schemas,
-                                                                       provider.max_prompt_tokens)
+            messages, estimate, dropped, used = session.messages_for_request(
+                SYSTEM_PROMPT, hands.schemas, provider.max_prompt_tokens, memories, intro)
         except TooLarge as error:
             return fail(result, f"this question plus its tool results is too large ({error})", on_event)
         on_event("sending", {"call": call_number, "of": MAX_ITERATIONS, "messages": len(messages),
                              "tools": len(hands.schemas), "estimate": estimate, "dropped_turns": dropped,
+                             "memories": used,
                              "provider": provider.id, "model": model.name})
         request = {"messages": messages, "tools": hands.schemas, "tool_choice": "auto"}
         try:
@@ -115,6 +122,7 @@ async def run_turn(session: Session, text: str, model, hands: Hands, on_event: E
         for tool_call in message.tool_calls:
             name, arguments = tool_call.function.name, tool_call.function.arguments
             on_event("tool_call", {"name": name, "arguments": arguments})
+            result.tools.append(name)
             # Runs in the pseudo_hands process. An action's approval popup appears from THERE (D13).
             text, is_error = await hands.call(name, arguments)
             session.add({"role": "tool", "tool_call_id": tool_call.id, "content": text})  # memory only

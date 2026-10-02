@@ -42,8 +42,9 @@ def format_event(kind: str, data: dict) -> str | None:
     """One event -> one line of terminal output (None = don't show it)."""
     if kind == "sending":
         trimmed = f" | dropped {data['dropped_turns']} old turn(s) to fit" if data["dropped_turns"] else ""
+        memories = f" | {data['memories']} memory(ies)" if data.get("memories") else ""
         return (f"\n--- SENDING TO {data['provider']} · {data['model']} (call {data['call']} of max {data['of']}) | "
-                f"{data['messages']} messages + {data['tools']} tools, ~{data['estimate']} tokens{trimmed} ---")
+                f"{data['messages']} messages + {data['tools']} tools, ~{data['estimate']} tokens{memories}{trimmed} ---")
     if kind == "tokens":
         budget = (f"budget left this minute: {data['budget_left']} of {data['budget'] or '?'}"
                   if data["budget_left"] else "no rate-limit info")
@@ -56,8 +57,12 @@ def format_event(kind: str, data: dict) -> str | None:
                 f"asked (wait {data['wait']} of {data['of']}) ---")
     if kind == "model_retry":
         return "--- MODEL WROTE AN INVALID TOOL CALL (400): asking again ---"
+    if kind == "tool_call" and data.get("by") == "pseudo":  # (M24) Pseudo's own call, not the model's
+        return "--- SAVING TO MEMORY: the approval popup asks you first (redacted; default no) ---"
     if kind == "tool_call":
         return f"--- MODEL WANTS TO CALL TOOL: {data['name']} {data['arguments'] or '{}'} ---"
+    if kind == "tool_result" and data.get("by") == "pseudo":
+        return None  # memory_saved / memory_not_saved says how it went
     if kind == "tool_result":
         error = " (ERROR)" if data["is_error"] else ""
         return f"--- TOOL RESULT{error}: {data['chars']} chars, sent to the model, kept in memory only ---"
@@ -67,6 +72,14 @@ def format_event(kind: str, data: dict) -> str | None:
                 f"{data['tokens_out']} out) ---\npseudo> {data['text'] or '(empty answer)'}")
     if kind == "failed":
         return f"\n--- FAILED: {data['reason']}. No answer was produced. ---"
+    if kind == "memories":
+        if data["count"]:
+            return f"--- MEMORY: {data['count']} past task(s) added to this question ({data['chars']} chars, redacted) ---"
+        return f"--- MEMORY: none added ({data['note']}) ---"
+    if kind == "memory_saved":
+        return f"--- MEMORY: saved this task, redacted, as {data['note']} ---"
+    if kind == "memory_not_saved":
+        return f"--- MEMORY: not saved ({data['reason']}) ---"
     if kind == "server_starting":
         return f"--- PRIVATE SERVER for {data['provider']}: checking cloud is off, then starting it on {data['address']} ---"
     if kind == "server_ready":

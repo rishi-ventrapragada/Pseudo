@@ -17,6 +17,10 @@ Rules:
     answer. A private conversation's history can never be sent to the cloud later:
     the loop refuses a model from another provider (loop.py), and switching
     provider starts a new session.
+  - (M24) Memories (past tasks from pseudo_hands) join a request as one extra system message
+    right after the system prompt. They belong to that REQUEST only: never stored in the turns,
+    never saved. Over budget, the oldest turns go first, then the weakest memories, and only
+    then does the turn fail as too large.
   - (M18) The face lists saved sessions and opens one by NAME. A name is accepted only
     if it looks like one Pseudo made (a date and time), so it can never be a path
     that points outside the sessions folder (the M3 sandbox idea).
@@ -80,22 +84,28 @@ class Session:
         """Which provider and model answered the current turn. Saved, never sent to a model."""
         self.answered_by[len(self.turns) - 1] = label
 
-    def messages_for_request(self, system_prompt: str, tools: list[dict], limit: int) -> tuple[list[dict], int, int]:
-        """System prompt plus as many recent turns as fit in `limit` tokens (the provider's max_prompt_tokens).
+    def messages_for_request(self, system_prompt: str, tools: list[dict], limit: int, memories: list[str] = (),
+                             intro: str = "") -> tuple[list[dict], int, int, int]:
+        """System prompt, memories, and as many recent turns as fit in `limit` tokens (the provider's max_prompt_tokens).
 
-        Returns (messages, estimate, turns dropped)."""
-        system = [{"role": "system", "content": system_prompt}]
-        kept, dropped = list(self.turns), 0  # a copy: trimming a request never deletes history
+        `memories` are best first. Returns (messages, estimate, turns dropped, memories used)."""
+        kept, dropped, used = list(self.turns), 0, list(memories)  # copies: trimming never deletes history
         while True:
+            system = [{"role": "system", "content": system_prompt}]
+            if used:
+                system.append({"role": "system", "content": "\n".join([intro, *used])})
             messages = system + [message for turn in kept for message in turn]
             estimate = estimate_tokens(messages, tools)
-            if estimate <= limit or len(kept) <= 1:
+            if estimate <= limit:
                 break
-            kept.pop(0)  # the oldest whole turn
-            dropped += 1
-        if estimate > limit:
-            raise TooLarge(estimate, limit)
-        return messages, estimate, dropped
+            if len(kept) > 1:
+                kept.pop(0)  # the oldest whole turn first
+                dropped += 1
+            elif used:
+                used.pop()  # then the weakest memory
+            else:
+                raise TooLarge(estimate, limit)
+        return messages, estimate, dropped, len(used)
 
     def transcript(self) -> list[dict]:
         """Your messages and the final answers, each answer with who gave it: what is saved (and shown)."""
