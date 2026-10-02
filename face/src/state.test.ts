@@ -44,6 +44,22 @@ describe('reduce', () => {
     }
   });
 
+  it('keeps the answer and the banner while the memory popup is up, then shows the outcome (M24)', () => {
+    const answered = run(brain(READY), { type: 'asked', text: 'fix my build' },
+      brain({ type: 'event', kind: 'answer', data: { text: 'Add the variable.', calls: 1, tokens_in: 1, tokens_out: 1,
+                                                     provider: 'groq', model: 'big', fallback: false } }));
+    const saving = reduce(answered, brain({ type: 'event', kind: 'tool_call', data: { name: 'save_memory', arguments: '{}', by: 'pseudo' } }));
+    expect(saving.toolWaiting).toBe('save_memory');
+    expect(saving.working).toBe('Saving this task to memory: answer the approval popup (no answer means no).');
+    const done = [
+      brain({ type: 'event', kind: 'tool_result', data: { name: 'save_memory', chars: 0, is_error: false, by: 'pseudo' } }),
+      brain({ type: 'event', kind: 'memory_saved', data: { note: '2026-10-02-120000-001.md' } }),
+    ].reduce(reduce, saving);
+    expect(done.toolWaiting).toBeNull();
+    expect(done.turns[0].answer).toBe('Add the variable.');
+    expect(done.turns[0].steps.at(-1)).toBe('MEMORY: saved this task, redacted, as 2026-10-02-120000-001.md');
+  });
+
   it('marks a refused question as not sent', () => {
     const state = run(brain(READY), { type: 'asked', text: '/new' }, brain({ type: 'refused', reason: 'that looks like a command' }));
     expect(state.turns[0]).toMatchObject({ failed: 'Not sent: that looks like a command', running: false });

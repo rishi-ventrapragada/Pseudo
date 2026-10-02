@@ -2,6 +2,7 @@
 // (format_event in pseudo_brain/terminal.py), without the "---" around it. So the face and
 // the terminal tell you the same story: which provider and model, the tokens, 429s, fallbacks,
 // the tools called and the SIZE of each result. Never a tool result's text: that isn't sent here.
+// M24: memory events too: how many past tasks joined a question, and whether this one was saved.
 
 import type { EventData } from './protocol';
 
@@ -14,9 +15,10 @@ export function describeEvent(kind: string, data: EventData): string | null {
   switch (kind) {
     case 'sending': {
       const trimmed = data.dropped_turns ? ` | dropped ${data.dropped_turns} old turn(s) to fit` : '';
+      const memories = data.memories ? ` | ${data.memories} memory(ies)` : '';
       return (
         `SENDING TO ${data.provider} · ${data.model} (call ${data.call} of max ${data.of}) | ` +
-        `${data.messages} messages + ${data.tools} tools, ~${data.estimate} tokens${trimmed}`
+        `${data.messages} messages + ${data.tools} tools, ~${data.estimate} tokens${memories}${trimmed}`
       );
     }
     case 'tokens': {
@@ -38,8 +40,10 @@ export function describeEvent(kind: string, data: EventData): string | null {
     case 'model_retry':
       return 'MODEL WROTE AN INVALID TOOL CALL (400): asking again';
     case 'tool_call':
+      if (data.by === 'pseudo') return 'SAVING TO MEMORY: the approval popup asks you first (redacted; default no)';
       return `MODEL WANTS TO CALL TOOL: ${data.name} ${data.arguments || '{}'}`;
     case 'tool_result':
+      if (data.by === 'pseudo') return null; // memory_saved / memory_not_saved says how it went
       return `TOOL RESULT${data.is_error ? ' (ERROR)' : ''}: ${data.chars} chars, sent to the model, kept in memory only`;
     case 'answer':
       return (
@@ -48,6 +52,14 @@ export function describeEvent(kind: string, data: EventData): string | null {
       );
     case 'failed':
       return `FAILED: ${data.reason}. No answer was produced.`;
+    case 'memories':
+      return data.count
+        ? `MEMORY: ${data.count} past task(s) added to this question (${data.chars} chars, redacted)`
+        : `MEMORY: none added (${data.note})`;
+    case 'memory_saved':
+      return `MEMORY: saved this task, redacted, as ${data.note}`;
+    case 'memory_not_saved':
+      return `MEMORY: not saved (${data.reason})`;
     case 'server_starting':
       return `PRIVATE SERVER for ${data.provider}: checking cloud is off, then starting it on ${data.address}`;
     case 'server_ready':

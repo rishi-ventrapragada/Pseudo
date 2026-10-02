@@ -68,7 +68,9 @@ function fromBrain(state: State, message: FromBrain): State {
         ...(kind === 'failed' ? { failed: data.reason } : {}),
       }));
       const working = kind === 'tool_call'
-        ? `Running ${data.name}. If it needs your approval, a popup asks you; nothing happens until you answer.`
+        ? (data.by === 'pseudo' // M24: Pseudo itself offers the answered task to memory
+          ? 'Saving this task to memory: answer the approval popup (no answer means no).'
+          : `Running ${data.name}. If it needs your approval, a popup asks you; nothing happens until you answer.`)
         : step ?? state.working;
       const toolWaiting = kind === 'tool_call' ? String(data.name) : kind === 'tool_result' ? null : state.toolWaiting;
       return { ...state, turns, working, toolWaiting };

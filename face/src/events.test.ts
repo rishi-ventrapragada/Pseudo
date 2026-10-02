@@ -45,6 +45,23 @@ describe('describeEvent', () => {
       .toBe('SERVER READY on 127.0.0.1:11434 in 1.3 s (started by Pseudo; stopped when Pseudo exits)');
   });
 
+  it('words memory events like the terminal (M24)', () => {
+    expect(describeEvent('sending', { call: 1, of: 6, messages: 3, tools: 3, estimate: 950, dropped_turns: 0, memories: 2,
+                                      provider: 'groq', model: 'openai/gpt-oss-120b' }))
+      .toBe('SENDING TO groq · openai/gpt-oss-120b (call 1 of max 6) | 3 messages + 3 tools, ~950 tokens | 2 memory(ies)');
+    expect(describeEvent('memories', { count: 2, chars: 500, note: '' }))
+      .toBe('MEMORY: 2 past task(s) added to this question (500 chars, redacted)');
+    expect(describeEvent('memories', { count: 0, chars: 0, note: 'no past task is relevant enough' }))
+      .toBe('MEMORY: none added (no past task is relevant enough)');
+    expect(describeEvent('tool_call', { name: 'save_memory', arguments: '{}', by: 'pseudo' }))
+      .toBe('SAVING TO MEMORY: the approval popup asks you first (redacted; default no)');
+    expect(describeEvent('tool_result', { name: 'save_memory', chars: 0, is_error: false, by: 'pseudo' })).toBeNull();
+    expect(describeEvent('memory_saved', { note: '2026-10-02-120000-001.md' }))
+      .toBe('MEMORY: saved this task, redacted, as 2026-10-02-120000-001.md');
+    expect(describeEvent('memory_not_saved', { reason: "you didn't approve it" }))
+      .toBe("MEMORY: not saved (you didn't approve it)");
+  });
+
   it('shows nothing for an unknown event', () => {
     expect(describeEvent('something_new', {})).toBeNull();
   });
