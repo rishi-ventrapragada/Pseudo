@@ -1,6 +1,8 @@
 // M18: the window. It shows what the brain says and sends what you ask; it decides nothing (D11).
 // Every message from the brain goes through reduce() (state.ts); every click becomes one
 // message to the brain (protocol.ts), through window.pseudo (preload.js).
+// M26: voice (useVoice.ts). What you say comes back as text in the input box: you read it, fix it if
+// needed, and press Enter, exactly like typing (L8). Nothing you say is ever sent as a question by itself.
 
 import { useEffect, useReducer, useRef, useState } from 'react';
 import { ApprovalBanner } from './ApprovalBanner';
@@ -9,6 +11,8 @@ import type { ToBrain } from './protocol';
 import { PrivacyNote, ProviderBar } from './ProviderBar';
 import { Sessions } from './Sessions';
 import { initial, reduce, type Turn } from './state';
+import { useVoice } from './useVoice';
+import { VoiceControls } from './VoiceControls';
 
 function TurnView({ turn }: { turn: Turn }) {
   return (
@@ -44,6 +48,7 @@ export function App() {
   const [state, dispatch] = useReducer(reduce, initial);
   const [draft, setDraft] = useState('');
   const end = useRef<HTMLDivElement>(null);
+  const box = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
     window.pseudo.onMessage((message) => dispatch({ type: 'from_brain', message }));
@@ -54,11 +59,23 @@ export function App() {
 
   const idle = state.phase === 'ready' && state.working === null;
   const current = state.providers.find((provider) => provider.id === state.provider);
+  const canTalk = idle && Boolean(current?.transcribe_model);
+  const why = current && !current.transcribe_model
+    ? 'Voice needs a provider with a speech model: your voice stays on this laptop' : 'Wait for Pseudo to finish';
 
   function send(message: ToBrain, what: string) {
     window.pseudo.send(message);
     dispatch({ type: 'working', what });
   }
+
+  const voice = useVoice({ canTalk, ready: state.phase === 'ready', speech: state.speech,
+                           onRecorded: (audio) => send({ type: 'transcribe', audio }, 'Turning what you said into text') });
+  useEffect(() => { // a transcript lands in the input box, after anything you'd already typed
+    const heard = state.heard?.text;
+    if (!heard) return;
+    setDraft((typed) => (typed.trim() ? `${typed.trim()} ${heard}` : heard));
+    box.current?.focus();
+  }, [state.heard]);
 
   function ask() {
     const text = draft.trim();
@@ -75,7 +92,8 @@ export function App() {
 
   const status = state.phase === 'stopped' ? "Pseudo's brain stopped."
     : state.phase === 'starting' ? 'Starting the brain'
-    : state.working ?? (state.notice || 'Ready. Pseudo reads the window you were on before this one.');
+    : voice.listening ? 'Listening. Let go of Ctrl+Space, or click Stop talking, when you have finished.'
+    : state.working ?? (voice.problem || state.notice || 'Ready. Pseudo reads the window you were on before this one.');
 
   return (
     <div className={state.sessions ? 'app with-sessions' : 'app'}>
@@ -125,8 +143,11 @@ export function App() {
             <button type="button" onClick={restart}>Restart the brain</button>
           </div>
         ) : (
+          <>
+          <VoiceControls voice={voice} canTalk={canTalk} why={why} />
           <form onSubmit={(event) => { event.preventDefault(); ask(); }}>
             <textarea
+              ref={box}
               aria-label="Your question"
               rows={2}
               autoFocus
@@ -142,6 +163,7 @@ export function App() {
             />
             <button type="submit" disabled={!idle || !draft.trim()}>Ask</button>
           </form>
+          </>
         )}
       </footer>
     </div>

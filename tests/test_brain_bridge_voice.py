@@ -118,3 +118,11 @@ def test_only_a_real_answer_is_spoken() -> None:
         bridge_voice.on_answer(FakeBridge, data)
     bridge_voice.on_answer(FakeBridge, {"text": "Hello."})
     assert FakeBridge.started == ["Hello."]
+
+
+@pytest.mark.anyio
+async def test_ready_tells_the_face_which_providers_can_hear(world: dict) -> None:
+    async def nothing(face: Face) -> None:
+        pass
+    _, face = await run(nothing)
+    assert [(p["id"], p["transcribe_model"]) for p in face.replies("ready")[0]["providers"]] == [("groq", ""), ("local", "")]

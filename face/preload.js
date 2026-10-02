@@ -9,7 +9,8 @@
 
 const { contextBridge, ipcRenderer } = require('electron');
 
-const TYPES = ['ask', 'provider', 'new_session', 'list_sessions', 'open_session', 'restart'];
+const TYPES = ['ask', 'provider', 'new_session', 'list_sessions', 'open_session', 'restart',
+               'transcribe', 'speak_answers']; // M26: push-to-talk and the Speak answers switch
 let listener = null;
 const early = []; // messages that arrived before the page started listening
 

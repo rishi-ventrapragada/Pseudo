@@ -145,7 +145,8 @@ class Bridge:
 
 def provider_info(provider) -> dict:
     return {"id": provider.id, "name": provider.name, "models": list(provider.models),
-            "leaves_laptop": provider.leaves_laptop, "privacy": provider.privacy}
+            "leaves_laptop": provider.leaves_laptop, "privacy": provider.privacy,
+            "transcribe_model": provider.transcribe_model}  # M26: "" = no voice input on this provider
 
 
 async def serve(receive: Receive, write: Write) -> int:

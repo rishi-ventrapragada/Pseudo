@@ -186,6 +186,23 @@ button:disabled { cursor: default; opacity: 0.5; }
   animation: pulse 1.2s ease-in-out infinite;
 }
 @keyframes pulse { 50% { opacity: 0.25; } }
+/* M26: voice. The mic button turns red while the microphone is open. */
+.voice { display: flex; align-items: center; gap: 12px; max-width: 760px; margin: 0 auto 8px; font-size: 13px; }
+.voice button { padding: 5px 14px; border: 1px solid var(--line); border-radius: 999px; background: var(--surface); }
+.voice .mic { font-weight: 600; }
+.voice .mic.on { border-color: var(--danger); color: var(--danger); }
+.voice .mic.on::before {
+  content: "";
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  margin-right: 8px;
+  border-radius: 50%;
+  background: var(--danger);
+  animation: pulse 1.2s ease-in-out infinite;
+}
+.voice .speak { display: flex; align-items: center; gap: 6px; color: var(--muted); }
+.voice .hint { margin-left: auto; font: 12px/1.4 var(--mono); color: var(--muted); }
 form { display: flex; gap: 8px; max-width: 760px; margin: 0 auto; }
 textarea { flex: 1; padding: 9px 12px; resize: none; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); }
 form button { padding: 0 22px; border: 0; border-radius: 8px; background: var(--ink); color: var(--surface); font-weight: 600; }
@@ -195,5 +212,5 @@ form button { padding: 0 22px; border: 0; border-radius: 8px; background: var(--
   .sessions { position: fixed; inset: 0 0 0 auto; width: min(320px, 90vw); box-shadow: -8px 0 24px rgb(0 0 0 / 0.2); }
 }
 @media (prefers-reduced-motion: reduce) {
-  .status.working::before { animation: none; }
+  .status.working::before, .voice .mic.on::before { animation: none; }
 }

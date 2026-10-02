@@ -5,7 +5,7 @@ import { initial, reduce, type Action, type State } from './state';
 
 const READY: FromBrain = {
   type: 'ready', provider: 'groq', tools: ['read_active_window'],
-  providers: [{ id: 'groq', name: 'Groq', models: ['big'], leaves_laptop: true, privacy: 'fake note' }],
+  providers: [{ id: 'groq', name: 'Groq', models: ['big'], leaves_laptop: true, privacy: 'fake note', transcribe_model: 'ears' }],
   session: { name: '20260101-000000-000', provider: 'groq', messages: [] },
 };
 
@@ -80,5 +80,25 @@ describe('reduce', () => {
     const stopped = reduce(reduce(switched, { type: 'asked', text: 'hi' }), brain({ type: 'brain_stopped', code: 1 }));
     expect(stopped.phase).toBe('stopped');
     expect(stopped.turns[0].failed).toBe('The brain stopped before answering.');
+  });
+
+  it('M26: puts each transcript in `heard` once, and explains an empty one', () => {
+    const asked = run(brain(READY), { type: 'working', what: 'Turning what you said into text' });
+    const one = reduce(asked, brain({ type: 'transcript', text: 'Say hello.', note: '', seconds: 3.9 }));
+    expect([one.working, one.heard, one.turns]).toEqual([null, { text: 'Say hello.', n: 1 }, []]); // not asked (L8)
+    const two = reduce(one, brain({ type: 'transcript', text: 'Say hello.', note: '', seconds: 2 }));
+    expect(two.heard).toEqual({ text: 'Say hello.', n: 2 }); // the same words again still land again
+    const none = reduce(two, brain({ type: 'transcript', text: '', note: "Didn't hear anything, so nothing was sent.", seconds: 1 }));
+    expect([none.heard, none.notice]).toEqual([{ text: 'Say hello.', n: 2 }, "Didn't hear anything, so nothing was sent."]);
+  });
+
+  it('M26: hands spoken answers to the player without disturbing a running turn', () => {
+    const state = run(brain(READY), { type: 'asked', text: 'hi' },
+      brain({ type: 'event', kind: 'tool_call', data: { name: 'save_memory', arguments: '{}', by: 'pseudo' } }),
+      brain({ type: 'speech', audio: 'UklGRg==', reason: '' }));
+    expect(state.speech).toEqual({ audio: 'UklGRg==', n: 1 });
+    expect(state.working).toMatch(/memory/); // the memory popup is still waiting: still said
+    const failed = reduce(state, brain({ type: 'speech', audio: '', reason: 'the voice is not installed' }));
+    expect([failed.speech, failed.notice]).toEqual([{ audio: 'UklGRg==', n: 1 }, "Couldn't speak the answer: the voice is not installed"]);
   });
 });

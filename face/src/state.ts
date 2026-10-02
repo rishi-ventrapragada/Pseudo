@@ -24,6 +24,8 @@ export type State = {
   toolWaiting: string | null; // a tool that is running (its approval popup may be open); null = none
   notice: string; // the last switch or refusal, in plain words
   sessions: SessionItem[] | null; // the saved-sessions panel; null = closed
+  heard: { text: string; n: number } | null; // M26: the latest transcript; n counts them, so each one lands once
+  speech: { audio: string; n: number } | null; // M26: the latest spoken answer, for the player
 };
 
 export type Action =
@@ -35,7 +37,7 @@ export type Action =
 
 export const initial: State = {
   phase: 'starting', providers: [], provider: '', session: '', turns: [], working: null, toolWaiting: null, notice: '',
-  sessions: null,
+  sessions: null, heard: null, speech: null,
 };
 
 /** A saved session's messages -> turns: each question with the answer that followed it. */
@@ -87,6 +89,12 @@ function fromBrain(state: State, message: FromBrain): State {
                                                : `New session on ${message.provider}.` };
     case 'sessions':
       return { ...state, sessions: message.items };
+    case 'transcript': // M26: words go to the input box; no words -> the brain's note says why
+      return { ...state, working: null, notice: message.text ? '' : message.note,
+               heard: message.text ? { text: message.text, n: (state.heard?.n ?? 0) + 1 } : state.heard };
+    case 'speech': // M26: it doesn't touch `working`: a memory popup may still be waiting
+      return message.audio ? { ...state, speech: { audio: message.audio, n: (state.speech?.n ?? 0) + 1 } }
+                           : { ...state, notice: `Couldn't speak the answer: ${message.reason}` };
     case 'refused': {
       const last = state.turns[state.turns.length - 1];
       if (last?.running && !last.steps.length) { // the question itself was refused: it was never sent

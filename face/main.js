@@ -18,9 +18,9 @@
  *     is no web server and no port (D18), not even Vite's dev server.
  *   - A strict Content-Security-Policy (index.html): scripts and styles only from our own
  *     files, and no network requests at all.
- *   - Navigation, new windows and <webview> are blocked, every permission request
- *     (camera, microphone, notifications...) is refused, and there is no menu (no reload,
- *     no developer tools).
+ *   - Navigation, new windows and <webview> are blocked, and there is no menu (no reload,
+ *     no developer tools). Every permission request is refused except one (M26,
+ *     permissions.js): the microphone, audio only, for our own page, for push-to-talk.
  *   - IPC is accepted only from our own page, and only the message types the brain knows.
  *
  * Before each tool runs, this process lets pseudo_hands' process (only that one) bring its
@@ -33,12 +33,17 @@ const { pathToFileURL } = require('node:url');
 const { app, BrowserWindow, Menu, ipcMain, nativeTheme, net, protocol, session } = require('electron');
 const { BrainProcess } = require('./brain-process');
 const { ForegroundGrant, windowsAllow } = require('./foreground');
+const { allowCheck, allowRequest } = require('./permissions');
 const { TaskbarFlash } = require('./taskbar-flash');
 
 const DIST = path.join(__dirname, 'dist');
 const PAGE = 'app://pseudo/index.html';
-const TO_BRAIN = new Set(['ask', 'provider', 'new_session', 'list_sessions', 'open_session']);
-const FIELDS = ['text', 'id', 'name']; // the only fields a message to the brain may carry
+const TO_BRAIN = new Set(['ask', 'provider', 'new_session', 'list_sessions', 'open_session', 'transcribe',
+                          'speak_answers']);
+const FIELDS = ['text', 'id', 'name']; // the only text fields a message to the brain may carry
+// M26: a push-to-talk recording, base64. 30.5 s of 16 kHz 16-bit mono is about 1.3 million characters;
+// anything bigger is dropped here, and the brain checks the length again (voice_in.py).
+const MAX_AUDIO_CHARS = 1400000;
 
 protocol.registerSchemesAsPrivileged([
   { scheme: 'app', privileges: { standard: true, secure: true, supportFetchAPI: true } },
@@ -104,6 +109,14 @@ ipcMain.on('pseudo:send', (event, message) => {
   for (const field of FIELDS) {
     if (typeof message[field] === 'string') clean[field] = message[field];
   }
+  if (message.type === 'transcribe') {
+    if (typeof message.audio !== 'string' || message.audio.length > MAX_AUDIO_CHARS) return;
+    clean.audio = message.audio;
+  }
+  if (message.type === 'speak_answers') {
+    if (typeof message.on !== 'boolean') return;
+    clean.on = message.on;
+  }
   brain.send(clean);
 });
 
@@ -135,8 +148,10 @@ app.on('web-contents-created', (_event, contents) => {
 
 app.whenReady().then(() => {
   Menu.setApplicationMenu(null);
-  session.defaultSession.setPermissionRequestHandler((_contents, _permission, answer) => answer(false));
-  session.defaultSession.setPermissionCheckHandler(() => false);
+  session.defaultSession.setPermissionRequestHandler(
+    (_contents, permission, answer, details) => answer(allowRequest(permission, details)));
+  session.defaultSession.setPermissionCheckHandler(
+    (_contents, permission, origin, details) => allowCheck(permission, origin, details));
   protocol.handle('app', serveFile);
   createWindow();
   brain.start();
