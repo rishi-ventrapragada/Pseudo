@@ -135,7 +135,9 @@ pseudo_hands/
     date_recognizers.py   birthday-shaped dates and ages by pattern; spaCy's date guesses are off (M19, D19)
     finding_filters.py    code-shaped words are never names; weak vehicle-plate shapes ignored (M19, D19)
     indian_names.txt      owner-editable list of common Indian first names and surnames (M20, D21)
-    name_recognizers.py   masks listed names (Capitalized or ALL CAPS), initials, word + listed surname (M20)
+    indian_names_large.txt  ~49,000 name words generated from Wikidata (CC0); never edited by hand (M22, D22)
+    name_recognizers.py   masks listed names (Capitalized or ALL CAPS), initials, word + listed surname (M20);
+                          looks words up in a set built from both lists (M22)
     redaction_terms.txt   owner's private terms (gitignored; .example committed) (M7)
     allowed_names.txt   app/site names never masked (M8)
     ui_tree.py          walk a window's UI Automation tree -> raw lines (M9); skips failing controls (M12)
@@ -147,6 +149,7 @@ pseudo_hands/
     focus.py            focus_window(): validate id, block, ask, act (M10)
   show_windows.py       thin CLI demo (M4)
   mcp_server.py         thin MCP wrapper (M5)
+  build_names_list.py   maintenance tool, run by hand: rebuilds indian_names_large.txt from Wikidata (M22)
 ```
 
 | Library | Why |

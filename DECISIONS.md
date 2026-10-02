@@ -103,8 +103,13 @@ Pseudo uses AI models and services only in the cloud, through the providers allo
 ### D21. Names the redactor must know (M20)
 Common Indian first names and surnames are masked from a committed, owner-editable list (`pseudo_hands/core/indian_names.txt`), matched only when Capitalized or in ALL CAPS. So are initials next to a listed name, and any Capitalized word right before a listed surname. spaCy still masks the names it finds; the list only adds masks. Names that are also common English or everyday words (Sunny, Ram, Raja...) and brand-name surnames (Bose, Tata...) are left out; deity and festival names are kept, so "Durga Puja" is masked, failing closed.
 *Why:* M20 measured spaCy's small model catching 61% of fake Indian names in titles (first names alone: 25%), and the medium model needed 205 MB more RAM while still missing more held-out names than the list.
-*Limit (M21):* the list only masks the names on it. On fresh held-out names (N4) recall is 57%, the same as spaCy alone, so the name leak is only partly fixed. A rule anchored on the list (M21's rule 4) didn't change that and wasn't shipped.
+*Limit (M21):* the list only masks the names on it. On fresh held-out names (N4) recall is 57%, the same as spaCy alone, so the name leak is only partly fixed. A rule anchored on the list (M21's rule 4) didn't change that and wasn't shipped. *Lifted by M22 (D22):* a large list from Wikidata raised fresh held-out recall to 99% (N4 and N6).
 *Would change if:* a measured model catches the held-out sets as well as the list does, within the laptop's RAM budget (D20).
+
+### D22. A large names list from Wikidata (M22)
+Besides the hand list (D21), the redactor masks about 49,000 Indian name words generated from Wikidata (`pseudo_hands/core/indian_names_large.txt`, written by `pseudo_hands/build_names_list.py`): the English labels of people with citizenship India, British Raj or Dominion of India, split into single words, minus titles, the hand list's left-out words and ordinary English words (lowercase entries of the en_GB spelling dictionary). Both lists are required; either one missing or broken fails closed. Names are matched by a set lookup, not a regex. Your own names still go in `indian_names.txt`; the large file is only ever regenerated.
+*Why:* on a fresh held-out set (N6), M22 measured recall at 67% with the hand list and 99% with both, for +3 ms per title and +13 MB. Wikidata is CC0, so the list can be committed to a public repo. Rejected: the electoral-roll surname list (research-only terms), `name-dataset` (built from the 2021 Facebook leak), an unattributed Hugging Face list (no provenance). Lok Dhaba's licence couldn't be verified.
+*Would change if:* recall on a future held-out set drops, or a source with a verified, redistributable licence covers rare surnames better.
 
 ## LEANING (revisit after Phase 1)
 

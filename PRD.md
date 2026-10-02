@@ -2,7 +2,7 @@
 
 Owner: Sai Rishi Ventrapragada
 Repo: https://github.com/rishi-ventrapragada/Pseudo
-Status: Phase 1-4 complete (M11 evaluated OCR and skipped it). Phase 5 (Make it usable) in progress: M13 done (Hermes Desktop ruled out; own brain per D15), M14 done (`pseudo_brain`), M15 done (providers evaluated; D16), M16 done (providers: allowlist, same-provider fallback, private mode), M17 done (Claude desktop app ruled out; D17), M18 done (own face: Electron, over a child-process pipe; D18), M19 done (redactor precision; D19). M20 done (Indian names; D21), but only partly fixes the name leak: recall on fresh held-out names is 57%. M21 tried a rule for that gap and didn't ship it (section 11). Open follow-ups are in section 12, Backlog.
+Status: Phase 1-4 complete (M11 evaluated OCR and skipped it). Phase 5 (Make it usable) in progress: M13 done (Hermes Desktop ruled out; own brain per D15), M14 done (`pseudo_brain`), M15 done (providers evaluated; D16), M16 done (providers: allowlist, same-provider fallback, private mode), M17 done (Claude desktop app ruled out; D17), M18 done (own face: Electron, over a child-process pipe; D18), M19 done (redactor precision; D19). M20 done (Indian names; D21), but recall on fresh held-out names was only 57%. M21 tried a rule for that gap and didn't ship it. M22 done (a 49,000-word names list from Wikidata; D22): held-out recall 99% (section 11). Open follow-ups are in section 12, Backlog.
 Last updated: 2026-10-02
 
 ## 1. What Pseudo is
@@ -228,7 +228,7 @@ Goal: use Pseudo day to day, not just through `hermes -p pseudo` in a terminal. 
 - **Done when:** the fixed criteria P1-P8 in the M19 lesson pass, measured with fake text only.
 - **Result (2026-10-01):** ordinary fake lines over-masked 17/41 (41%) → 4/41 (10%). 37/37 earlier sensitive cases and 18/18 new guards (birth dates, ages, names next to codes, full plates) stay masked. M8's 30 titles are still 1/30 changed. The M15 battery scored 12/12 on `gpt-oss-120b`, and the model now reads "order 4471 ships on Monday".
 
-### M20: Missed Indian names (partly fixed)
+### M20: Missed Indian names (partly fixed; closed by M22)
 - **Measured in M19, with fake names:** spaCy's small English model (`en_core_web_sm`) misses some Indian names, and they reach the model unmasked:
   - "Anil Kumar": leaked in "Call Anil Kumar re CS101", "Call Anil Kumar" and "Anil Kumar - WhatsApp"; caught only in "Chat with Anil Kumar";
   - "Sneha Reddy": leaked in "Sneha Reddy - CSE-DS", "Chat with Sneha Reddy" and "Meeting with Sneha Reddy" (3 of 3);
@@ -240,7 +240,7 @@ Goal: use Pseudo day to day, not just through `hermes -p pseudo` in a terminal. 
 - **Result (2026-10-01):** a committed names list (`indian_names.txt`, D21) with spaCy's small model, chosen over `en_core_web_md` (which needed +205 MB of RAM against a 150 MB cap, and masked "M18" as a place).
   - Recall on the 68-name set: 61% → 100% (the list was written after measuring this set, so this number proves little). First names alone: 25% → 100%; initials 67% → 99%.
   - **R2 missed: held-out recall 86%, against a 90% threshold (spaCy alone: 47%).** The remaining gap: rare surnames next to a listed first name ("Keerthana Boddu" keeps "Boddu"). With every held-out name removed from the list, recall falls back to 47%: the list only helps with names it contains. R2's threshold is unchanged.
-  - **On fresh held-out names (N4, M21), recall is 57%, the same as spaCy alone (218 vs 217 of 384).** Only 3 of N4's name words are on the list. So the name leak is only partly fixed: names on the list are masked, and names not on it are caught no better than before M20.
+  - **On fresh held-out names (N4, M21), recall is 57%, the same as spaCy alone (218 vs 217 of 384).** Only 3 of N4's name words are on the list. So the name leak is only partly fixed: names on the list are masked, and names not on it are caught no better than before M20. (M22's larger list raised N4 to 99%.)
   - Precision: no new over-masking on any set; M19's criteria all still hold; the M15 battery scored 12/12.
   - **R6 changed** from "at most 2 of 17 over-masked" to "no new over-masking versus before M20". The original was unachievable: spaCy alone already over-masked 4 of the 17 lines (measured only after the threshold was set), and a list can only add masks.
   - Known gaps: names in lower case ("chat with amit") aren't matched; festival names are masked ("Durga Puja"), failing closed.
@@ -258,6 +258,11 @@ Goal: use Pseudo day to day, not just through `hermes -p pseudo` in a terminal. 
 ### M22: A large names list from a public dataset
 - Build a much larger list of Indian name words from a public dataset whose licence allows it, matched by a set lookup instead of one big regex, and measure it on a third held-out set N6, committed before any download or measurement. Word-level over-masking is reported.
 - **Done when:** R2, held-out recall on N6 (incl. ALL CAPS) of at least 90%, with M21's other criteria unchanged; or, if no candidate reaches it, the result is recorded and nothing ships.
+- **Result (2026-10-02): shipped (D22).** `indian_names_large.txt`: 30,851 first-name and 18,643 surname words from the English labels of people on Wikidata with Indian citizenship (CC0), minus 866 ordinary English words; 465 KB. Lok Dhaba was dropped at step 0: its licence couldn't be verified and its site refused connections. The electoral-roll surname list (research-only terms) and `name-dataset` (built from the 2021 Facebook leak) were rejected.
+  - **R2: N6 held-out recall 67% → 99% (382 of 384); ALL CAPS 52% → 100%.** R3: first names alone and initials 100% each. Spent sets, reported: N2 86% → 100%, N4 57% → 99%.
+  - Precision: R4-R6 unchanged (37/37 sensitive, 18/18 guards, cue phrases 2/16, N3 4/17). R10, word-level over-masking: 13 of 3,351 ordinary words newly masked (0.4%), all Indian place, film or festival words ("Taj Mahal", "Vande Bharat", "Kalki", "Narmada"); 0 of 2,827 words of plain English. "Durga Puja" now masks both words, failing closed.
+  - Cost: median redaction 8.9 → 12.1 ms (limit +5 ms), RAM +13 MB (limit +150 MB), start-up unchanged. Matching moved from one big regex per rule to a set lookup: at 50,000 names a regex took 12 s to compile and 17 ms per title.
+  - Known gaps: a surname that is also an English word ("Irfan Lone") is filtered out; names Wikidata doesn't know still depend on spaCy; lower case still isn't matched. The M15 battery scored 12/12 on `gpt-oss-120b`.
 
 ## 12. Backlog
 
@@ -267,4 +272,5 @@ Found while building; not scheduled. Each needs a plan and approval before work 
 - **Thinner first reads.** A freshly opened Chromium/Electron window's first read is thinner than later ones (M12: Obsidian gave 65 content chars on its first read vs 290 warm in M11). M12's retry only fires when a read fails or finds nothing inside the window, so a thin-but-not-empty first read isn't retried.
 - **Depth limit misses deep apps.** The UI tree walk stops at depth 12, which misses most of the content in deeply nested apps like Claude desktop (30 controls at depth 12 vs 109 at depth 30).
 - **Plain-text answers.** The model sometimes answers in Markdown (bold, lists) although the system prompt asks for plain text (M14). Either tighten the prompt or render Markdown in the face (M18). **Resolved for the face (M18):** answers are rendered as Markdown, with no raw HTML, images or links. The terminal still prints the raw Markdown.
+- **Tied labels vary between runs (found in M22).** When spaCy and the names list flag the same span with equal scores, Presidio's anonymizer picks the label by hash order, so "Pooja" can come out as [PERSON] in one run and [LOCATION] in the next. The text is masked either way, but a wrong label can mislead the model.
 - **OCR revisit: DaVinci Resolve.** In M11 it exposed only 44 content chars (53 controls), just above the 40-char line. Revisit OCR if Pseudo needs to read Resolve (or games).
