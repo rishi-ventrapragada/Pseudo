@@ -3,7 +3,7 @@
 Owner: Sai Rishi Ventrapragada
 Repo: https://github.com/rishi-ventrapragada/Pseudo
 Status: Phase 1-4 complete (M11 evaluated OCR and skipped it). Phase 5 (Make it usable) in progress: M13 done (Hermes Desktop ruled out; own brain per D15), M14 done (`pseudo_brain`), M15 done (providers evaluated; D16), M16 done (providers: allowlist, same-provider fallback, private mode), M17 done (Claude desktop app ruled out; D17), M18 done (own face: Electron, over a child-process pipe; D18), M19 done (redactor precision; D19). M20 done (Indian names; D21), but recall on fresh held-out names was only 57%. M21 tried a rule for that gap and didn't ship it. M22 done (a 49,000-word names list from Wikidata; D22): held-out recall 99% (section 11). Phase 6 (Memory): M23 done (local keyword search with SQLite FTS5; D23), M24 done (Pseudo remembers answered tasks, with your approval). Phase 7 (Voice): M25 done (listen through Groq's `whisper-large-v3`, speak with Windows' own voices; D24), M26 done (push-to-talk in the face; answers spoken with Windows' Ravi voice). Open follow-ups are in section 14, Backlog.
-Last updated: 2026-10-02
+Last updated: 2026-10-03
 
 ## 1. What Pseudo is
 
@@ -382,6 +382,7 @@ Goal: you can talk to Pseudo and it talks back. Cloud first (D20), with privacy 
     - an answer starting with a SAPI command is read as text. With SAPI's default flag, `<silence msec="20000"/>` was obeyed: 21.2 s of audio against 5.0 s.
   - **The M15 battery scored 12/12.**
   - **Found while verifying (not caused by M26):** the memory popup opens behind the face and isn't topmost, so it times out as no and nothing is saved. A snapshot of the code from before M26 (`53bdf11`) behaves the same.
+  - **Fixed (P7-fix, 2026-10-03):** the popup also carries `MB_SYSTEMMODAL`, which keeps it always on top even when Windows won't give it the keyboard; `MB_TOPMOST` alone was dropped whenever the face's grant was lost. Lab, without the face: one key press between the grant and the popup sent it behind 3/3; with the new flag it stays on top 3/3. Real face, real Enter: 12/12 popups on top and clickable, `focus_window` OK 3/3 and Cancel 3/3, nothing saved from 6 cancelled memory popups. What took the grant away on 2026-10-02 wasn't reproduced.
   - **Known limits:**
     - It was tested with synthetic voices only.
     - "Groq" is never transcribed right ("Groke", "grog"), so read the transcript before pressing Enter.

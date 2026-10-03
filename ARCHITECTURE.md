@@ -145,7 +145,7 @@ pseudo_hands/
                         skips the apps in assistant_apps.txt, so it reads the window you were on (M18)
     assistant_apps.txt  owner-editable list of assistant .exe names (the face, Claude, Hermes) (M18)
     window_ids.py       short ids ("w3") for listed windows, never reused (M10)
-    approval.py         the approval gate: native popup, default no (D13, M10)
+    approval.py         the approval gate: native popup, always on top, default no (D13, M10, P7-fix)
     focus.py            focus_window(): validate id, block, ask, act (M10)
     memory.py           save_memory(): redact the task, ask in the popup, write a NEW note to
                         %LOCALAPPDATA%\Pseudo\memory\tasks (links refused) (M24, D23)
