@@ -50,6 +50,11 @@ def test_a_second_request_while_a_popup_is_open_is_refused(popup_yes) -> None:
     assert ask("Allow it?") is True  # once the first one is gone, asking works again
 
 
+def test_the_popup_stays_on_top_and_defaults_to_no() -> None:
+    assert approval.FLAGS & win32con.MB_SYSTEMMODAL  # on top even when Windows won't give it the keyboard (P7 lab)
+    assert approval.FLAGS & win32con.MB_DEFBUTTON2  # Cancel is the default button: Enter means no
+
+
 def test_the_timeout_is_shorter_than_hermes_tool_timeout() -> None:
     assert approval.TIMEOUT_SECONDS == 20.0  # Hermes' pseudo profile waits 30 s (see the M10 lesson)
 

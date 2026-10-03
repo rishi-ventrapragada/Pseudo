@@ -10,11 +10,12 @@ How the popup works:
     tool's own thread. Why this process: Windows only lets a program bring a window
     to the front if it received the user's last input. Your OK click lands here, so
     your click is exactly what makes the focus change allowed.
-  - MB_TOPMOST asks for the always-on-top layer, in front of normal windows, even
-    though Windows won't let a background process take keyboard focus. We don't try:
-    a popup that grabs your keyboard mid-sentence invites accidental answers.
-    (Real test: 3 of 13 popups didn't carry the flag, though nothing covered them;
-    see the M10 lesson. A popup nobody sees still times out as no.)
+  - MB_SYSTEMMODAL keeps the box in the always-on-top layer, in front of normal windows,
+    even when Windows won't let this background process take the keyboard. MB_TOPMOST
+    asks for the same layer, but Windows drops it whenever the box isn't allowed to come
+    to the front (P7 lab: 0 of 3 on top without the face's grant; with MB_SYSTEMMODAL,
+    3 of 3). The box takes the keyboard only when the face passed its right on
+    (face/foreground.js), and even then Enter means no.
   - Default NO: Cancel is the default button (so Enter means no) and OK has no
     keyboard shortcut. Cancel, Esc, the X, the timeout, any error, or another popup
     already being open all mean no.
@@ -36,7 +37,8 @@ import win32gui
 POPUP_TITLE = "Pseudo: approve this action?"
 TIMEOUT_SECONDS = 20.0
 DIALOG_CLASS = "#32770"  # the class name Windows gives every standard dialog box
-FLAGS = win32con.MB_OKCANCEL | win32con.MB_ICONWARNING | win32con.MB_DEFBUTTON2 | win32con.MB_TOPMOST
+FLAGS = (win32con.MB_OKCANCEL | win32con.MB_ICONWARNING | win32con.MB_DEFBUTTON2 | win32con.MB_TOPMOST
+         | win32con.MB_SYSTEMMODAL)
 
 
 def approved(answer: int, elapsed: float, timeout: float) -> bool:
