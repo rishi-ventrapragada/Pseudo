@@ -2,7 +2,7 @@
 
 Owner: Sai Rishi Ventrapragada
 Repo: https://github.com/rishi-ventrapragada/Pseudo
-Status: Phase 1-4 complete (M11 evaluated OCR and skipped it). Phase 5 (Make it usable) in progress: M13 done (Hermes Desktop ruled out; own brain per D15), M14 done (`pseudo_brain`), M15 done (providers evaluated; D16), M16 done (providers: allowlist, same-provider fallback, private mode), M17 done (Claude desktop app ruled out; D17), M18 done (own face: Electron, over a child-process pipe; D18), M19 done (redactor precision; D19). M20 done (Indian names; D21), but recall on fresh held-out names was only 57%. M21 tried a rule for that gap and didn't ship it. M22 done (a 49,000-word names list from Wikidata; D22): held-out recall 99% (section 11). Phase 6 (Memory): M23 done (local keyword search with SQLite FTS5; D23), M24 done (Pseudo remembers answered tasks, with your approval). Phase 7 (Voice): M25 done (listen through Groq's `whisper-large-v3`, speak with Windows' own voices; D24), M26 done (push-to-talk in the face; answers spoken with Windows' Ravi voice). P7-fix done (the approval popup stays on top). Phase 8 (Click and type control): M27 done (UI Automation actions recommended; D25), M28 done (click and type, behind the approval popup). Open follow-ups are in section 15, Backlog.
+Status: Phase 1-4 complete (M11 evaluated OCR and skipped it). Phase 5 (Make it usable) in progress: M13 done (Hermes Desktop ruled out; own brain per D15), M14 done (`pseudo_brain`), M15 done (providers evaluated; D16), M16 done (providers: allowlist, same-provider fallback, private mode), M17 done (Claude desktop app ruled out; D17), M18 done (own face: Electron, over a child-process pipe; D18), M19 done (redactor precision; D19). M20 done (Indian names; D21), but recall on fresh held-out names was only 57%. M21 tried a rule for that gap and didn't ship it. M22 done (a 49,000-word names list from Wikidata; D22): held-out recall 99% (section 11). Phase 6 (Memory): M23 done (local keyword search with SQLite FTS5; D23), M24 done (Pseudo remembers answered tasks, with your approval). Phase 7 (Voice): M25 done (listen through Groq's `whisper-large-v3`, speak with Windows' own voices; D24), M26 done (push-to-talk in the face; answers spoken with Windows' Ravi voice). P7-fix done (the approval popup stays on top). Phase 8 (Click and type control): M27 done (UI Automation actions recommended; D25), M28 done (click and type, behind the approval popup). M29 (fix action misses, evaluate first) in progress. Open follow-ups are in section 15, Backlog.
 Last updated: 2026-10-04
 
 ## 1. What Pseudo is
@@ -440,6 +440,25 @@ Goal: Pseudo acts on the window you were on (click, type, tick, choose), one app
       - the first Live B try was stopped after 2 questions, when the model called `focus_window` first both times. `act_on_control`'s description then gained: "It acts on the window read_active_window reads (the one the user was on before switching to this assistant); that window doesn't need to be in front, so don't call focus_window first."
       - after Live B's first full run, `focus_window`'s description gained: "Only use it when the user asks to see or switch to a window; reading and acting work without it."
   - **Live C:** the M15 battery scored 12/12 on `gpt-oss-120b`, with no `act_on_control` call.
+
+### M29: Fix action misses (evaluate first)
+- In M28's Live B, `gpt-oss-120b` produced no usable popup for 22 of 52 action questions, mostly by calling `focus_window` first, and choose never got through (0 of 6).
+- Candidates, each with and without the rule (8 setups):
+  - the rule: `focus_window` is offered only when your message asks to see or switch to a window. It's decided by a fixed phrase list in the brain, since core never sees your message;
+  - `gpt-oss-120b`; `gpt-oss-20b`; `qwen/qwen3.8-27b` (Preview);
+  - Claude Sonnet 5.5 through Claude Code with only Pseudo's tools (`--strict-mcp-config --tools ""`), on the subscription, with a billing check before every launch.
+- Ruled out on paper: the Llama models and `minimax-m2.7` (not on Groq's free plan) and `gpt-oss-safeguard-20b` (a safety classifier).
+- **Test** (`tests/brain_action_cases.py`):
+  - Live B's 6 questions twice (spent, reported);
+  - a held-out set committed before any measurement: 18 action questions (3 per type), 4 switch questions and 2 read-only ones, on F1, F2 and a new fake order page (F5).
+  - Fake windows only. A recorder stands in for the popup and answers Cancel, and the window list shows only the test windows.
+- **Criteria, fixed in the plan (held-out set):**
+  - R1: the rule offers `focus_window` for 4 of 5 switch questions and withholds it for 23 of 24 action questions;
+  - U1: a usable popup on at least 16 of 18; U2: at least 2 of 3 per action type, choose included; U3: a focus popup on at most 1 of 18;
+  - W1: at most 1 wrong popup in 30; N1: no action popup on the 6 other questions; F1: switching works on 3 of 4;
+  - S1: at most 15 s median to the popup; T1: no Groq question over 8,000 tokens; B1: Claude billing clean every launch.
+  - Ties go to the setup that changes least: the rule on today's model, then another production Groq model, then Preview, then Claude, which would need D11 changed.
+- **Done when:** each setup is measured against the criteria, with a recommendation; the build is M30.
 
 ## 15. Backlog
 
