@@ -62,6 +62,7 @@ async def test_the_server_publishes_its_tools() -> None:
     assert all(t.annotations.read_only_hint is True and t.input_schema["properties"] == {} for t in readers)
     assert readers[0].description == LIST_OPEN_WINDOWS_DESCRIPTION
     assert action.annotations.read_only_hint is False  # (M10) an action, and it says so
+    assert "Only use it when the user asks to see or switch to a window" in action.description  # (M28 Live B)
     assert action.input_schema["required"] == ["window_id"] and list(action.input_schema["properties"]) == ["window_id"]
 
 

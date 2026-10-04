@@ -56,7 +56,8 @@ FOCUS_WINDOW_DESCRIPTION = (
     "Bring one of the user's windows to the front. Pass its id from list_open_windows (like "
     "'w3'); call list_open_windows first if you don't have a current id. The user must approve "
     "every call in a popup on their screen. If the status is 'not approved', nothing happened: "
-    "tell the user and don't retry unless they ask. Private apps can't be focused."
+    "tell the user and don't retry unless they ask. Private apps can't be focused. Only use it when "
+    "the user asks to see or switch to a window; reading and acting work without it."
 )
 SEARCH_MEMORIES_DESCRIPTION = (
     "Find up to 3 of the user's past tasks relevant to a question, from Pseudo's local memory. Each "
