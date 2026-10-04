@@ -5,7 +5,8 @@ Everything here is FAKE, and was committed BEFORE any measurement. The criteria 
 (PRD section 14) and are copied into CRITERIA below; nothing is tuned.
   F1   Pseudo's test form (tests/fixtures/m27_form.ps1)
   F2   the M27 fake page (tests/fixtures/m27_page.html), in Brave with a temporary profile
-  F5   the M29 fake order page (tests/fixtures/m29_page.html); its text fields start filled
+  F5   the M29 fake order page (tests/fixtures/m29_page.html); its text fields start filled. H5, H9 and H10
+       were reworded before any measurement, when F5's "Gift" labels were renamed (the redactor masked "Gift")
   LIVE_B     M28 Live B's 6 questions, word for word. SPENT: two tool descriptions were tuned on them.
              Asked LIVE_B_REPEATS times (n = 0, 1). Reported, never used to decide.
   HELD_OUT   18 new action questions, 3 per action type. These decide (U1-U3, W1).
@@ -63,16 +64,16 @@ HELD_OUT = [
     held("H3", "F5", "Button", "Reset choices", "press", "Undo my choices with the Reset choices button."),
     held("H4", "F5", "Edit", "Coupon code", "set_text",
          "Put 'SAVE10' in the coupon code box instead of what's there.", "SAVE10"),
-    held("H5", "F5", "Edit", "Gift message", "set_text",
-         "Change the gift message to 'Congratulations on the new job'.", "Congratulations on the new job"),
+    held("H5", "F5", "Edit", "Card message", "set_text",
+         "Change the card message to 'Congratulations on the new job'.", "Congratulations on the new job"),
     held("H6", "F5", "Edit", "Coupon code", "set_text", "Replace the coupon code with 'WELCOME5'.", "WELCOME5"),
     held("H7", "F5", "Edit", "Delivery instructions", "insert_text",
          "Add 'Ring the bell twice.' to the end of the delivery instructions.", "Ring the bell twice."),
     held("H8", "F5", "Edit", "Delivery instructions", "insert_text",
          "Append 'Call before coming' to the delivery instructions, keeping what's there.", "Call before coming"),
-    held("H9", "F5", "Edit", "Gift message", "insert_text",
-         "In the gift message, add 'From all of us' after the current text.", "From all of us"),
-    held("H10", "F5", "CheckBox", "Gift wrap", "toggle", "Turn on gift wrap."),
+    held("H9", "F5", "Edit", "Card message", "insert_text",
+         "In the card message, add 'From all of us' after the current text.", "From all of us"),
+    held("H10", "F5", "CheckBox", "Present wrapping", "toggle", "Turn on present wrapping."),
     held("H11", "F1", "CheckBox", "Send me reminders", "toggle", "Check the reminders box on the form."),
     held("H12", "F5", "CheckBox", "Text me updates", "toggle", "In the order page window, tick 'Text me updates'."),
     held("H13", "F5", "RadioButton", "Pay now", "select", "Switch the payment to Pay now."),
