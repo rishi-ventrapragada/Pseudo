@@ -133,7 +133,8 @@ pseudo_hands/
     redactor.py         redact(text): Presidio + spaCy, fail closed (M7)
     india_recognizers.py  +91 phone, Aadhaar, PAN, UPI, long-number patterns (M7)
     date_recognizers.py   birthday-shaped dates and ages by pattern; spaCy's date guesses are off (M19, D19)
-    finding_filters.py    code-shaped words are never names; weak vehicle-plate shapes ignored (M19, D19)
+    finding_filters.py    code-shaped words are never names; weak vehicle-plate shapes ignored (M19, D19);
+                          control ids are never names (M29)
     indian_names.txt      owner-editable list of common Indian first names and surnames (M20, D21)
     indian_names_large.txt  ~49,000 name words generated from Wikidata (CC0); never edited by hand (M22, D22)
     name_recognizers.py   masks listed names (Capitalized or ALL CAPS), initials, word + listed surname (M20);
