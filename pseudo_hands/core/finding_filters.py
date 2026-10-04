@@ -9,6 +9,8 @@ Why it can't release a real name:
   - a code in the MIDDLE of a finding leaves the whole finding masked;
   - "rahul99" and "Rahul99" are not code-shaped (lower-case, or 5+ letters), so they stay masked;
   - LOCATION is left alone: "B-204" next to a building name is part of an address.
+(M29) Pseudo's own control ids (c169, from read_active_window's outline) too: spaCy guessed some were
+people, which hid those controls from the model. An id contains digits, so the same argument holds.
 
 The second rule: Presidio's WEAK vehicle-plate shapes (1-3 letters + 4 digits, scored 0.01-0.2
 by Presidio itself) are ignored, because in practice they are course codes (MA2201, CSE1001).
@@ -21,8 +23,9 @@ import re
 from presidio_analyzer import RecognizerResult
 
 # 1-4 CAPITAL letters, an optional hyphen, then digits (M15, Q3, CS101, PSD-142, A-20931, ECE-2),
-# or digits, capitals, digits (21CS42). Matched case-sensitively, against a whole word.
-CODE_WORD = re.compile(r"[A-Z]{1,4}-?\d{1,6}[A-Z]?|\d{1,3}[A-Z]{1,4}\d{1,4}")
+# or digits, capitals, digits (21CS42), or (M29) a control id with its outline colon (c169, c169:).
+# Matched case-sensitively, against a whole word.
+CODE_WORD = re.compile(r"[A-Z]{1,4}-?\d{1,6}[A-Z]?|\d{1,3}[A-Z]{1,4}\d{1,4}|c\d{1,6}:?")
 NAME_LIKE = {"PERSON", "NRP"}  # spaCy's guesses at people and groups (NRP: nationality, religion, politics)
 WEAK_PLATE_SCORE = 0.4  # below this, a vehicle-plate finding is one of Presidio's weak shapes with no context
 
