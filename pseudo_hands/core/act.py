@@ -27,7 +27,7 @@ import win32gui
 from comtypes import COMError
 
 from pseudo_hands.core import action_rules, approval, control_ids
-from pseudo_hands.core.action_rules import ACTIONS, check_text, question
+from pseudo_hands.core.action_rules import ACTIONS, Action, check_text, question
 from pseudo_hands.core.active_window import AssistantAppsError, load_assistant_apps, pick_window
 from pseudo_hands.core.blocked_apps import is_blocked, load_blocked_apps
 from pseudo_hands.core.control_ids import ControlKey
@@ -111,7 +111,7 @@ def ticked(control: auto.Control) -> bool | None:
     return {0: False, 1: True}.get(box.ToggleState) if box is not None else None
 
 
-def act_on_control(control_id: str, action: str, text: str = "") -> ActResult:
+def act_on_control(control_id: str, action: Action, text: str = "") -> ActResult:
     """Do ONE action on one control from the latest read, if a person approves.
 
     Raises BlockedAppsError if the blocked-apps list can't be read (as focus_window does).

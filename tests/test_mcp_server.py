@@ -19,16 +19,18 @@ from pathlib import Path
 
 import pytest
 from mcp import Client, StdioServerParameters
+from test_act_on_control import world  # noqa: F401 - world is a pytest fixture (M28)
 
 from pseudo_hands.core import blocked_apps, focus
 from pseudo_hands.core.blocked_apps import RESTRICTED
 from pseudo_hands.core.windows import RawWindow, list_open_windows
-from pseudo_hands.mcp_server import LIST_OPEN_WINDOWS_DESCRIPTION, server
+from pseudo_hands.mcp_server import ACT_ON_CONTROL_DESCRIPTION, LIST_OPEN_WINDOWS_DESCRIPTION, server
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 PSEUDO_HANDS = REPO_ROOT / "pseudo_hands"
 SECRET_TITLE = "Vault: bank PIN 4321"
 ALL_TOOLS = ["list_open_windows", "read_active_window", "focus_window",  # M9 and M10 added one each
+             "act_on_control",  # M28
              "search_memories", "save_memory"]  # M24: brain-only (pseudo_brain hides them from the model)
 HANDLES = itertools.count(101)  # (M10) every fake window gets its own handle, so its own id
 
@@ -75,6 +77,26 @@ async def test_focus_window_over_mcp_goes_through_the_core_gate(desktop, popup_n
     assert result.structured_content == {"window_id": listed[1]["id"], "title": "notes.md - Notepad",
                                          "app": "notepad.exe", "status": "not approved"}
     assert len(popup_no.previews) == 1  # the (fake) person was asked, from inside core
+
+
+@pytest.mark.anyio
+async def test_act_on_control_is_published_with_its_seven_actions() -> None:  # (M28)
+    async with Client(server) as client:
+        tool = next(t for t in (await client.list_tools()).tools if t.name == "act_on_control")
+    properties = tool.input_schema["properties"]
+    assert tool.input_schema["required"] == ["control_id", "action"] and list(properties) == ["control_id", "action", "text"]
+    assert properties["action"]["enum"] == ["press", "set_text", "insert_text", "toggle", "select", "choose", "open"]
+    assert tool.annotations.read_only_hint is False and tool.annotations.destructive_hint is True
+    assert tool.description == ACT_ON_CONTROL_DESCRIPTION
+
+
+@pytest.mark.anyio
+async def test_act_on_control_over_mcp_goes_through_the_core_gate(world, popup_no) -> None:  # (M28)
+    control_id = world.id_for("save")
+    async with Client(server) as client:
+        result = await client.call_tool("act_on_control", {"control_id": control_id, "action": "press"})
+    assert result.structured_content == {"control_id": control_id, "action": "press", "status": "not approved"}
+    assert len(popup_no.previews) == 1 and world.calls() == []  # asked from inside core; nothing pressed
 
 
 # ---------- calling it: same result as the core, privacy intact ----------

@@ -19,6 +19,7 @@ Run it (normally the brain does this for you):
 from mcp.server import MCPServer
 from mcp.types import ToolAnnotations
 
+from pseudo_hands.core.act import act_on_control
 from pseudo_hands.core.active_window import read_active_window
 from pseudo_hands.core.focus import focus_window
 from pseudo_hands.core.memory import save_memory
@@ -36,7 +37,18 @@ READ_ACTIVE_WINDOW_DESCRIPTION = (
     "controls, one per line as 'Type: text', indented by nesting. Personal info is already "
     "replaced with labels like [PERSON] or [IN_PHONE]; never guess what they hide. Private apps "
     "return nothing. Long windows are cut short ('truncated': true). Use this when the user asks "
-    "about what is on their screen."
+    "about what is on their screen. Controls you can act on carry an id like '#c12' for "
+    "act_on_control; ids from earlier reads stop working."
+)
+ACT_ON_CONTROL_DESCRIPTION = (
+    "Do ONE thing to one control in the window read_active_window just read. control_id: its id from "
+    "the latest read, like 'c12'. action: 'press' (a button or link), 'set_text' (replace a field's "
+    "text), 'insert_text' (add text at the end), 'toggle' (a checkbox), 'select' (a radio button or "
+    "list item), 'choose' (an item of a dropdown: put the item's name in text), 'open' (a file in a "
+    "list). text: only for set_text, insert_text and choose. The user must approve every action in a "
+    "popup; if the status is 'not approved', nothing happened: say so and don't retry unless asked. "
+    "Text with masked labels like [PERSON] is refused: ask the user to type it. At most 4 actions "
+    "every 2 minutes."
 )
 FOCUS_WINDOW_DESCRIPTION = (
     "Bring one of the user's windows to the front. Pass its id from list_open_windows (like "
@@ -75,6 +87,13 @@ server.add_tool(
     description=FOCUS_WINDOW_DESCRIPTION,
     annotations=ToolAnnotations(read_only_hint=False, destructive_hint=False,
                                 idempotent_hint=True, open_world_hint=False),
+)
+server.add_tool(
+    act_on_control,  # M28: click and type. Refusals, the popup, the re-check and the read-back all run in core (D25).
+    name="act_on_control",
+    description=ACT_ON_CONTROL_DESCRIPTION,
+    annotations=ToolAnnotations(read_only_hint=False, destructive_hint=True,  # a press can delete or send
+                                idempotent_hint=False, open_world_hint=False),
 )
 server.add_tool(
     search_memories,  # M24: brain-only (pseudo_brain hides it from the model). Redacts again, caps, fails closed.

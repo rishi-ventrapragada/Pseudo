@@ -18,8 +18,11 @@ import threading
 import time
 from collections import deque
 from collections.abc import Callable
+from typing import Literal, get_args
 
-ACTIONS = ("press", "set_text", "insert_text", "toggle", "select", "choose", "open")
+# The type hint MCP turns into the tool's schema, so a model sees exactly these 7 choices.
+Action = Literal["press", "set_text", "insert_text", "toggle", "select", "choose", "open"]
+ACTIONS = get_args(Action)  # the same 7, for core's own check (a caller may skip the schema)
 TEXT_ACTIONS = ("set_text", "insert_text", "choose")  # the only actions that take text
 TEXT_MAX = 300
 NAME_MAX = 80  # a control's name in the popup
