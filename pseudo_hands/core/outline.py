@@ -10,6 +10,8 @@ browser and drop the page you asked about. So the page area goes first:
   - then everything else, in walk order (tabs, toolbars, title bar): what the cut drops first.
 No list of browsers is needed: any window with a Document gets the same rule. It's like
 putting <main> before <nav> when you can only send the first part of a page.
+
+Controls that can act carry their id: "Button #c12: Save" (control_ids.py, D25).
 """
 
 from pseudo_hands.core.ui_tree import Box, TreeLine
@@ -39,6 +41,9 @@ def page_first(lines: list[TreeLine], documents: list[Box]) -> list[TreeLine]:
     return head + [line for line in rest if inside(line, page)] + [line for line in rest if not inside(line, page)]
 
 
-def outline(lines: list[TreeLine]) -> str:
-    """One control per line as 'Kind: text', indented 2 spaces per level of nesting (M9)."""
-    return "\n".join(f"{'  ' * line.depth}{line.kind}: {line.text}" for line in lines)
+def outline(lines: list[TreeLine], ids: dict[int, str] | None = None) -> str:
+    """One control per line as 'Kind: text', indented 2 spaces per level of nesting (M9).
+    (M28) ids maps a line's position to its control id: 'Kind #c12: text'."""
+    ids = ids or {}
+    return "\n".join(f"{'  ' * line.depth}{line.kind}{' #' + ids[n] if n in ids else ''}: {line.text}"
+                     for n, line in enumerate(lines))

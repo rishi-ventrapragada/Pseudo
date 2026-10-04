@@ -20,6 +20,9 @@ claude.exe's whole read fail, every time.
 
 (M28) Each line also notes where its control's centre is on screen, and the walk
 notes every Document's rectangle, so outline.py can put a browser's page first.
+(M28) A control that can act (ui_actions.py) also notes what it can do, its runtime id
+(UI Automation's own number for this live control) and its raw name. They stay in
+pseudo_hands: act_on_control finds the control again by that number (control_ids.py).
 """
 
 import re
@@ -28,6 +31,8 @@ from dataclasses import dataclass, field
 
 import uiautomation as auto
 from comtypes import COMError  # how UI Automation says "I can't answer" (e.g. the element is gone)
+
+from pseudo_hands.core.ui_actions import actions_of, name_of
 
 MAX_DEPTH = 30
 MAX_CONTROLS = 400
@@ -47,6 +52,9 @@ class TreeLine:
     kind: str  # "Button", "Document", ... (UIA's ControlTypeName without "Control")
     text: str
     center: tuple[int, int] | None = None  # (M28) where the control's centre is on screen; None = no size
+    actions: frozenset[str] = frozenset()  # (M28) what it can do; empty = it gets no id
+    runtime_id: tuple[int, ...] = ()  # (M28) only for controls that can act
+    name: str = ""  # (M28) its raw name, for the popup and the "changed" check; never sent to a model
 
 
 @dataclass
@@ -124,14 +132,18 @@ def walk(root: auto.Control) -> TreeRead:
                 continue
             kind = control.ControlTypeName.removesuffix("Control")
             text = control_line(control, kind)  # a password box whose IsPassword fails stops HERE, unread
-            box = box_of(control) if text or kind == "Document" else None  # (M28) only when it's used
+            actions = actions_of(control, kind)  # (M28) never reads a value
+            name = name_of(control) if actions else ""
+            text = text or clean(name, NAME_CHARS)  # (M28) an unnamed button is named by its inner text
+            runtime_id = tuple(control.GetRuntimeId()) if actions else ()
+            box = box_of(control) if text or actions or kind == "Document" else None  # (M28) only when used
             children = control.GetChildren() if depth < MAX_DEPTH else []
             deeper = depth >= MAX_DEPTH and control.GetFirstChildControl() is not None
         except COMError:  # it vanished or won't answer: skip it and everything inside it, like off-screen
             skipped += 1
             continue  # nothing half-read is kept: its line is only added below, after every call worked
-        if text:
-            lines.append(TreeLine(depth, kind, text, middle(box)))
+        if text or actions:
+            lines.append(TreeLine(depth, kind, text, middle(box), actions, runtime_id, name))
             chars += len(text)
         if kind == "Document" and depth > 0 and box is not None:
             documents.append(box)

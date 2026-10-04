@@ -1,89 +1,16 @@
-"""Tests for M12: the UI tree walk skips a control that fails and keeps going.
+"""Tests for the UI tree walk: M12 skips a control that fails and keeps going; M28 goes deeper,
+notes positions, and notes what each control can do.
 
-Every tree here is FAKE: FakeControl stands in for a uiautomation Control and
-raises the same COMError real UI Automation raises when an element vanishes
-(0x80040201, UIA_E_ELEMENTNOTAVAILABLE, the error M11 found in claude.exe).
-No real window is read.
+Every tree here is FAKE (tests/uia_fakes.py): FakeControl stands in for a uiautomation Control
+and raises the same COMError real UI Automation raises when an element vanishes (0x80040201,
+UIA_E_ELEMENTNOTAVAILABLE, the error M11 found in claude.exe). No real window is read.
 """
 
 import pytest
-from comtypes import COMError
+from uia_fakes import P, FakeControl, FakePattern
 
 from pseudo_hands.core import ui_tree
 from pseudo_hands.core.ui_tree import TreeRead, walk
-
-ELEMENT_NOT_AVAILABLE = -2147220991  # 0x80040201 as a signed 32-bit number, the way COM reports it
-
-
-def gone() -> COMError:
-    return COMError(ELEMENT_NOT_AVAILABLE, "element not available", (None, None, None, 0, None))
-
-
-class FakeRect:
-    """(M28) Like uiautomation's Rect: a rectangle on screen."""
-
-    def __init__(self, left: int, top: int, right: int, bottom: int) -> None:
-        self.left, self.top, self.right, self.bottom = left, top, right, bottom
-
-    def width(self) -> int:
-        return self.right - self.left
-
-    def height(self) -> int:
-        return self.bottom - self.top
-
-
-class FakeControl:
-    """A fake UI Automation control.
-
-    fail="props"    every question raises, like a control that vanished mid-read
-    fail="children" only GetChildren() raises
-    fail="password" only IsPassword raises
-    box             (M28) its rectangle on screen: left, top, right, bottom
-    GetPattern (reading a control's value) fails the test if it's ever called.
-    """
-
-    def __init__(self, name: str = "", kind: str = "Text", children: tuple = (), *,
-                 fail: str | None = None, offscreen: bool = False, box: tuple = (0, 0, 100, 20)) -> None:
-        self._name, self._kind, self._children = name, kind, list(children)
-        self._fail, self._offscreen, self._box = fail, offscreen, box
-
-    @property
-    def BoundingRectangle(self) -> FakeRect:
-        return self._answer(FakeRect(*self._box))
-
-    def _answer(self, value: object) -> object:
-        if self._fail == "props":
-            raise gone()
-        return value
-
-    @property
-    def Name(self) -> str:
-        return self._answer(self._name)
-
-    @property
-    def ControlTypeName(self) -> str:
-        return self._answer(f"{self._kind}Control")
-
-    @property
-    def IsOffscreen(self) -> bool:
-        return self._answer(self._offscreen)
-
-    @property
-    def IsPassword(self) -> bool:
-        if self._fail == "password":
-            raise gone()
-        return self._answer(False)
-
-    def GetChildren(self) -> list["FakeControl"]:
-        if self._fail == "children":
-            raise gone()
-        return self._answer(self._children)
-
-    def GetFirstChildControl(self) -> "FakeControl | None":
-        return self._children[0] if self._children else None
-
-    def GetPattern(self, _pattern_id: int) -> None:
-        raise AssertionError("this control's value must never be read")
 
 
 def texts(read: TreeRead) -> list[str]:
@@ -116,7 +43,7 @@ def test_a_control_whose_children_cant_be_listed_is_dropped_whole() -> None:
 
 
 def test_a_password_box_whose_check_fails_is_skipped_never_read() -> None:
-    read = walk(window(FakeControl("Password", "Edit", fail="password")))  # GetPattern would fail the test
+    read = walk(window(FakeControl("Password", "Edit", fail="password")))
     assert texts(read) == ["Fake window"] and read.skipped == 1
 
 
@@ -180,13 +107,43 @@ def test_each_line_notes_its_controls_centre_and_no_size_means_nowhere() -> None
     assert [(line.text, line.center) for line in read.lines[1:]] == [("Save", (60, 30)), ("Ghost", None)]
 
 
-class FakeDocument(FakeControl):
-    def GetPattern(self, _pattern_id: int) -> None:
-        return None  # no value and no text pattern: an empty document
-
-
 def test_documents_below_the_window_are_noted_with_their_rectangles() -> None:
-    page = FakeDocument("", "Document", (FakeControl("Fake page text", box=(50, 150, 300, 170)),), box=(0, 100, 800, 600))
-    read = walk(FakeDocument("Fake browser", "Document", (page,), box=(0, 0, 800, 600)))  # depth 0 is not a page
+    page = FakeControl("", "Document", (FakeControl("Fake page text", box=(50, 150, 300, 170)),), box=(0, 100, 800, 600))
+    read = walk(FakeControl("Fake browser", "Document", (page,), box=(0, 0, 800, 600)))  # depth 0 is not a page
     assert read.documents == [(0, 100, 800, 600)]
     assert texts(read) == ["Fake browser", "Fake page text"]  # an unnamed Document still adds no line
+
+
+# ---------- M28: what each control can do ----------
+
+def test_a_control_that_can_act_notes_its_actions_runtime_id_and_raw_name() -> None:
+    save = FakeControl("Save fake draft", "Button", patterns={P.InvokePattern: FakePattern()}, runtime_id=(42, 7))
+    line = walk(window(save)).lines[1]
+    assert (line.actions, line.runtime_id, line.name) == (frozenset({"press", "open"}), (42, 7), "Save fake draft")
+
+
+def test_controls_that_cannot_act_and_containers_note_nothing() -> None:
+    pane = FakeControl("Fake pane", "Pane", patterns={P.InvokePattern: FakePattern()}, runtime_id=(1,))
+    read = walk(window(pane, FakeControl("Plain text")))
+    assert [(line.actions, line.runtime_id, line.name) for line in read.lines] == [(frozenset(), (), "")] * 3
+
+
+def test_an_unnamed_button_is_named_by_the_text_inside_it() -> None:  # M27: Obsidian's buttons
+    button = FakeControl("", "Group", (FakeControl("", "Image"), FakeControl("New fake note")),
+                         patterns={P.LegacyIAccessiblePattern: FakePattern(DefaultAction="Press")})
+    line = walk(window(button)).lines[1]
+    assert (line.kind, line.text, line.name, line.actions) == ("Group", "New fake note", "New fake note",
+                                                              frozenset({"press", "open"}))
+
+
+def test_a_control_that_can_act_gets_a_line_even_with_no_name_at_all() -> None:
+    read = walk(window(FakeControl("", "Button", patterns={P.InvokePattern: FakePattern()})))
+    assert [(line.kind, line.text) for line in read.lines] == [("Window", "Fake window"), ("Button", "")]
+
+
+def test_a_password_fields_value_is_never_read_even_though_it_can_act() -> None:
+    value = FakePattern(value="fake-pass-123")
+    box = FakeControl("Portal password", "Edit", patterns={P.ValuePattern: value}, password=True)
+    line = walk(window(box)).lines[1]
+    assert line.text == "Portal password = [password field]" and "set_text" in line.actions
+    assert value.value_reads == 0  # act_on_control refuses it later; the read never touches its value

@@ -17,6 +17,8 @@ in core, before anything is returned (D6, D11):
   6. (M28) Pseudo's own windows, such as the approval popup, are never read (D14).
   7. (M28) A browser's page area goes first, so the 1,200-character cut drops the
      browser's own controls before the page (outline.py).
+  8. (M28) Controls that can act get ids ("Button #c12: Save") for act_on_control. Only
+     the ids still in the content after the cut work (control_ids.py).
 """
 
 import os
@@ -24,10 +26,12 @@ import time
 from pathlib import Path
 from typing import TypedDict
 
+from pseudo_hands.core import control_ids
 from pseudo_hands.core.blocked_apps import RESTRICTED, is_blocked, load_blocked_apps, parse_blocked_apps
+from pseudo_hands.core.control_ids import ControlKey, shown_ids
 from pseudo_hands.core.outline import outline, page_first
 from pseudo_hands.core.redactor import RedactionError, redact
-from pseudo_hands.core.ui_tree import TreeRead, read_tree
+from pseudo_hands.core.ui_tree import TreeLine, TreeRead, read_tree
 from pseudo_hands.core.windows import RawWindow, is_user_window, read_all_windows, safe_title
 
 ASSISTANT_APPS_FILE = Path(__file__).resolve().parent / "assistant_apps.txt"  # (M18) the face, Hermes, the Claude app
@@ -135,18 +139,31 @@ def read_window(raw: RawWindow, blocked: set[str]) -> WindowContent:
     if not tree.lines:
         return result(title, app, truncated=tree.truncated, controls_read=tree.controls_read,
                       note="no readable controls")
-    try:  # whole outline first, THEN cut (never half a secret); (M28) the page area first
-        redacted = redact(outline(page_first(tree.lines, tree.documents)))
+    lines = page_first(tree.lines, tree.documents)  # (M28) the page area first
+    ids = {n: control_ids.registry.new_id() for n, line in enumerate(lines) if line.actions}
+    try:  # whole outline first, THEN cut (never half a secret)
+        redacted = redact(outline(lines, ids))
     except RedactionError:
         return result(title, app, CONTENT_WITHHELD, tree.truncated, tree.controls_read,
                       note="redaction failed: content withheld")
     content, was_cut = cap(redacted, MAX_CONTENT_CHARS)
+    keep_shown_ids(raw, lines, ids, content)
     return result(title, app, content, tree.truncated or was_cut, tree.controls_read,
                   success_note(settle_note, tree.skipped))
 
 
+def keep_shown_ids(raw: RawWindow, lines: list[TreeLine], ids: dict[int, str], content: str) -> None:
+    """(M28) Only the ids the model will actually see work: ids cut off by the cap never do."""
+    shown = shown_ids(content)
+    control_ids.registry.replace({
+        cid: ControlKey(raw.handle, raw.process_id, lines[n].runtime_id, lines[n].kind, lines[n].name)
+        for n, cid in ids.items() if cid in shown})
+
+
 def read_active_window() -> WindowContent:
-    """Read-only. Raises BlockedAppsError if the blocked-apps list is missing (as in M4)."""
+    """Read-only. Raises BlockedAppsError if the blocked-apps list is missing (as in M4).
+    (M28) Every call first retires the last read's control ids; only a successful read hands out new ones."""
+    control_ids.registry.replace({})
     blocked = load_blocked_apps()
     try:
         raw = pick_window()
