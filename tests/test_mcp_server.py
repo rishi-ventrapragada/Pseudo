@@ -88,6 +88,7 @@ async def test_act_on_control_is_published_with_its_seven_actions() -> None:  # 
     assert properties["action"]["enum"] == ["press", "set_text", "insert_text", "toggle", "select", "choose", "open"]
     assert tool.annotations.read_only_hint is False and tool.annotations.destructive_hint is True
     assert tool.description == ACT_ON_CONTROL_DESCRIPTION
+    assert "doesn't need to be in front, so don't call focus_window first" in tool.description  # (M28 Live B)
 
 
 @pytest.mark.anyio

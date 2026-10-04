@@ -41,7 +41,9 @@ READ_ACTIVE_WINDOW_DESCRIPTION = (
     "act_on_control; ids from earlier reads stop working."
 )
 ACT_ON_CONTROL_DESCRIPTION = (
-    "Do ONE thing to one control in the window read_active_window just read. control_id: its id from "
+    "Do ONE thing to one control in the window read_active_window just read. It acts on the window "
+    "read_active_window reads (the one the user was on before switching to this assistant); that "
+    "window doesn't need to be in front, so don't call focus_window first. control_id: its id from "
     "the latest read, like 'c12'. action: 'press' (a button or link), 'set_text' (replace a field's "
     "text), 'insert_text' (add text at the end), 'toggle' (a checkbox), 'select' (a radio button or "
     "list item), 'choose' (an item of a dropdown: put the item's name in text), 'open' (a file in a "
