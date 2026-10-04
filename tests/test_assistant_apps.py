@@ -28,6 +28,7 @@ def screen(monkeypatch: pytest.MonkeyPatch, tmp_path: Path):
     (tmp_path / "terms.txt").write_text("# none\n", encoding="utf-8")
     monkeypatch.setattr(blocked_apps, "BLOCKED_APPS_FILE", tmp_path / "blocked.txt")
     monkeypatch.setattr(redactor, "TERMS_FILE", tmp_path / "terms.txt")
+    monkeypatch.setattr(active_window, "SETTLE_WAIT_SECONDS", 0)  # (M28) reads repeat until they settle
     reads: list[int] = []
 
     def fake_read_tree(handle: int) -> TreeRead:
@@ -81,4 +82,4 @@ def test_with_the_face_in_front_the_notes_behind_it_are_read(screen) -> None:
     """The M18 case: you were on your notes, then switched to the face (electron.exe) to ask."""
     reads = screen([window("electron.exe", 7), window("notepad.exe", 101)], "electron.exe\n")
     result = read_active_window()
-    assert result["app"] == "notepad.exe" and "BLUE" in result["content"] and reads == [101]
+    assert result["app"] == "notepad.exe" and "BLUE" in result["content"] and set(reads) == {101}

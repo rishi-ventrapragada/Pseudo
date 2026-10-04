@@ -19,19 +19,37 @@ def gone() -> COMError:
     return COMError(ELEMENT_NOT_AVAILABLE, "element not available", (None, None, None, 0, None))
 
 
+class FakeRect:
+    """(M28) Like uiautomation's Rect: a rectangle on screen."""
+
+    def __init__(self, left: int, top: int, right: int, bottom: int) -> None:
+        self.left, self.top, self.right, self.bottom = left, top, right, bottom
+
+    def width(self) -> int:
+        return self.right - self.left
+
+    def height(self) -> int:
+        return self.bottom - self.top
+
+
 class FakeControl:
     """A fake UI Automation control.
 
     fail="props"    every question raises, like a control that vanished mid-read
     fail="children" only GetChildren() raises
     fail="password" only IsPassword raises
+    box             (M28) its rectangle on screen: left, top, right, bottom
     GetPattern (reading a control's value) fails the test if it's ever called.
     """
 
     def __init__(self, name: str = "", kind: str = "Text", children: tuple = (), *,
-                 fail: str | None = None, offscreen: bool = False) -> None:
+                 fail: str | None = None, offscreen: bool = False, box: tuple = (0, 0, 100, 20)) -> None:
         self._name, self._kind, self._children = name, kind, list(children)
-        self._fail, self._offscreen = fail, offscreen
+        self._fail, self._offscreen, self._box = fail, offscreen, box
+
+    @property
+    def BoundingRectangle(self) -> FakeRect:
+        return self._answer(FakeRect(*self._box))
 
     def _answer(self, value: object) -> object:
         if self._fail == "props":
@@ -133,5 +151,42 @@ def test_an_offscreen_control_and_its_children_are_skipped_but_not_counted_as_fa
 
 
 def test_the_control_budget_still_truncates() -> None:
-    read = walk(window(*(FakeControl(f"Row {i}") for i in range(300))))
+    read = walk(window(*(FakeControl(f"Row {i}") for i in range(500))))
     assert read.truncated and read.controls_read == ui_tree.MAX_CONTROLS and read.skipped == 0
+
+
+# ---------- M28: deeper, and where each control is ----------
+
+def nested(levels: int) -> FakeControl:
+    """A window with one chain of Groups `levels` deep, a "Deep" text at the bottom."""
+    control = FakeControl("Deep")
+    for level in range(levels - 1, 0, -1):
+        control = FakeControl(f"Level {level}", "Group", (control,))
+    return window(control)
+
+
+def test_controls_as_deep_as_vs_codes_are_read() -> None:
+    read = walk(nested(28))  # M27: VS Code's controls sit at depth 22-28
+    assert read.lines[-1].text == "Deep" and read.lines[-1].depth == 28 and not read.truncated
+
+
+def test_controls_beyond_depth_30_mark_the_read_truncated() -> None:
+    read = walk(nested(32))
+    assert "Deep" not in texts(read) and read.truncated and max(line.depth for line in read.lines) == 30
+
+
+def test_each_line_notes_its_controls_centre_and_no_size_means_nowhere() -> None:
+    read = walk(window(FakeControl("Save", "Button", box=(10, 20, 110, 40)), FakeControl("Ghost", box=(5, 5, 5, 5))))
+    assert [(line.text, line.center) for line in read.lines[1:]] == [("Save", (60, 30)), ("Ghost", None)]
+
+
+class FakeDocument(FakeControl):
+    def GetPattern(self, _pattern_id: int) -> None:
+        return None  # no value and no text pattern: an empty document
+
+
+def test_documents_below_the_window_are_noted_with_their_rectangles() -> None:
+    page = FakeDocument("", "Document", (FakeControl("Fake page text", box=(50, 150, 300, 170)),), box=(0, 100, 800, 600))
+    read = walk(FakeDocument("Fake browser", "Document", (page,), box=(0, 0, 800, 600)))  # depth 0 is not a page
+    assert read.documents == [(0, 100, 800, 600)]
+    assert texts(read) == ["Fake browser", "Fake page text"]  # an unnamed Document still adds no line
