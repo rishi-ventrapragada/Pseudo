@@ -10,7 +10,7 @@ import pytest
 from uia_fakes import P, FakeControl, FakePattern
 
 from pseudo_hands.core import ui_tree
-from pseudo_hands.core.ui_tree import TreeRead, walk
+from pseudo_hands.core.ui_tree import TreeRead, search, walk
 
 
 def texts(read: TreeRead) -> list[str]:
@@ -147,3 +147,26 @@ def test_a_password_fields_value_is_never_read_even_though_it_can_act() -> None:
     line = walk(window(box)).lines[1]
     assert line.text == "Portal password = [password field]" and "set_text" in line.actions
     assert value.value_reads == 0  # act_on_control refuses it later; the read never touches its value
+
+
+# ---------- M28: finding a control again by its runtime id ----------
+
+def test_a_control_is_found_again_by_its_runtime_id() -> None:
+    target = FakeControl("Subject", "Edit", runtime_id=(42, 2))
+    tree = window(FakeControl("Group", "Group", (FakeControl("Other", runtime_id=(42, 1)), target)))
+    assert search(tree, (42, 2)) is target and search(tree, (42, 9)) is None
+
+
+def bottom_of(tree: FakeControl) -> FakeControl:
+    while tree.GetChildren():
+        tree = tree.GetChildren()[0]
+    return tree
+
+
+def test_finding_skips_hidden_vanished_and_too_deep_controls() -> None:
+    hidden = FakeControl("Hidden", "Group", (FakeControl("x", runtime_id=(1,)),), offscreen=True)
+    vanished = FakeControl("Gone", runtime_id=(2,), fail="props")
+    assert search(window(hidden, vanished), (1,)) is None and search(window(hidden, vanished), (2,)) is None
+    reachable, too_deep = nested(28), nested(32)
+    bottom_of(reachable).runtime_id = bottom_of(too_deep).runtime_id = (3,)
+    assert search(reachable, (3,)) is bottom_of(reachable) and search(too_deep, (3,)) is None

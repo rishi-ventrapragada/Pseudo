@@ -151,3 +151,31 @@ def walk(root: auto.Control) -> TreeRead:
             truncated = True  # deeper controls exist but are beyond the depth limit
         stack.extend((child, depth + 1) for child in reversed(children))
     return TreeRead(lines, truncated, count, skipped, documents)
+
+
+def find_control(handle: int, runtime_id: tuple[int, ...]) -> auto.Control | None:
+    """(M28) The live control with this runtime id in that window, or None. act_on_control uses it
+    to find the control again instead of keeping one from the read: COM objects belong to the
+    thread that set COM up, and each MCP tool call may run on a different worker thread. The
+    caller sets up COM itself and must use the control before it leaves that block."""
+    root = auto.ControlFromHandle(handle)
+    return None if root is None or not runtime_id else search(root, runtime_id)
+
+
+def search(root: auto.Control, runtime_id: tuple[int, ...]) -> auto.Control | None:
+    """(M28) find_control's walk, with walk()'s rules: depth, budget, off-screen skipped.
+    Takes any control-like object, so tests can pass fake trees."""
+    started, stack, seen = time.monotonic(), [(root, 0)], 0
+    while stack and seen < MAX_CONTROLS and time.monotonic() - started < TIME_BUDGET_SECONDS:
+        control, depth = stack.pop()
+        seen += 1
+        try:
+            if depth > 0 and control.IsOffscreen:
+                continue
+            if tuple(control.GetRuntimeId()) == runtime_id:
+                return control
+            children = control.GetChildren() if depth < MAX_DEPTH else []
+        except COMError:  # a vanished control can't be the one we want; keep looking
+            continue
+        stack.extend((child, depth + 1) for child in reversed(children))
+    return None
