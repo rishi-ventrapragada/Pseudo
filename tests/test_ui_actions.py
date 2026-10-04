@@ -114,7 +114,22 @@ def test_set_text_replaces_and_insert_text_appends() -> None:
     assert value.Value == "Lab report draft (v2)" and value.calls[0] == ("SetValue", "Lab report draft", 0)
 
 
-def test_a_read_back_that_differs_is_reported_honestly() -> None:
+class Late(FakePattern):
+    """An app like Chromium (M28 Live A): the new value shows up a moment after the change."""
+
+    @property
+    def Value(self) -> str:
+        self.value_reads += 1
+        return self._value if self.value_reads > 3 else "old fake value"
+
+
+def test_a_value_that_shows_up_a_moment_later_still_reads_back_as_done() -> None:
+    late = Late()
+    assert perform(control("Edit", ValuePattern=late), "set_text", "Fake") == DONE and late.value_reads == 4
+
+
+def test_a_read_back_that_differs_is_reported_honestly(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(ui_actions, "READ_BACK_SECONDS", 0.05)  # keeps asking this long, then gives up
     assert perform(control("Edit", ValuePattern=Stubborn()), "set_text", "Fake") == DIFFERS
     assert perform(control("ListItem", SelectionItemPattern=Stubborn()), "select") == DIFFERS
 

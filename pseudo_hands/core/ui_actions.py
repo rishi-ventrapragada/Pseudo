@@ -26,6 +26,8 @@ from comtypes import COMError
 P = auto.PatternId
 WAIT = 0  # uiautomation waits 0.5 s after every pattern call by default; Pseudo doesn't need to (M27 v1: 510 ms)
 CHOOSE_WAIT_SECONDS = 0.3  # a dropdown fills its list a moment after it opens (M27 prototype)
+READ_BACK_SECONDS = 1.0  # Chromium shows a new value ~20 ms after the change (M28 Live A): read back until then
+READ_BACK_POLL = 0.02
 DONE = "done"
 DIFFERS = "done, but the read-back differs: check the window"
 PRESSED = "pressed"
@@ -75,6 +77,17 @@ def name_of(control: auto.Control) -> str:
 
 # ---------- acting (act.py calls this only after every check and an approved popup) ----------
 
+def reads_back(check) -> bool:
+    """True as soon as `check()` is; keeps asking for up to READ_BACK_SECONDS. Apps like Chromium
+    update what UI Automation reports a moment after a change, so one immediate look can be too early."""
+    deadline = time.monotonic() + READ_BACK_SECONDS
+    while not check():
+        if time.monotonic() >= deadline:
+            return False
+        time.sleep(READ_BACK_POLL)
+    return True
+
+
 def perform(control: auto.Control, action: str, text: str = "") -> str:
     """Do one action through its pattern, then read the effect back. Returns a status above."""
     if action == "press" or (action == "open" and presses(control)):
@@ -112,7 +125,7 @@ def select(control: auto.Control) -> str:
     if item is None:
         return UNAVAILABLE
     item.Select(waitTime=WAIT)
-    return DONE if item.IsSelected else DIFFERS
+    return DONE if reads_back(lambda: item.IsSelected) else DIFFERS
 
 
 def toggle(control: auto.Control) -> str:
@@ -121,7 +134,7 @@ def toggle(control: auto.Control) -> str:
         return UNAVAILABLE
     before = box.ToggleState
     box.Toggle(waitTime=WAIT)
-    return DONE if box.ToggleState != before else DIFFERS
+    return DONE if reads_back(lambda: box.ToggleState != before) else DIFFERS
 
 
 def type_text(control: auto.Control, action: str, text: str) -> str:
@@ -131,7 +144,7 @@ def type_text(control: auto.Control, action: str, text: str) -> str:
         return UNAVAILABLE
     wanted = text if action == "set_text" else (value.Value or "") + text
     value.SetValue(wanted, waitTime=WAIT)
-    return DONE if value.Value == wanted else DIFFERS
+    return DONE if reads_back(lambda: value.Value == wanted) else DIFFERS
 
 
 def choose(combo: auto.Control, wanted: str) -> str:
@@ -153,8 +166,8 @@ def choose(combo: auto.Control, wanted: str) -> str:
     if picked is None:
         return NO_ITEM
     value = combo.GetPattern(P.ValuePattern)
-    shown = value.Value if value is not None else None
-    return DONE if shown == wanted or (shown is None and picked.IsSelected) else DIFFERS
+    chosen = (lambda: value.Value == wanted) if value is not None else (lambda: picked.IsSelected)
+    return DONE if reads_back(chosen) else DIFFERS
 
 
 def find_item(combo: auto.Control, wanted: str) -> auto.Control | None:
