@@ -1,0 +1,46 @@
+<!doctype html>
+<!--
+  M29 fake order page (F4). Every name, code and message here is FAKE. Opened from disk in Brave with a
+  temporary profile; it loads nothing from the network. Its text fields start FILLED, so a question asks for
+  exactly one right action (set_text replaces, insert_text adds at the end). The buttons and the link show
+  their effect in the Status line; every other control shows it in its own value. Kept short, so the page fits inside
+  read_active_window's 1,200-character cut. Committed before any measurement (M29).
+-->
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline'">
+  <title>Pseudo M29 fake order page</title>
+  <style>
+    body { font: 16px "Segoe UI", sans-serif; margin: 24px; max-width: 720px; }
+    label, button, input, select, textarea, a { display: block; margin: 8px 0; font: inherit; }
+  </style>
+</head>
+<body>
+  <h1>Pseudo M29 fake order page (all data is fake)</h1>
+  <p id="status" role="status" aria-label="Status">Status: nothing done yet (fake)</p>
+
+  <button onclick="setStatus('Status: coupon applied (fake)')">Apply coupon</button>
+  <button onclick="setStatus('Status: choices reset (fake)')">Reset choices</button>
+  <a href="#delivery" onclick="setStatus('Status: delivery options shown (fake)')">Show delivery options</a>
+  <input aria-label="Coupon code" value="WINTER5">
+  <input aria-label="Gift message" value="Enjoy your gift (fake)">
+  <textarea aria-label="Delivery instructions" rows="2">Leave at the gate (fake).</textarea>
+  <label><input type="checkbox"> Gift wrap</label>
+  <label><input type="checkbox"> Text me updates</label>
+  <label><input type="radio" name="pay" checked> Pay on delivery</label>
+  <label><input type="radio" name="pay"> Pay now</label>
+  <label><input type="radio" name="pay"> Pay by card</label>
+  <select aria-label="Shipping speed">
+    <option>Standard</option><option>Express</option><option>Overnight</option>
+  </select>
+  <input aria-label="Sentinel (never changes)" value="SENTINEL-43">
+
+  <h2 id="delivery">Delivery options</h2>
+  <p>Fake delivery: Standard in 5 days, Express in 2, Overnight next morning.</p>
+
+  <script>
+    function setStatus(text) { document.getElementById('status').textContent = text; }
+  </script>
+</body>
+</html>
