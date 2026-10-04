@@ -128,22 +128,28 @@ def test_controls_that_cannot_act_and_containers_note_nothing() -> None:
     assert [(line.actions, line.runtime_id, line.name) for line in read.lines] == [(frozenset(), (), "")] * 3
 
 
+def test_a_control_without_a_runtime_id_gets_no_id_and_stays_plain_text() -> None:  # M28 Live A: WinForms list items
+    item = FakeControl("MA102", "ListItem", patterns={P.SelectionItemPattern: FakePattern()}, runtime_id=())
+    line = walk(window(item)).lines[1]
+    assert (line.kind, line.text, line.actions, line.runtime_id, line.name) == ("ListItem", "MA102", frozenset(), (), "")
+
+
 def test_an_unnamed_button_is_named_by_the_text_inside_it() -> None:  # M27: Obsidian's buttons
     button = FakeControl("", "Group", (FakeControl("", "Image"), FakeControl("New fake note")),
-                         patterns={P.LegacyIAccessiblePattern: FakePattern(DefaultAction="Press")})
+                         patterns={P.LegacyIAccessiblePattern: FakePattern(DefaultAction="Press")}, runtime_id=(42, 8))
     line = walk(window(button)).lines[1]
     assert (line.kind, line.text, line.name, line.actions) == ("Group", "New fake note", "New fake note",
                                                               frozenset({"press", "open"}))
 
 
 def test_a_control_that_can_act_gets_a_line_even_with_no_name_at_all() -> None:
-    read = walk(window(FakeControl("", "Button", patterns={P.InvokePattern: FakePattern()})))
+    read = walk(window(FakeControl("", "Button", patterns={P.InvokePattern: FakePattern()}, runtime_id=(42, 9))))
     assert [(line.kind, line.text) for line in read.lines] == [("Window", "Fake window"), ("Button", "")]
 
 
 def test_a_password_fields_value_is_never_read_even_though_it_can_act() -> None:
     value = FakePattern(value="fake-pass-123")
-    box = FakeControl("Portal password", "Edit", patterns={P.ValuePattern: value}, password=True)
+    box = FakeControl("Portal password", "Edit", patterns={P.ValuePattern: value}, password=True, runtime_id=(42, 4))
     line = walk(window(box)).lines[1]
     assert line.text == "Portal password = [password field]" and "set_text" in line.actions
     assert value.value_reads == 0  # act_on_control refuses it later; the read never touches its value

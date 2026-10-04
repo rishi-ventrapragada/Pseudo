@@ -133,9 +133,11 @@ def walk(root: auto.Control) -> TreeRead:
             kind = control.ControlTypeName.removesuffix("Control")
             text = control_line(control, kind)  # a password box whose IsPassword fails stops HERE, unread
             actions = actions_of(control, kind)  # (M28) never reads a value
+            runtime_id = tuple(control.GetRuntimeId()) if actions else ()
+            if not runtime_id:  # (M28 Live A) e.g. Windows Forms list items: no way to find and check it
+                actions = frozenset()  # again after the popup, so it gets no id and is listed as plain text
             name = name_of(control) if actions else ""
             text = text or clean(name, NAME_CHARS)  # (M28) an unnamed button is named by its inner text
-            runtime_id = tuple(control.GetRuntimeId()) if actions else ()
             box = box_of(control) if text or actions or kind == "Document" else None  # (M28) only when used
             children = control.GetChildren() if depth < MAX_DEPTH else []
             deeper = depth >= MAX_DEPTH and control.GetFirstChildControl() is not None
