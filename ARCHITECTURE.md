@@ -140,13 +140,23 @@ pseudo_hands/
                           looks words up in a set built from both lists (M22)
     redaction_terms.txt   owner's private terms (gitignored; .example committed) (M7)
     allowed_names.txt   app/site names never masked (M8)
-    ui_tree.py          walk a window's UI Automation tree -> raw lines (M9); skips failing controls (M12)
-    active_window.py    read_active_window(): pick window, block, redact, cap (M9); retries once (M12);
-                        skips the apps in assistant_apps.txt, so it reads the window you were on (M18)
+    ui_tree.py          walk a window's UI Automation tree -> raw lines (M9); skips failing controls (M12);
+                        depth 30, 400 controls; notes what each control can do; finds a control again by
+                        its runtime id (M28)
+    outline.py          the outline the model sees: a browser's page area first, "#c12" ids on controls
+                        you can act on (M28)
+    control_ids.py      short ids for controls ("c12"); only the latest read's shown ids work (M28, D25)
+    active_window.py    read_active_window(): pick window, block, redact, cap (M9);
+                        skips the apps in assistant_apps.txt, so it reads the window you were on (M18);
+                        reads again until the line count settles (replacing M12's single retry), never
+                        reads Pseudo's own windows (M28)
     assistant_apps.txt  owner-editable list of assistant .exe names (the face, Claude, Hermes) (M18)
     window_ids.py       short ids ("w3") for listed windows, never reused (M10)
     approval.py         the approval gate: native popup, always on top, default no (D13, M10, P7-fix)
     focus.py            focus_window(): validate id, block, ask, act (M10)
+    ui_actions.py       what a control can do (its patterns), act, read back (M28)
+    action_rules.py     text rules, the popup's text, at most 4 action popups per 2 minutes (M28, D25)
+    act.py              act_on_control(): refusals, popup, re-check, act, read back (M28, D25)
     memory.py           save_memory(): redact the task, ask in the popup, write a NEW note to
                         %LOCALAPPDATA%\Pseudo\memory\tasks (links refused) (M24, D23)
     memory_search.py    search_memories(): FTS5 in memory, refreshed by modification time; re-redacts,

@@ -2,7 +2,7 @@
 
 A personal, privacy-first AI desktop assistant for Windows. Screen content will be understood and redacted locally before anything reaches a cloud model.
 
-**Status:** Phases 1-4 complete. Phase 5 (Make it usable) in progress: M13 done (Hermes Desktop ruled out; Pseudo gets its own brain, D15), M14 done: try it with `python -m pseudo_brain`. M15 done (providers evaluated, D16), M16 done (providers: allowlist, same-provider fallback, private mode), M17 done (Claude desktop app ruled out, D17), M18 done: Pseudo has its own window (see below). Phase 6 (Memory): M23 done (memory search evaluated, D23), M24 done: Pseudo remembers answered tasks, with your approval (see below). Phase 7 (Voice): M25 done (voice evaluated, D24), M26 done: talk to Pseudo and hear it answer (see below). Phase 8 (Click and type control): M27 done (click and type evaluated, D25). See [PRD.md](PRD.md) section 5 for the phase plan, section 11 for Phase 5, section 12 for Phase 6, section 13 for Phase 7, section 14 for Phase 8 and section 15 for the backlog.
+**Status:** Phases 1-4 complete. Phase 5 (Make it usable) in progress: M13 done (Hermes Desktop ruled out; Pseudo gets its own brain, D15), M14 done: try it with `python -m pseudo_brain`. M15 done (providers evaluated, D16), M16 done (providers: allowlist, same-provider fallback, private mode), M17 done (Claude desktop app ruled out, D17), M18 done: Pseudo has its own window (see below). Phase 6 (Memory): M23 done (memory search evaluated, D23), M24 done: Pseudo remembers answered tasks, with your approval (see below). Phase 7 (Voice): M25 done (voice evaluated, D24), M26 done: talk to Pseudo and hear it answer (see below). Phase 8 (Click and type control): M27 done (click and type evaluated, D25), M28 done: Pseudo can click and type, behind the approval popup (see below). See [PRD.md](PRD.md) section 5 for the phase plan, section 11 for Phase 5, section 12 for Phase 6, section 13 for Phase 7, section 14 for Phase 8 and section 15 for the backlog.
 
 ## Setup (PowerShell)
 
@@ -46,6 +46,15 @@ it, fix it if needed, and press Enter. Nothing you say is ever sent as a questio
   microphone, Windows' microphone access for desktop apps (Settings > Privacy & security > Microphone).
 - Groq keeps API data only in troubleshooting or abuse logs, for up to 30 days. Zero Data Retention, in
   Groq's console under Data Controls, turns that off.
+
+## Click and type (M28)
+
+Ask Pseudo to act on the window you were on ("tick Send me reminders", "type 'Design review' into Subject"). It works through Windows' accessibility interface, never your mouse or keyboard, and every action asks in the approval popup first (default no). The popup shows the app, window, control and action as Windows reports them, plus the exact text to type. At most 4 action popups every 2 minutes.
+
+- Password fields, disabled controls, blocked apps, assistant apps and Pseudo's own windows are refused before any popup.
+- Text containing a mask like [PERSON] is refused: type that value yourself.
+- The popup shows names as the app reports them. A page can label a delete button "Cancel", so read what the popup says will happen.
+- VS Code's and Obsidian's editors, and Obsidian's file list, can't be acted on yet.
 
 ## The face: Pseudo's own window (M18)
 
