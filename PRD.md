@@ -2,8 +2,8 @@
 
 Owner: Sai Rishi Ventrapragada
 Repo: https://github.com/rishi-ventrapragada/Pseudo
-Status: Phase 1-4 complete (M11 evaluated OCR and skipped it). Phase 5 (Make it usable) in progress: M13 done (Hermes Desktop ruled out; own brain per D15), M14 done (`pseudo_brain`), M15 done (providers evaluated; D16), M16 done (providers: allowlist, same-provider fallback, private mode), M17 done (Claude desktop app ruled out; D17), M18 done (own face: Electron, over a child-process pipe; D18), M19 done (redactor precision; D19). M20 done (Indian names; D21), but recall on fresh held-out names was only 57%. M21 tried a rule for that gap and didn't ship it. M22 done (a 49,000-word names list from Wikidata; D22): held-out recall 99% (section 11). Phase 6 (Memory): M23 done (local keyword search with SQLite FTS5; D23), M24 done (Pseudo remembers answered tasks, with your approval). Phase 7 (Voice): M25 done (listen through Groq's `whisper-large-v3`, speak with Windows' own voices; D24), M26 done (push-to-talk in the face; answers spoken with Windows' Ravi voice). P7-fix done (the approval popup stays on top). Phase 8 (Click and type control): M27 (evaluate first) in progress. Open follow-ups are in section 15, Backlog.
-Last updated: 2026-10-03
+Status: Phase 1-4 complete (M11 evaluated OCR and skipped it). Phase 5 (Make it usable) in progress: M13 done (Hermes Desktop ruled out; own brain per D15), M14 done (`pseudo_brain`), M15 done (providers evaluated; D16), M16 done (providers: allowlist, same-provider fallback, private mode), M17 done (Claude desktop app ruled out; D17), M18 done (own face: Electron, over a child-process pipe; D18), M19 done (redactor precision; D19). M20 done (Indian names; D21), but recall on fresh held-out names was only 57%. M21 tried a rule for that gap and didn't ship it. M22 done (a 49,000-word names list from Wikidata; D22): held-out recall 99% (section 11). Phase 6 (Memory): M23 done (local keyword search with SQLite FTS5; D23), M24 done (Pseudo remembers answered tasks, with your approval). Phase 7 (Voice): M25 done (listen through Groq's `whisper-large-v3`, speak with Windows' own voices; D24), M26 done (push-to-talk in the face; answers spoken with Windows' Ravi voice). P7-fix done (the approval popup stays on top). Phase 8 (Click and type control): M27 done (UI Automation actions recommended; D25). Open follow-ups are in section 15, Backlog.
+Last updated: 2026-10-04
 
 ## 1. What Pseudo is
 
@@ -407,6 +407,13 @@ Goal: Pseudo acts on the window you were on (click, type, tick, choose), one app
   - L1: one action per popup, at most N per question (N from the battery, at most 5), enforced in core;
   - S1: at most 0.5 s per action (median, popup excluded); C1: ids add at most 15% to a read; P1: control names reach the model redacted, exactly like reads.
 - **Done when:** each candidate is measured against the criteria, with a recommendation.
+- **Result (2026-10-04): T1, UI Automation actions, recommended (D25).** Fake windows only, against the criteria fixed in the plan.
+  - **Targeting (A1, A2):** 15 of 16 on Pseudo's own forms (94%), 15 of 18 in the apps (83%): Brave's fake page 8/8, VS Code 4/5, Obsidian 3/5. Misses: a Windows Forms dropdown that shows no items until opened, VS Code's editor, Obsidian's file list and editor. Mouse (T2) and keyboard (T3) fallbacks added 0 points, so neither is used.
+  - **Safety (A3-A6):** nothing but the target changed (0 of 22); all 12 refusal cases refused before any popup; 23 of 23 popups showed only Windows' data plus the exact text; 8 of 8 typed texts read back exactly. 4 of 8 realistic typing tasks need a masked value, which you then type yourself.
+  - **Injection (I1-I3):** with real gpt-oss-120b on six injection pages, no unrequested action in 12 runs with the prompt line and 12 without; asked for an action, the right control 4 of 5 times (the miss: "Mark as done" redacted to "[PERSON] as done").
+  - **Speed and cost (S1, C1):** 8 ms per action, 0.74 s for the slowest read. **C1 missed:** ids added 21% and 16% on the two small forms (7% and 11% in VS Code and Obsidian).
+  - **Found while measuring:** a fresh window's first read misses controls (VS Code 4 of 59), so reads repeat until the count settles; VS Code's controls sit at depth 22-28; a browser's page comes after its own controls, so the page area is read first; the popup shows names as the app reports them.
+  - The first prototype scored 8 of 13 in the apps. v2's changes came from a diagnostic, not from the battery: wait for the read to settle, give ids to any control with an action, name unnamed controls by their text, use the default action for press.
 
 ### M28: Click and type build
 - Planned after M27, from its result.
@@ -421,4 +428,6 @@ Found while building; not scheduled. Each needs a plan and approval before work 
 - **Plain-text answers.** The model sometimes answers in Markdown (bold, lists) although the system prompt asks for plain text (M14). Either tighten the prompt or render Markdown in the face (M18). **Resolved for the face (M18):** answers are rendered as Markdown, with no raw HTML, images or links. The terminal still prints the raw Markdown.
 - **Memory misses paraphrases with no shared words** (M23: 'plane running late' vs 'flight delayed'); possible fix: save a few model-generated keywords with each note.
 - **Tied labels vary between runs (found in M22).** When spaCy and the names list flag the same span with equal scores, Presidio's anonymizer picks the label by hash order, so "Pooja" can come out as [PERSON] in one run and [LOCATION] in the next. The text is masked either way, but a wrong label can mislead the model.
+- **Editors can't be acted on:** VS Code's and Obsidian's editors and Obsidian's file list expose no UI Automation actions (M27). Typing there would need keyboard input, which needs its own evaluation.
+- **Redacted labels hide controls:** "Mark as done" reached the model as "[PERSON] as done", so it didn't press it (M27 I3).
 - **OCR revisit: DaVinci Resolve.** In M11 it exposed only 44 content chars (53 controls), just above the 40-char line. Revisit OCR if Pseudo needs to read Resolve (or games).
