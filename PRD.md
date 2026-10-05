@@ -475,6 +475,18 @@ Goal: Pseudo acts on the window you were on (click, type, tick, choose), one app
 - The face shows which brain answered each question.
 - **Done when:** tests pass on a fake Claude Code; the routing bar is met; cold vs warm is measured against the criteria in the plan; with the real face, a real Enter and fake windows, each action type is approved once and cancelled once through Claude Code (the effect reads back; a cancel changes nothing), a switch and a read-only question are answered by Groq, every answer shows its brain, a 5th action popup within 2 minutes is refused across launches, a not-clean billing check sends nothing; the M15 battery scores 12/12.
 
+### M31: A warm Claude Code session (evaluate first)
+- M30 measured one Claude Code session kept open for 18 action requests: 10.6 s raw to the popup (a launch per request: 18.7 s), 18 of 18 usable, a fresh read before every action. It missed W-T: the 18th request's input was 7.0 times the 1st's (limit 3), because the session keeps every earlier request and read, about 2,500 tokens each. So M30 built a launch per request.
+- M31 measures a warm session **restarted every 6 requests**, where M30's numbers put the input just under 3 times.
+- **Test:** a fresh held-out set of action requests, committed before any measurement (M29's 18 are spent: the restart number came from them). Fake windows only, with the recorder standing in for the popup.
+- **Criteria, the same as M30's and fixed now:**
+  - W-S: raw median to the popup at most 15 s;
+  - W-U: usable popups at least 17 of 18;
+  - W-R: every request does its own fresh read before acting;
+  - W-T: no request's input tokens over 3 times the first request's of its session;
+  - W-B: billing clean before every request, and only the action brain's tools in every session.
+- **Done when:** the warm session is measured against the criteria, with a recommendation; a build would be its own milestone.
+
 ## 15. Backlog
 
 Found while building; not scheduled. Each needs a plan and approval before work starts.
