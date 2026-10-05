@@ -84,4 +84,13 @@ describe('ForegroundGrant', () => {
     }
     expect(granted).toEqual([4321, 4321, 4321, 4321, 4321, 4321]);
   });
+
+  it("M30: Pseudo's own memory popup is granted to the brain's pseudo_hands, even during an action request", () => {
+    const { grant, granted } = setup();
+    grant.fromBrain({ type: 'ready', hands_pid: 4321 });
+    grant.fromBrain({ type: 'event', kind: 'hands_pid', data: { pid: 7777 } });
+    grant.fromBrain(toolCall);
+    grant.fromBrain({ type: 'event', kind: 'tool_call', data: { name: 'save_memory', arguments: '{}', by: 'pseudo' } });
+    expect(granted).toEqual([7777, 4321]);
+  });
 });
