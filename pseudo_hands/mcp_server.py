@@ -14,7 +14,13 @@ core/ may print(); a stray print corrupts the messages. Logs go to stderr.
 
 Run it (normally the brain does this for you):
     python -m pseudo_hands.mcp_server
+    python -m pseudo_hands.mcp_server --tools list_open_windows,read_active_window,act_on_control
+(M30) --tools publishes only the named tools. Claude Code gets its own pseudo_hands for action
+requests (D26), without the window-switching tool and without the two brain-only memory tools.
+It is still no logic: the tools are the same core functions; this only leaves some unpublished.
 """
+
+import sys
 
 from mcp.server import MCPServer
 from mcp.types import ToolAnnotations
@@ -112,5 +118,15 @@ server.add_tool(
                                 idempotent_hint=False, open_world_hint=False),
 )
 
+ALL_TOOLS = ("list_open_windows", "read_active_window", "focus_window", "act_on_control",
+             "search_memories", "save_memory")
+
 if __name__ == "__main__":
+    if "--tools" in sys.argv:  # (M30) publish only these; an unknown name stops the server before it starts
+        wanted = sys.argv[sys.argv.index("--tools") + 1].split(",")
+        if not set(wanted) <= set(ALL_TOOLS):
+            sys.exit(f"unknown tool in --tools: {sorted(set(wanted) - set(ALL_TOOLS))}")
+        for name in ALL_TOOLS:
+            if name not in wanted:
+                server.remove_tool(name)
     server.run()  # transport="stdio" is the default

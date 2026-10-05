@@ -188,3 +188,27 @@ async def test_real_server_over_stdio_smoke() -> None:
     assert all(isinstance(w["focused"], bool) for w in windows)
     focused_count = sum(w["focused"] for w in windows)
     assert focused_count <= 1
+
+
+@pytest.mark.skipif(sys.platform != "win32", reason="needs Windows")
+@pytest.mark.anyio
+async def test_tools_option_publishes_only_the_named_tools() -> None:  # (M30) what Claude Code's copy gets
+    chosen = ["list_open_windows", "read_active_window", "act_on_control"]
+    params = StdioServerParameters(command=sys.executable,
+                                   args=["-m", "pseudo_hands.mcp_server", "--tools", ",".join(chosen)],
+                                   cwd=str(REPO_ROOT))
+    async with Client(params) as client:
+        names = [tool.name for tool in (await client.list_tools()).tools]
+    assert names == chosen
+
+
+def test_tools_option_refuses_an_unknown_name() -> None:  # (M30)
+    import subprocess
+    done = subprocess.run([sys.executable, "-m", "pseudo_hands.mcp_server", "--tools", "list_open_windows,delete_files"],
+                          cwd=str(REPO_ROOT), capture_output=True, text=True, timeout=120, stdin=subprocess.DEVNULL)
+    assert done.returncode != 0 and "unknown tool" in done.stderr and done.stdout == ""
+
+
+def test_the_wrapper_knows_every_tool_it_publishes() -> None:  # (M30) --tools removes by this list
+    from pseudo_hands.mcp_server import ALL_TOOLS as published
+    assert list(published) == ALL_TOOLS
