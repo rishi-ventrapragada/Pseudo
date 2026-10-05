@@ -15,7 +15,7 @@ import { initial, reduce, type Turn } from './state';
 import { useVoice } from './useVoice';
 import { VoiceControls } from './VoiceControls';
 
-function TurnView({ turn }: { turn: Turn }) {
+export function TurnView({ turn }: { turn: Turn }) {
   return (
     <section className="turn">
       <div className="you">
