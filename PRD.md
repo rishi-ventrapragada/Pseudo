@@ -2,7 +2,7 @@
 
 Owner: Sai Rishi Ventrapragada
 Repo: https://github.com/rishi-ventrapragada/Pseudo
-Status: Phase 1-4 complete (M11 evaluated OCR and skipped it). Phase 5 (Make it usable) in progress: M13 done (Hermes Desktop ruled out; own brain per D15), M14 done (`pseudo_brain`), M15 done (providers evaluated; D16), M16 done (providers: allowlist, same-provider fallback, private mode), M17 done (Claude desktop app ruled out; D17), M18 done (own face: Electron, over a child-process pipe; D18), M19 done (redactor precision; D19). M20 done (Indian names; D21), but recall on fresh held-out names was only 57%. M21 tried a rule for that gap and didn't ship it. M22 done (a 49,000-word names list from Wikidata; D22): held-out recall 99% (section 11). Phase 6 (Memory): M23 done (local keyword search with SQLite FTS5; D23), M24 done (Pseudo remembers answered tasks, with your approval). Phase 7 (Voice): M25 done (listen through Groq's `whisper-large-v3`, speak with Windows' own voices; D24), M26 done (push-to-talk in the face; answers spoken with Windows' Ravi voice). P7-fix done (the approval popup stays on top). Phase 8 (Click and type control): M27 done (UI Automation actions recommended; D25), M28 done (click and type, behind the approval popup). M29 done (only Claude through Claude Code passed; D26). M30 done: action requests go to Claude Code, one launch per request. M31 (a warm Claude Code session, evaluate first) is planned. Open follow-ups are in section 15, Backlog.
+Status: Phase 1-4 complete (M11 evaluated OCR and skipped it). Phase 5 (Make it usable) in progress: M13 done (Hermes Desktop ruled out; own brain per D15), M14 done (`pseudo_brain`), M15 done (providers evaluated; D16), M16 done (providers: allowlist, same-provider fallback, private mode), M17 done (Claude desktop app ruled out; D17), M18 done (own face: Electron, over a child-process pipe; D18), M19 done (redactor precision; D19). M20 done (Indian names; D21), but recall on fresh held-out names was only 57%. M21 tried a rule for that gap and didn't ship it. M22 done (a 49,000-word names list from Wikidata; D22): held-out recall 99% (section 11). Phase 6 (Memory): M23 done (local keyword search with SQLite FTS5; D23), M24 done (Pseudo remembers answered tasks, with your approval). Phase 7 (Voice): M25 done (listen through Groq's `whisper-large-v3`, speak with Windows' own voices; D24), M26 done (push-to-talk in the face; answers spoken with Windows' Ravi voice). P7-fix done (the approval popup stays on top). Phase 8 (Click and type control): M27 done (UI Automation actions recommended; D25), M28 done (click and type, behind the approval popup). M29 done (only Claude through Claude Code passed; D26). M30 done: action requests go to Claude Code, one launch per request. M31 (a warm Claude Code session, evaluate first) is in progress. Open follow-ups are in section 15, Backlog.
 Last updated: 2026-10-05
 
 ## 1. What Pseudo is
@@ -495,14 +495,17 @@ Goal: Pseudo acts on the window you were on (click, type, tick, choose), one app
 
 ### M31: A warm Claude Code session (evaluate first)
 - M30 measured one Claude Code session kept open for 18 action requests: 10.6 s raw to the popup (a launch per request: 18.7 s), 18 of 18 usable, a fresh read before every action. It missed W-T: the 18th request's input was 7.0 times the 1st's (limit 3), because the session keeps every earlier request and read, about 2,500 tokens each. So M30 built a launch per request.
-- M31 measures a warm session **restarted every 6 requests**, where M30's numbers put the input just under 3 times.
-- **Test:** a fresh held-out set of action requests, committed before any measurement (M29's 18 are spent: the restart number came from them). Fake windows only, with the recorder standing in for the popup.
+- M31 measures a warm session **restarted every 6 requests** (or after 10 idle minutes), where M30's numbers put the input just under 3 times. A launch per request stays as the fallback whenever no warm session is open.
+- **Test** (`tests/warm_session_cases.py`): a fresh held-out set of 18 action requests, 3 per action type, committed before any measurement (M29's 18 are spent: the restart number came from them). They're asked in a fixed order as three sessions of 6, one request of each type per session, on a new fake booking page (F6) and on F1 and F2; then the same 18 with a launch per request. Fake windows only, with the recorder standing in for the popup.
 - **Criteria, the same as M30's and fixed now:**
   - W-S: raw median to the popup at most 15 s;
   - W-U: usable popups at least 17 of 18;
   - W-R: every request does its own fresh read before acting;
   - W-T: no request's input tokens over 3 times the first request's of its session;
   - W-B: billing clean before every request, and only the action brain's tools in every session.
+  - Counted as in M30: the median over usable requests; a request's input is its fresh, cache-read and cache-written tokens, added over its model calls.
+- **Also reported, deciding nothing:** quota use per request, warm and cold, as tokens by kind and Claude Code's own price figure for them (Anthropic doesn't publish how tokens count against the Pro limit), plus the account's 5-hour meter if Claude Code reports it; how long a new session takes to start and how much memory it holds.
+- **Decision rule:** all five pass → the warm session is recommended for a build; any miss → a launch per request stays, and 6 isn't re-tuned on this set.
 - **Done when:** the warm session is measured against the criteria, with a recommendation; a build would be its own milestone.
 
 ## 15. Backlog
