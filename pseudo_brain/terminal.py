@@ -21,6 +21,7 @@ import argparse
 
 import anyio
 
+from pseudo_brain.action_brain import load_routing
 from pseudo_brain.chat import REFUSALS, Chat
 from pseudo_brain.hands import connect_hands
 from pseudo_brain.providers import Provider, load_allowlist
@@ -76,6 +77,11 @@ def format_event(kind: str, data: dict) -> str | None:
         if data["count"]:
             return f"--- MEMORY: {data['count']} past task(s) added to this question ({data['chars']} chars, redacted) ---"
         return f"--- MEMORY: none added ({data['note']}) ---"
+    if kind == "routed":  # (M30)
+        return (f"\n--- ACTION REQUEST: going to {data['name']} ({data['model']}), not the chat provider | "
+                f"{data['privacy']} ---")
+    if kind == "billing":  # (M30) names and booleans only
+        return f"--- {data['line']} ---"
     if kind == "memory_saved":
         return f"--- MEMORY: saved this task, redacted, as {data['note']} ---"
     if kind == "memory_not_saved":
@@ -108,7 +114,7 @@ async def ask(prompt: str) -> str:
 
 async def chat(resume: bool, wanted: str | None) -> int:
     secrets: list[str] = []  # every key in use (Chat fills it); hidden in every printed line
-    conversation = Chat(load_allowlist(), printer(secrets), secrets)
+    conversation = Chat(load_allowlist(), printer(secrets), secrets, load_routing())
     try:
         await conversation.start(resume, wanted)
         print(f"--- PROVIDER {describe(conversation.provider)} ---")

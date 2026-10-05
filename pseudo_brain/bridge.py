@@ -8,7 +8,7 @@ web page can reach the brain (D18: the M5 and M17 lesson, "anything reachable ge
 
 Face -> brain:  ask {text} | provider {id} | new_session | list_sessions | open_session {name} | quit
                 | transcribe {audio} | speak_answers {on}    (M26: voice, in bridge_voice.py)
-Brain -> face:  ready {providers, provider, session, tools, hands_pid} | event {kind, data} | refused {reason}
+Brain -> face:  ready {providers, provider, session, tools, hands_pid, action_brain} | event {kind, data} | refused {reason}
                 | switched {provider, session} | session {name, provider, messages}
                 | sessions {items} | turn_done {ok} | transcript {text, note, seconds} | speech {audio, reason}
 `event` carries every event the loop, the model and the private server report (loop.py).
@@ -34,6 +34,7 @@ import anyio
 from anyio.abc import TaskGroup
 
 from pseudo_brain import bridge_voice
+from pseudo_brain.action_brain import load_routing
 from pseudo_brain.bridge_voice import VOICE_REFUSALS
 from pseudo_brain.chat import REFUSALS, Chat
 from pseudo_brain.hands import Hands, connect_hands
@@ -149,12 +150,18 @@ def provider_info(provider) -> dict:
             "transcribe_model": provider.transcribe_model}  # M26: "" = no voice input on this provider
 
 
+def action_brain_info(routing) -> dict | None:
+    """(M30) Who answers action requests, for the face to show. None: nobody, everything stays on the chat provider."""
+    brain = routing.action_brain if routing else None
+    return {"id": brain.id, "name": brain.name, "model": brain.model, "privacy": brain.privacy} if brain else None
+
+
 async def serve(receive: Receive, write: Write) -> int:
     """Run until the face says quit or closes the pipe. Returns the exit code."""
     bridge = Bridge(write)
     try:
         try:
-            bridge.chat = Chat(load_allowlist(), bridge.event, bridge.secrets)
+            bridge.chat = Chat(load_allowlist(), bridge.event, bridge.secrets, load_routing())
             await bridge.chat.start()
         except REFUSALS as refusal:  # a bad allowlist, a missing key, an unreachable provider
             bridge.send("refused", reason=f"can't start: {refusal}")
@@ -163,7 +170,7 @@ async def serve(receive: Receive, write: Write) -> int:
             bridge.hands, bridge.tasks = hands, tasks
             bridge.send("ready", providers=[provider_info(p) for p in bridge.chat.allowlist.providers.values()],
                         provider=bridge.chat.provider.id, session=bridge.session_info(), tools=hands.names,
-                        hands_pid=hands.pid)
+                        hands_pid=hands.pid, action_brain=action_brain_info(bridge.chat.routing))
             while await bridge.handle(await receive(), tasks):
                 pass
             tasks.cancel_scope.cancel()  # quitting: a question still running is stopped, not waited for

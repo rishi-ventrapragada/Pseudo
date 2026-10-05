@@ -20,13 +20,24 @@ The rules (M16, D16, and one from M18):
     redacted past tasks for it; after an ANSWERED question, save_memory stores it, if you approve
     in the popup. Pseudo calls both itself; the model never sees them (hands.py). Failed turns are
     never saved, and a failed search just means no memories.
+  - (M30) Routing, when providers.toml has it (routing.py decides from your words, no model):
+      * a request to ACT on a window goes to the action brain, Claude Code (D26). If it can't be
+        used (billing check not clean, not installed), the turn fails visibly: no fallback to Groq.
+      * everything else goes to the chat provider as before, and the window-switching tool is
+        offered only when you ask to see or switch to a window (M29's rule).
+      * in private mode nothing is routed: an action request stays on the laptop like the rest.
+    The action brain gets the question alone (no history). The question and its final answer are
+    kept in the session, labelled with who answered.
 """
 
-from pseudo_brain.hands import Hands
+from pseudo_brain.action_brain import ActionBrain, Routing
+from pseudo_brain.claude_code import ask_claude
+from pseudo_brain.hands import Hands, OfferedHands
 from pseudo_brain.local_server import LocalServer, ServerFailure
 from pseudo_brain.loop import EventSink, TurnResult, run_turn
 from pseudo_brain.model import NO_KEY, Model, ModelFailure, connect_provider
 from pseudo_brain.providers import Allowlist, Provider, ProviderRefused
+from pseudo_brain.routing import is_action_request, offers_focus
 from pseudo_brain.session import Session, SessionNotFound, load_latest, load_session
 
 REFUSALS = (ProviderRefused, ModelFailure, ServerFailure, SessionNotFound)  # can't do that; the reason says why
@@ -35,8 +46,10 @@ REFUSALS = (ProviderRefused, ModelFailure, ServerFailure, SessionNotFound)  # ca
 class Chat:
     """The provider in use, the current session, and the servers Pseudo started."""
 
-    def __init__(self, allowlist: Allowlist, on_event: EventSink, secrets: list[str]) -> None:
+    def __init__(self, allowlist: Allowlist, on_event: EventSink, secrets: list[str],
+                 routing: Routing | None = None) -> None:
         self.allowlist, self.on_event, self.secrets = allowlist, on_event, secrets
+        self.routing = routing  # (M30) None: no routing at all, as before M30
         self.servers: dict[str, LocalServer] = {}
         self.model: Model | None = None  # set by start()
         self.session: Session | None = None
@@ -100,10 +113,34 @@ class Chat:
 
         The session is saved after every turn, so nothing is lost."""
         intro, memories = await self.recall(text, hands)
-        result = await run_turn(self.session, text, self.model, hands, self.on_event, memories, intro)
+        brain = self.action_brain_for(text)
+        if brain:
+            result = await self.ask_action(brain, text, memories, intro)
+        else:
+            withheld = self.routing.switch_tool if self.routing and not offers_focus(text) else ""
+            result = await run_turn(self.session, text, self.model, OfferedHands(hands, withheld), self.on_event,
+                                    memories, intro)
         self.session.save()
         if result.ok:
-            await self.remember(text, result, hands)
+            await self.remember(text, result, hands, brain.id if brain else self.provider.id)
+        return result
+
+    def action_brain_for(self, text: str) -> ActionBrain | None:
+        """(M30) The action brain, if this message is an action request and data may leave the laptop."""
+        brain = self.routing.action_brain if self.routing else None
+        if brain is None or not self.provider.leaves_laptop or not is_action_request(text):
+            return None
+        return brain
+
+    async def ask_action(self, brain: ActionBrain, text: str, memories: list[str], intro: str) -> TurnResult:
+        """(M30) One action request through Claude Code; the question and answer join this session."""
+        self.on_event("routed", {"to": brain.id, "name": brain.name, "model": brain.model, "privacy": brain.privacy})
+        self.session.provider = self.session.provider or self.provider.id
+        self.session.start_turn(text)
+        result = await ask_claude(brain, text, self.on_event, memories, intro)
+        if result.ok:
+            self.session.add({"role": "assistant", "content": result.answer})
+            self.session.note_answer(f"{brain.id} · {result.model}")
         return result
 
     async def recall(self, text: str, hands: Hands) -> tuple[str, list[str]]:
@@ -116,14 +153,14 @@ class Chat:
         self.on_event("memories", {"count": len(memories), "chars": sum(len(m) for m in memories), "note": note})
         return str((found or {}).get("intro", "")), memories
 
-    async def remember(self, text: str, result: TurnResult, hands: Hands) -> None:
+    async def remember(self, text: str, result: TurnResult, hands: Hands, provider_id: str) -> None:
         """(M24) Offer this answered task to memory. pseudo_hands redacts it and asks you in the popup."""
         if not hands.has_memory:
             return
         # A tool_call event, so the face lets pseudo_hands' popup come to the front, as for any tool (M18).
         self.on_event("tool_call", {"name": "save_memory", "arguments": "{}", "by": "pseudo"})
         saved = await hands.memory("save_memory", {
-            "question": text, "answer": result.answer or "", "tools": result.tools, "provider": self.provider.id,
+            "question": text, "answer": result.answer or "", "tools": result.tools, "provider": provider_id,
             "model": result.model, "session": self.session.started})
         self.on_event("tool_result", {"name": "save_memory", "chars": 0, "is_error": saved is None, "by": "pseudo"})
         if saved and saved.get("status") == "saved":

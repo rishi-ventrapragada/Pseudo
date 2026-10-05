@@ -77,6 +77,7 @@ def world(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> dict:
     world: dict = {"replies": READ_THEN_ANSWER, "gate": None, "refuse": {}, "servers": []}
     monkeypatch.setattr(session_module, "SESSIONS_DIR", tmp_path / "sessions")
     monkeypatch.setattr(bridge, "load_allowlist", lambda: Allowlist({"groq": FAKE_CLOUD, "local": FAKE_LOCAL}, "groq"))
+    monkeypatch.setattr(bridge, "load_routing", lambda: None)  # (M30) no routing unless a test sets one
     monkeypatch.setattr(bridge, "connect_hands", lambda: connect_hands(FAKE_HANDS))
     world["spoken"] = []
     monkeypatch.setattr(bridge_voice, "synthesize", lambda text: world["spoken"].append(text) or FAKE_WAV)

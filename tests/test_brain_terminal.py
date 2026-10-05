@@ -40,6 +40,7 @@ def world(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> dict:
     world: dict = {"typed": [], "refuse": {}, "models": {}, "servers": [], "answer": "an answer"}
     monkeypatch.setattr(session_module, "SESSIONS_DIR", tmp_path / "sessions")
     monkeypatch.setattr(terminal, "load_allowlist", lambda: Allowlist({"groq": FAKE_CLOUD, "local": FAKE_LOCAL}, "groq"))
+    monkeypatch.setattr(terminal, "load_routing", lambda: None)  # (M30) no routing unless a test sets one
     monkeypatch.setattr(terminal, "connect_hands", lambda: connect_hands(FAKE_HANDS))
 
     async def fake_connect(provider, servers, on_event):

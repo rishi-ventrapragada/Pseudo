@@ -122,6 +122,23 @@ class Hands:
         return data if isinstance(data, dict) and not result.is_error else None
 
 
+class OfferedHands:
+    """(M30) The same connection with one tool left out: the model neither sees it nor can call it.
+
+    M29's rule decides per question whether the window-switching tool is offered (routing.py).
+    Leaving its schema out of the request is what works: asking the model not to call it didn't."""
+
+    def __init__(self, hands: Hands, withheld: str = "") -> None:
+        self._hands, self.pid, self.has_memory = hands, hands.pid, hands.has_memory
+        self.names = [name for name in hands.names if name != withheld]
+        self.schemas = [schema for schema in hands.schemas if schema["function"]["name"] != withheld]
+
+    async def call(self, name: str, arguments: str) -> tuple[str, bool]:
+        if name not in self.names:
+            return f"ERROR: no such tool: {name}", True
+        return await self._hands.call(name, arguments)
+
+
 @asynccontextmanager
 async def connect_hands(target: Any = None) -> AsyncIterator[Hands]:
     """Start pseudo_hands over stdio (or use an in-memory server in tests) and discover its tools."""
