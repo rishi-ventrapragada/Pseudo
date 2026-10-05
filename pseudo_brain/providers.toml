@@ -4,6 +4,24 @@
 
 default = "groq"
 
+# (M29, M30) The tool that brings a window to the front. It is offered to a model only when your message
+# asks to see or switch to a window (pseudo_brain/routing.py). The brain's code names no tools, so the name is here.
+switch_tool = "focus_window"
+
+# (M30, D26) The ACTION BRAIN: a request to act on a window (click, type, tick, choose) goes to Claude Code
+# instead of Groq. It is launched once per request, with ONLY the tools below (never switch_tool, never the
+# memory tools), Pseudo's own system prompt, and a billing check first (pseudo_brain/claude_billing.py):
+# nothing may outrank your subscription login, and the login must be the account named in .env.
+# If the check fails or Claude Code is missing, Pseudo says so and doesn't act; it never falls back to Groq.
+[action_brain]
+name = "Claude Code"
+command = ["claude"]
+model = "sonnet"
+tools = ["list_open_windows", "read_active_window", "act_on_control"]
+account_env = "CLAUDE_CODE_ACCOUNT"  # the NAME of the .env variable holding your Claude account's email
+privacy = "Redacted screen text for action requests goes to Anthropic, on your subscription (D16)."
+timeout_seconds = 120
+
 [providers.groq]
 name = "Groq"
 base_url = "https://api.groq.com/openai/v1"
