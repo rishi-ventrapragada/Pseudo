@@ -2,7 +2,7 @@
 
 A personal, privacy-first AI desktop assistant for Windows. Screen content will be understood and redacted locally before anything reaches a cloud model.
 
-**Status:** Phases 1-4 complete. Phase 5 (Make it usable) in progress: M13 done (Hermes Desktop ruled out; Pseudo gets its own brain, D15), M14 done: try it with `python -m pseudo_brain`. M15 done (providers evaluated, D16), M16 done (providers: allowlist, same-provider fallback, private mode), M17 done (Claude desktop app ruled out, D17), M18 done: Pseudo has its own window (see below). Phase 6 (Memory): M23 done (memory search evaluated, D23), M24 done: Pseudo remembers answered tasks, with your approval (see below). Phase 7 (Voice): M25 done (voice evaluated, D24), M26 done: talk to Pseudo and hear it answer (see below). Phase 8 (Click and type control): M27 done (click and type evaluated, D25), M28 done: Pseudo can click and type, behind the approval popup (see below). See [PRD.md](PRD.md) section 5 for the phase plan, section 11 for Phase 5, section 12 for Phase 6, section 13 for Phase 7, section 14 for Phase 8 and section 15 for the backlog.
+**Status:** Phases 1-4 complete. Phase 5 (Make it usable) in progress: M13 done (Hermes Desktop ruled out; Pseudo gets its own brain, D15), M14 done: try it with `python -m pseudo_brain`. M15 done (providers evaluated, D16), M16 done (providers: allowlist, same-provider fallback, private mode), M17 done (Claude desktop app ruled out, D17), M18 done: Pseudo has its own window (see below). Phase 6 (Memory): M23 done (memory search evaluated, D23), M24 done: Pseudo remembers answered tasks, with your approval (see below). Phase 7 (Voice): M25 done (voice evaluated, D24), M26 done: talk to Pseudo and hear it answer (see below). Phase 8 (Click and type control): M27 done (click and type evaluated, D25), M28 done: Pseudo can click and type, behind the approval popup (see below). M29 done (only Claude through Claude Code passed the action questions, D26), M30 done: action requests go to Claude Code (see below). See [PRD.md](PRD.md) section 5 for the phase plan, section 11 for Phase 5, section 12 for Phase 6, section 13 for Phase 7, section 14 for Phase 8 and section 15 for the backlog.
 
 ## Setup (PowerShell)
 
@@ -55,6 +55,16 @@ Ask Pseudo to act on the window you were on ("tick Send me reminders", "type 'De
 - Text containing a mask like [PERSON] is refused: type that value yourself.
 - The popup shows names as the app reports them. A page can label a delete button "Cancel", so read what the popup says will happen.
 - VS Code's and Obsidian's editors, and Obsidian's file list, can't be acted on yet.
+
+### Who answers an action request (M30)
+
+A request to act ("tick...", "type...", "choose...") goes to Claude Code on your Claude subscription, because no free Groq model passed M29's action questions. Everything else stays on Groq. Every answer in the face says which one answered.
+
+- Set it up once: put your Claude account's email in `.env` as `CLAUDE_CODE_ACCOUNT` (see `.env.example`). It is compared, never printed or sent.
+- Before every action request Pseudo checks that Claude Code will use that subscription login and nothing else (no API key, no other provider). If the check isn't clean, or Claude Code isn't installed, Pseudo says so and does nothing; it never falls back to Groq.
+- Claude Code gets only three of Pseudo's tools (list windows, read the window, act) and none of its own. The privacy rules and the approval popup are the same as for Groq.
+- Redacted screen text for these requests goes to Anthropic. In private mode nothing is routed.
+- It takes about 16 to 19 seconds to reach the popup.
 
 ## The face: Pseudo's own window (M18)
 

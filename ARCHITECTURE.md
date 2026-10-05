@@ -41,6 +41,7 @@ This is a direction, not a commitment. It will be revisited after Phase 1.
 
 ```
    any brain: pseudo_brain (D15) | Hermes | Claude Code | another cloud model (D20)
+   (M30, D26: pseudo_brain itself launches Claude Code for action requests, the one exception to D11)
         |  MCP (tools)                  |  OpenAI-compatible API (chat)
         v                               v
    [ MCP wrapper ]  thin, swappable     [ Face ]
@@ -157,6 +158,8 @@ pseudo_hands/
     focus.py            focus_window(): validate id, block, ask, act (M10)
     ui_actions.py       what a control can do (its patterns), act, read back (M28)
     action_rules.py     text rules, the popup's text, at most 4 action popups per 2 minutes (M28, D25)
+    action_budget.py    that limit as ONE count for every pseudo_hands process: a small locked file,
+                        fail closed (M30)
     act.py              act_on_control(): refusals, popup, re-check, act, read back (M28, D25)
     memory.py           save_memory(): redact the task, ask in the popup, write a NEW note to
                         %LOCALAPPDATA%\Pseudo\memory\tasks (links refused) (M24, D23)
@@ -164,7 +167,7 @@ pseudo_hands/
                         at most 3 memories / 1,400 chars; any failure -> none (M24, D23)
     memory_background.txt  150 FAKE notes for word statistics only, never returned (M24)
   show_windows.py       thin CLI demo (M4)
-  mcp_server.py         thin MCP wrapper (M5)
+  mcp_server.py         thin MCP wrapper (M5); --tools publishes only the named tools (M30)
   build_names_list.py   maintenance tool, run by hand: rebuilds indian_names_large.txt from Wikidata (M22)
 ```
 
@@ -194,7 +197,18 @@ pseudo_brain/           Pseudo's own agent loop (D15, M14), grown from playgroun
                         memory tools from the model and calls them for the brain (M24)
   chat.py               one conversation, shared by every interface: start, switch provider (closing
                         the old one's connections), new/open session, ask, stop servers (M18);
-                        searches memory before a question, offers answered tasks to it after (M24)
+                        searches memory before a question, offers answered tasks to it after (M24);
+                        (M30) routes: an action request to Claude Code, everything else to the provider,
+                        with the switch tool offered only by the rule; private mode never routes
+  routing.py            the two word rules, no model: is it an action request? is the switch tool
+                        offered? (M29, M30)
+  action_brain.py       the action brain's settings from providers.toml: program, model, its tools,
+                        the NAME of the .env variable holding your account (M30, D26)
+  claude_billing.py     before every launch: nothing outranks the subscription login, and the login
+                        is your account; names and booleans only (M30, D16)
+  claude_code.py        one action request through `claude -p`: its own pseudo_hands with only the
+                        listed tools, Pseudo's system prompt, the same events as the loop, at most 6
+                        tool calls, stopped on anything unexpected (M30, D26)
   session.py            history as whole turns, one provider per session; trimmed per request to the
                         provider's max_prompt_tokens; memories join a request, never the history (M24);
                         saved to %LOCALAPPDATA%\Pseudo\sessions\ (your messages + final answers only)
@@ -214,7 +228,8 @@ face/                   Pseudo's own window (M18): Electron + React, display onl
   brain-process.js      starts `python -m pseudo_brain.bridge` as a child process; stops it on quit
   preload.js            the only door between page and main process: window.pseudo.send / onMessage
   foreground.js         before each tool runs, lets ONLY pseudo_hands bring its approval popup to
-                        the front (AllowSetForegroundWindow, via koffi)
+                        the front (AllowSetForegroundWindow, via koffi); during an action request,
+                        the pseudo_hands Claude Code started instead (M30)
   permissions.js        the one permission the page may get: the microphone, audio only, our page only (M26)
   taskbar-flash.js      flashes the taskbar button while a tool runs and you're in another window
   src/                  the React page: chat, live steps, Markdown answers, provider bar, sessions,
@@ -228,6 +243,18 @@ face/                   Pseudo's own window (M18): Electron + React, display onl
                   +----- events ------+   | tool result (redacted in pseudo_hands core)
                                           v
                                hands.py --MCP stdio--> pseudo_hands (blocked apps, redactor, popup)
+```
+
+Routing (M30, D26): decided from your words, before any model is asked.
+```
+  chat.ask --routing.py--> an action request? (and not private mode)
+      | no  -> loop.run_turn on the provider (Groq); the switch tool only if you asked to switch
+      | yes -> claude_billing.check --not clean / not installed--> the turn fails; nothing sent, no fallback
+                   | clean
+                   v
+               claude_code.ask_claude --stdin--> `claude -p` (Sonnet, your subscription)
+                   --MCP stdio--> its OWN pseudo_hands (--tools: list, read, act) -> the same core:
+                   blocked apps, redactor, refusals, the shared action count, the approval popup
 ```
 
 Memory (M24, D23): two brain-only tools around each question.
