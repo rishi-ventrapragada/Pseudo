@@ -45,6 +45,7 @@ Pseudo is the whole assistant experience; the brain inside it (Hermes today) mus
 - Nothing in Pseudo imports or depends on Hermes internals. Pseudo talks to any brain only through standard interfaces: MCP for tools, the OpenAI-compatible chat API for conversation.
 - The privacy layer and approval gate live inside Pseudo's tools, not in the brain, so they work no matter which brain is used.
 - The Phase 1 agent loop uses the same tool-definition format, so it can later drive Pseudo's real tools directly as an alternative brain.
+- Exception (D26): `pseudo_brain` may launch Claude Code for action requests.
 *Why:* the owner may change direction (own brain, different harness, local model) and doesn't want a rewrite when that happens.
 
 ### D12. Hermes Agent as the brain (was L1). SUPERSEDED by D15 (2026-09-28)
@@ -128,6 +129,12 @@ Pseudo acts only through UI Automation actions (press, set text, add text, toggl
 *Why (M27):* on fake windows, UI Automation did 15 of 16 actions on Pseudo's own forms and 15 of 18 in Brave, VS Code and Obsidian, at 8 ms median, with no wrong target in 22; mouse and keyboard fallbacks added nothing. All 12 refusal cases were refused. On six injection pages, gpt-oss-120b tried no unrequested action in 24 runs, and picked the right control in 4 of 5 requested ones.
 *Limits:* the popup shows control names as the app reports them (a page can label a delete button "Cancel"); VS Code's and Obsidian's editors and Obsidian's file list expose no actions; control names are redacted like screen text, so "Mark as done" can reach the model as "[PERSON] as done".
 *Would change if:* real use needs those editors (keyboard typing would need its own evaluation), or a measured case shows a wrong target.
+
+### D26. Action requests may go to Claude Code (M29)
+For requests that ask Pseudo to act on a window, `pseudo_brain` may hand the question to Claude Code (`claude -p`, Sonnet) with only Pseudo's tools (`--strict-mcp-config --tools ""`), Pseudo's own system prompt, and the billing check before every launch (D16). `focus_window` is offered only when the message asks to see or switch to a window (the M29 phrase list). Everything else stays on Groq. This is an exception to D11: `pseudo_brain` depends on one harness's command line, while `pseudo_hands` stays a plain MCP server that any brain can use. If the billing check fails or Claude Code is missing, Pseudo says so and doesn't act.
+*Why (M29):* on 18 held-out action questions, Claude gave a usable popup 18 times with and without the rule; the best Groq setups gave 16 and each missed another criterion.
+*Limits:* it uses the owner's subscription quota; about 19 s to the popup from a cold start; the rule misses "Can I see the test form?".
+*Would change if:* a free Groq model passes M29's criteria, or the subscription ends.
 
 ## LEANING (revisit after Phase 1)
 

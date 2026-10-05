@@ -35,7 +35,7 @@ Work only on the current milestone listed in PRD.md (the current phase's scope s
 
 ### Flexibility rules (DECISIONS.md D11)
 - Keep logic in plain Python functions; wrappers (MCP, CLI, UI) stay thin and contain no business logic.
-- Never couple Pseudo code to a specific agent harness (e.g. Hermes) or a specific model provider. Use standard interfaces only: MCP for tools, OpenAI-compatible API for chat, `.env` for provider config.
+- Never couple Pseudo code to a specific agent harness (e.g. Hermes) or a specific model provider. Use standard interfaces only: MCP for tools, OpenAI-compatible API for chat, `.env` for provider config. Exception (D26): `pseudo_brain` may launch Claude Code for action requests.
 - Safety checks (sandboxing, approvals, and later redaction) live next to the tool functions, not in the agent loop, so they hold for any brain.
 - In Phase 1, define tools in the standard OpenAI tool-schema format so the same definitions can be reused later.
 
