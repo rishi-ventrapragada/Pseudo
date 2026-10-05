@@ -4,7 +4,9 @@ tested on fake data. act.py applies them; the wording comes from M27's measured 
   check_text(action, text)  None if this text may go with this action, else why not
   clean_name(name)          a name made safe for the popup: one line, no hidden characters, short
   question(...)             the popup's whole text: Windows' data plus the exact text, nothing else
-  PopupBudget               at most 4 action popups in any 2 minutes (D25)
+  PopupBudget               at most 4 action popups in any 2 minutes (D25), counted in ONE process;
+                            (M30) the real limit is action_budget.SharedPopupBudget, shared by every
+                            pseudo_hands process. This one stays for tests and as the plain idea.
 
 Why the text rules:
   - A mask label like [PERSON] means the model only saw the mask. Typing it would type the
@@ -19,6 +21,8 @@ import time
 from collections import deque
 from collections.abc import Callable
 from typing import Literal, get_args
+
+from pseudo_hands.core.action_budget import SharedPopupBudget
 
 # The type hint MCP turns into the tool's schema, so a model sees exactly these 7 choices.
 Action = Literal["press", "set_text", "insert_text", "toggle", "select", "choose", "open"]
@@ -115,4 +119,4 @@ class PopupBudget:
             return 0.0
 
 
-budget = PopupBudget()  # one per process; tests swap in a fresh one
+budget = SharedPopupBudget()  # (M30) one count for every pseudo_hands process; tests swap in a fresh one

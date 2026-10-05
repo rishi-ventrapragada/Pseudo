@@ -21,6 +21,8 @@ parameter, like beforeEach in Jest, but only for the tests that want it):
   waits     -> (M14) the model's 429 waits are recorded instead of slept.
   temp_vault -> (M24, runs for EVERY test) the memory vault is a fresh temporary folder, and the
                search index starts empty. The real vault in %LOCALAPPDATA% is never touched.
+  temp_action_count -> (M30, runs for EVERY test) the shared action limit counts in a temporary
+               file, so a test never uses up, or is blocked by, your real 4-per-2-minutes count.
 """
 
 import sys
@@ -88,6 +90,13 @@ def no_real_popups(monkeypatch: pytest.MonkeyPatch) -> None:
     def refuse(question: str) -> bool:
         pytest.fail("a test tried to show a real approval popup")  # BaseException: ask() can't swallow it
     monkeypatch.setattr(approval, "approver", refuse)
+
+
+@pytest.fixture(autouse=True)
+def temp_action_count(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> Path:
+    from pseudo_hands.core import action_budget
+    monkeypatch.setattr(action_budget, "BUDGET_FILE", tmp_path / "action_popups.json")
+    return tmp_path / "action_popups.json"
 
 
 @pytest.fixture
