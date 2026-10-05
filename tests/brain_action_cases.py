@@ -16,7 +16,6 @@ Everything here is FAKE, and was committed BEFORE any measurement. The criteria 
 An expected popup is the control's type and name as Windows reports them, the action, and the exact text.
 """
 
-import re
 
 ACTION_TYPES = ("press", "set_text", "insert_text", "toggle", "select", "choose")
 FIXTURES = {"F1": "tests/fixtures/m27_form.ps1", "F2": "tests/fixtures/m27_page.html",
@@ -106,16 +105,9 @@ M15_QUESTIONS = {  # the M15 battery, word for word: only T4 asks to switch (R1)
 }
 
 # Candidate 1, the rule. Fixed in the M29 plan before measuring. Core never sees the user's message,
-# so a brain would apply this to each question before choosing which tools to offer.
-SWITCH_PHRASES = ("switch to", "switch back", "switch over", "bring up", "to the front", "in front",
-                  "on top", "focus", "jump to", "take me to", "go back to", "alt tab", "alt-tab")
-SEE_A_WINDOW = re.compile(r"\b(show|see|open|go to)\b.*\bwindow\b")
-
-
-def offers_focus(message: str) -> bool:
-    """True if this message asks to see or switch to a window, so focus_window should be offered."""
-    text = message.lower()
-    return any(phrase in text for phrase in SWITCH_PHRASES) or bool(SEE_A_WINDOW.search(text))
+# so a brain applies this to each question before choosing which tools to offer. (M30) It now lives in
+# pseudo_brain/routing.py, unchanged; tests/test_brain_routing.py pins the phrase list.
+from pseudo_brain.routing import SEE_A_WINDOW, SWITCH_PHRASES, offers_focus  # noqa: E402, F401
 
 
 CRITERIA = {  # copied from the M29 plan; fixed before measuring. Judged on the held-out set.
