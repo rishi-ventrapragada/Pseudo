@@ -214,3 +214,14 @@ form button { padding: 0 22px; border: 0; border-radius: 8px; background: var(--
 @media (prefers-reduced-motion: reduce) {
   .status.working::before, .voice .mic.on::before { animation: none; }
 }
+
+/* ---------- M30: which brain answered ---------- */
+.brain {
+  margin-left: 8px;
+  padding: 1px 7px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  letter-spacing: 0.04em;
+}
+.brain.action { color: var(--cloud); border-color: var(--cloud); }
+.action-brain { display: block; margin-top: 3px; }

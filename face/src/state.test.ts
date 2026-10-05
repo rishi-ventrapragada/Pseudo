@@ -101,4 +101,29 @@ describe('reduce', () => {
     const failed = reduce(state, brain({ type: 'speech', audio: '', reason: 'the voice is not installed' }));
     expect([failed.speech, failed.notice]).toEqual([{ audio: 'UklGRg==', n: 1 }, "Couldn't speak the answer: the voice is not installed"]);
   });
+
+  it('M30: remembers who answers action requests, and labels an answer from Claude Code', () => {
+    const actionBrain = { id: 'claude-code', name: 'Claude Code', model: 'sonnet', privacy: 'fake note' };
+    const ready = brain({ ...READY, action_brain: actionBrain } as FromBrain);
+    expect(run(brain(READY)).actionBrain).toBeNull();
+    const state = run(ready, { type: 'asked', text: 'Tick the fake box.' },
+      brain({ type: 'event', kind: 'routed', data: { to: 'claude-code', name: 'Claude Code', model: 'sonnet', privacy: 'fake note' } }),
+      brain({ type: 'event', kind: 'billing', data: { clean: true, line: 'billing check: CLEAN' } }),
+      brain({ type: 'event', kind: 'hands_pid', data: { pid: 7777 } }),
+      brain({ type: 'event', kind: 'answer', data: { text: 'Not approved.', calls: 3, tokens_in: 1, tokens_out: 1,
+                                                     provider: 'claude-code', model: 'claude-sonnet-5-5', fallback: false } }));
+    expect(state.actionBrain).toEqual(actionBrain);
+    expect(state.turns[0].label).toBe('claude-code · claude-sonnet-5-5');
+    expect(state.turns[0].steps.slice(0, 2)).toEqual([
+      'ACTION REQUEST: going to Claude Code (sonnet), not the chat provider | fake note', 'billing check: CLEAN']);
+    expect(state.turns[0].steps).toHaveLength(3); // hands_pid is not a step
+  });
+
+  it('M30: a refused action request shows why, and no answer', () => {
+    const state = run(brain(READY), { type: 'asked', text: 'Tick the fake box.' },
+      brain({ type: 'event', kind: 'billing', data: { clean: false, line: 'billing check: NOT CLEAN' } }),
+      brain({ type: 'event', kind: 'failed', data: { reason: 'billing check: NOT CLEAN. Nothing was sent' } }));
+    expect(state.turns[0].answer).toBeUndefined();
+    expect(state.turns[0].failed).toBe('billing check: NOT CLEAN. Nothing was sent');
+  });
 });

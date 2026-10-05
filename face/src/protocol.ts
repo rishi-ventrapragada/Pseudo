@@ -3,13 +3,15 @@
 
 export type Provider = { id: string; name: string; models: string[]; leaves_laptop: boolean; privacy: string;
                          transcribe_model: string }; // M26: '' = no voice input on this provider
+export type ActionBrain = { id: string; name: string; model: string; privacy: string }; // M30, D26
 export type SavedMessage = { role: 'user' | 'assistant'; content: string; answered_by?: string };
 export type SessionInfo = { name: string; provider: string; messages: SavedMessage[] };
 export type SessionItem = { name: string; provider: string; questions: number; title: string };
 export type EventData = Record<string, any>; // each event kind has its own fields (see events.ts)
 
 export type FromBrain =
-  | { type: 'ready'; providers: Provider[]; provider: string; session: SessionInfo; tools: string[] }
+  | { type: 'ready'; providers: Provider[]; provider: string; session: SessionInfo; tools: string[];
+      action_brain?: ActionBrain | null } // M30: who answers action requests; null = nobody
   | { type: 'event'; kind: string; data: EventData }
   | { type: 'switched'; provider: string; session: SessionInfo }
   | ({ type: 'session' } & SessionInfo)

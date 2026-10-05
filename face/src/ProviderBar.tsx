@@ -1,7 +1,7 @@
 // M18: which provider answers, and whether your words leave this laptop. One button per provider
 // in the allowlist (D16); the brain does the switching (chat.py) and says if it refused.
 
-import type { Provider } from './protocol';
+import type { ActionBrain, Provider } from './protocol';
 
 type Props = { providers: Provider[]; current: string; disabled: boolean; onSwitch: (id: string) => void };
 
@@ -31,13 +31,22 @@ export function ProviderBar({ providers, current, disabled, onSwitch }: Props) {
 }
 
 /** The strip under the header: the provider in use, its models, and its privacy note. */
-export function PrivacyNote({ provider }: { provider: Provider | undefined }) {
+type NoteProps = { provider: Provider | undefined; actionBrain?: ActionBrain | null };
+
+export function PrivacyNote({ provider, actionBrain }: NoteProps) {
   if (!provider) return null;
   const fallback = provider.models.length > 1 ? ` (on a 429: ${provider.models.slice(1).join(', ')})` : '';
   return (
     <p className={`privacy ${provider.leaves_laptop ? 'cloud' : 'local'}`}>
       <strong>{where(provider)}.</strong> {provider.name} · {provider.models[0]}
       {fallback}. {provider.privacy}
+      {/* M30: a second brain answers action requests, but never in private mode (chat.py) */}
+      {actionBrain && provider.leaves_laptop && (
+        <span className="action-brain">
+          <strong>Actions (click, type, tick, choose):</strong> {actionBrain.name} · {actionBrain.model}, after a
+          billing check. {actionBrain.privacy}
+        </span>
+      )}
     </p>
   );
 }

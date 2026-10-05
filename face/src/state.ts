@@ -3,7 +3,7 @@
 // about providers or sessions lives here; the brain decides, and this only records what it said.
 
 import { answerLabel, describeEvent } from './events';
-import type { FromBrain, Provider, SavedMessage, SessionItem } from './protocol';
+import type { ActionBrain, FromBrain, Provider, SavedMessage, SessionItem } from './protocol';
 
 export type Turn = {
   question: string;
@@ -18,6 +18,7 @@ export type State = {
   phase: 'starting' | 'ready' | 'stopped';
   providers: Provider[];
   provider: string; // the id in use
+  actionBrain: ActionBrain | null; // M30: who answers action requests (D26); null = nobody
   session: string; // the session's name (when it started)
   turns: Turn[];
   working: string | null; // what Pseudo is doing right now; null = waiting for you
@@ -36,7 +37,7 @@ export type Action =
   | { type: 'restarting' };
 
 export const initial: State = {
-  phase: 'starting', providers: [], provider: '', session: '', turns: [], working: null, toolWaiting: null, notice: '',
+  phase: 'starting', providers: [], provider: '', actionBrain: null, session: '', turns: [], working: null, toolWaiting: null, notice: '',
   sessions: null, heard: null, speech: null,
 };
 
@@ -60,9 +61,11 @@ function fromBrain(state: State, message: FromBrain): State {
   switch (message.type) {
     case 'ready':
       return { ...initial, phase: 'ready', providers: message.providers, provider: message.provider,
+               actionBrain: message.action_brain ?? null,
                session: message.session.name, turns: turnsFrom(message.session.messages) };
     case 'event': {
       const { kind, data } = message;
+      if (kind === 'hands_pid') return state; // M30: for the main process only (foreground.js)
       const step = describeEvent(kind, data);
       const turns = updateRunning(state.turns, (turn) => ({
         steps: step ? [...turn.steps, step] : turn.steps,

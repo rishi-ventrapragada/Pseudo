@@ -15,6 +15,10 @@
  * your next input, so the first version, which granted when you pressed Ask, never worked
  * with Enter: the key's own key-up, a moment later, cancelled it (M18, V6).
  *
+ * M30: an action request is answered by Claude Code, which starts its OWN pseudo_hands. The brain
+ * names that process in a `hands_pid` event; it is granted instead, for that question only (it is
+ * forgotten at `turn_done`, when that process is gone).
+ *
  * If anything is off (no pid yet, an odd pid, koffi can't load), nothing is granted. The
  * popup still appears, possibly behind the face, and still means no after 20 s (D13).
  * koffi is the npm package that lets JavaScript call a function in a Windows DLL.
@@ -32,23 +36,29 @@ class ForegroundGrant {
   constructor(allow) {
     this.allow = allow;
     this.handsPid = null;
+    this.actionPid = null; // (M30) the pseudo_hands Claude Code started for this question
   }
 
   /** Every message from the brain passes here: `ready` names pseudo_hands' process, `tool_call` grants. */
   fromBrain(message) {
     if (message.type === 'ready') this.handsPid = isProcessId(message.hands_pid) ? message.hands_pid : null;
+    else if (message.type === 'event' && message.kind === 'hands_pid') {
+      this.actionPid = isProcessId(message.data?.pid) ? message.data.pid : null;
+    } else if (message.type === 'turn_done') this.actionPid = null;
     else if (message.type === 'event' && message.kind === 'tool_call') this.grant();
   }
 
   /** The brain stopped, and its pseudo_hands with it: forget the pid. */
   brainStopped() {
     this.handsPid = null;
+    this.actionPid = null;
   }
 
   /** A tool is about to run: let pseudo_hands' process, and only it, bring its popup to the front. */
   grant() {
-    if (this.handsPid === null) return false;
-    return this.allow(this.handsPid) === true;
+    const pid = this.actionPid ?? this.handsPid; // during an action request, the popup comes from Claude Code's
+    if (pid === null) return false;
+    return this.allow(pid) === true;
   }
 }
 

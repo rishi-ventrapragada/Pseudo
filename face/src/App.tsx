@@ -6,6 +6,7 @@
 
 import { useEffect, useReducer, useRef, useState } from 'react';
 import { ApprovalBanner } from './ApprovalBanner';
+import { brainOf } from './events';
 import { Markdown } from './Markdown';
 import type { ToBrain } from './protocol';
 import { PrivacyNote, ProviderBar } from './ProviderBar';
@@ -35,7 +36,15 @@ function TurnView({ turn }: { turn: Turn }) {
       )}
       {turn.answer !== undefined && (
         <article className="answer" aria-label={`Answer from ${turn.label || 'Pseudo'}`}>
-          <p className="who">Pseudo{turn.label ? ` · ${turn.label}` : ''}</p>
+          <p className="who">
+            Pseudo{turn.label ? ` · ${turn.label}` : ''}
+            {/* M30: which brain answered, at a glance */}
+            {turn.label && (
+              <span className={`brain ${brainOf(turn.label)}`}>
+                {brainOf(turn.label) === 'action' ? 'Claude Code · your subscription' : 'Chat provider'}
+              </span>
+            )}
+          </p>
           <Markdown text={turn.answer} />
         </article>
       )}
@@ -110,7 +119,7 @@ export function App() {
           </button>
         </div>
       </header>
-      <PrivacyNote provider={current} />
+      <PrivacyNote provider={current} actionBrain={state.actionBrain} />
 
       <main className="transcript" aria-label="Conversation">
         {state.phase === 'starting' && (

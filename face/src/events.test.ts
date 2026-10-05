@@ -1,7 +1,7 @@
 // M18: the face words every event exactly as the terminal does (pseudo_brain/terminal.py,
 // format_event, minus the "---" around each line). The expected strings are the terminal's.
 import { describe, expect, it } from 'vitest';
-import { answerLabel, describeEvent } from './events';
+import { answerLabel, brainOf, describeEvent } from './events';
 
 describe('describeEvent', () => {
   it('words a model call like the terminal', () => {
@@ -64,5 +64,15 @@ describe('describeEvent', () => {
 
   it('shows nothing for an unknown event', () => {
     expect(describeEvent('something_new', {})).toBeNull();
+  });
+
+  it('M30: words the route and the billing line like the terminal, and tells the two brains apart', () => {
+    expect(describeEvent('routed', { to: 'claude-code', name: 'Claude Code', model: 'sonnet', privacy: 'fake note' }))
+      .toBe('ACTION REQUEST: going to Claude Code (sonnet), not the chat provider | fake note');
+    expect(describeEvent('billing', { clean: true, line: 'billing check: CLEAN' })).toBe('billing check: CLEAN');
+    expect(describeEvent('hands_pid', { pid: 7777 })).toBeNull();
+    expect(brainOf('claude-code · claude-sonnet-5-5')).toBe('action');
+    expect(brainOf('groq · openai/gpt-oss-120b, fallback')).toBe('chat');
+    expect(brainOf(undefined)).toBe('chat');
   });
 });

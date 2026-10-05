@@ -139,3 +139,9 @@ def test_the_terminal_shows_the_route_and_the_billing_line() -> None:
     assert "ACTION REQUEST: going to Fake Code (sonnet)" in routed and "fake note" in routed
     assert format_event("billing", {"clean": True, "line": "billing check: CLEAN"}) == "--- billing check: CLEAN ---"
     assert format_event("hands_pid", {"pid": 123}) is None
+
+
+def test_the_face_is_told_who_answers_action_requests() -> None:
+    from pseudo_brain.bridge import action_brain_info
+    assert action_brain_info(ROUTING) == {"id": "claude-code", "name": "Fake Code", "model": "sonnet", "privacy": "fake note"}
+    assert action_brain_info(Routing("focus_window", None)) is None and action_brain_info(None) is None

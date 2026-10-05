@@ -64,4 +64,24 @@ describe('ForegroundGrant', () => {
     grant.fromBrain(toolCall);
     expect(granted).toEqual([4321, 5555]);
   });
+
+  it("M30: during an action request, grants Claude Code's pseudo_hands instead, until the turn is done", () => {
+    const { grant, granted } = setup();
+    grant.fromBrain({ type: 'ready', hands_pid: 4321 });
+    grant.fromBrain({ type: 'event', kind: 'hands_pid', data: { pid: 7777 } });
+    grant.fromBrain(toolCall);
+    grant.fromBrain({ type: 'turn_done', ok: true });
+    grant.fromBrain(toolCall); // the next question is Groq's again
+    expect(granted).toEqual([7777, 4321]);
+  });
+
+  it('M30: an uncertain or odd action pid grants nothing new', () => {
+    const { grant, granted } = setup();
+    grant.fromBrain({ type: 'ready', hands_pid: 4321 });
+    for (const pid of [null, 0, -5, 1.5, '7777', ASFW_ANY]) {
+      grant.fromBrain({ type: 'event', kind: 'hands_pid', data: { pid } });
+      grant.fromBrain(toolCall);
+    }
+    expect(granted).toEqual([4321, 4321, 4321, 4321, 4321, 4321]);
+  });
 });

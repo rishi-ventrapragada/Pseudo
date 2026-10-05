@@ -11,6 +11,14 @@ export function answerLabel(data: EventData): string {
   return `${data.provider} · ${data.model}` + (data.fallback ? ', fallback' : '');
 }
 
+// M30: two brains can answer. The action brain's id is the start of its label, live or saved.
+export const ACTION_BRAIN = 'claude-code';
+
+/** Which brain a label names: 'action' (Claude Code, D26) or 'chat' (the provider in the bar). */
+export function brainOf(label: string | undefined): 'action' | 'chat' {
+  return (label ?? '').startsWith(ACTION_BRAIN) ? 'action' : 'chat';
+}
+
 export function describeEvent(kind: string, data: EventData): string | null {
   switch (kind) {
     case 'sending': {
@@ -37,6 +45,10 @@ export function describeEvent(kind: string, data: EventData): string | null {
         `RATE LIMITED (429) on ${data.model}: waiting ${Number(data.seconds).toFixed(0)} s as ${data.provider} ` +
         `asked (wait ${data.wait} of ${data.of})`
       );
+    case 'routed': // M30
+      return `ACTION REQUEST: going to ${data.name} (${data.model}), not the chat provider | ${data.privacy}`;
+    case 'billing': // M30: names and booleans only
+      return String(data.line);
     case 'model_retry':
       return 'MODEL WROTE AN INVALID TOOL CALL (400): asking again';
     case 'tool_call':
