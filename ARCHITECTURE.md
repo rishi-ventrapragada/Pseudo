@@ -199,16 +199,25 @@ pseudo_brain/           Pseudo's own agent loop (D15, M14), grown from playgroun
                         the old one's connections), new/open session, ask, stop servers (M18);
                         searches memory before a question, offers answered tasks to it after (M24);
                         (M30) routes: an action request to Claude Code, everything else to the provider,
-                        with the switch tool offered only by the rule; private mode never routes
+                        with the switch tool offered only by the rule; private mode never routes;
+                        (M32) with warm sessions (the face gives them), action requests go through their rules
   routing.py            the two word rules, no model: is it an action request? is the switch tool
                         offered? (M29, M30)
   action_brain.py       the action brain's settings from providers.toml: program, model, its tools,
                         the NAME of the .env variable holding your account (M30, D26)
   claude_billing.py     before every launch: nothing outranks the subscription login, and the login
                         is your account; names and booleans only (M30, D16)
-  claude_code.py        one action request through `claude -p`: its own pseudo_hands with only the
+  claude_code.py        one action request through `claude -p` (a LAUNCH): its own pseudo_hands with only the
                         listed tools, Pseudo's system prompt, the same events as the loop, at most 6
-                        tool calls, stopped on anything unexpected (M30, D26)
+                        tool calls, stopped on anything unexpected (M30, D26); (M32) the billing check and
+                        `launch` are separate, so the warm rules check once and then choose
+  claude_process.py     the process tree of a Claude Code Pseudo started: stop it, find its pseudo_hands,
+                        and (M32) remember a session's processes by pid and start time and add up their memory
+  claude_session.py     (M32) one WARM Claude Code process: a launch's options plus --input-format stream-json,
+                        one JSON line per request, stopped with its whole process tree
+  warm_sessions.py      (M32, D26) the warm session's rules: restart after 6 requests or at 3 times the first
+                        request's input, stop after 10 idle minutes, a launch whenever none is open, the
+                        billing check before every request and every session start; off until the face says on
   session.py            history as whole turns, one provider per session; trimmed per request to the
                         provider's max_prompt_tokens; memories join a request, never the history (M24);
                         saved to %LOCALAPPDATA%\Pseudo\sessions\ (your messages + final answers only)
@@ -217,6 +226,8 @@ pseudo_brain/           Pseudo's own agent loop (D15, M14), grown from playgroun
                         /new, /quit
   bridge.py             thin interface for the face: JSON lines over stdin/stdout, no port (D18, M18)
   bridge_voice.py       the bridge's voice messages: transcribe in, transcript and speech out (M26)
+  bridge_warm.py        the bridge's warm-session messages: the face's switch in, the session's state and
+                        memory out, a tick every 5 s (M32)
   voice_in.py           push-to-talk recording -> words: 30 s cap, silence gate (-45 dBFS), the provider's
                         transcribe_model (Groq's whisper-large-v3), Whisper's silent segments dropped (M26, D24)
   voice_out.py          answer -> speech: Markdown stripped, placeholders as words, Windows' Ravi voice through
@@ -234,7 +245,8 @@ face/                   Pseudo's own window (M18): Electron + React, display onl
   taskbar-flash.js      flashes the taskbar button while a tool runs and you're in another window
   src/                  the React page: chat, live steps, Markdown answers, provider bar, sessions,
                         the approval banner; (M26) recorder.ts, speaker.ts, useVoice.ts, VoiceControls.tsx:
-                        the mic button, Ctrl+Space, the Speak answers switch
+                        the mic button, Ctrl+Space, the Speak answers switch; (M32) useWarm.ts, WarmControl.tsx:
+                        the warm-session switch (remembered) and the open session's memory
 ```
 
 ```
@@ -252,7 +264,11 @@ Routing (M30, D26): decided from your words, before any model is asked.
       | yes -> claude_billing.check --not clean / not installed--> the turn fails; nothing sent, no fallback
                    | clean
                    v
-               claude_code.ask_claude --stdin--> `claude -p` (Sonnet, your subscription)
+               (M32) a warm session open, for this conversation, and no memories?
+                   | yes -> claude_session.ask: the request is written to the open `claude -p` as one JSON line
+                   | no  -> a launch (below); once it is answered, a session is opened for the next requests
+                   v
+               claude_code.launch --stdin--> `claude -p` (Sonnet, your subscription)
                    --MCP stdio--> its OWN pseudo_hands (--tools: list, read, act) -> the same core:
                    blocked apps, redactor, refusals, the shared action count, the approval popup
 ```
