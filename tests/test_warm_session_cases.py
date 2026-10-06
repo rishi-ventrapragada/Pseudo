@@ -72,7 +72,7 @@ def test_no_control_and_action_pair_was_in_m29s_held_out_set() -> None:
 
 def test_criteria_are_the_ones_fixed_in_prd() -> None:
     prd = (REPO / "PRD.md").read_text(encoding="utf-8")
-    section = prd[prd.index("### M31:"):prd.index("## 15. Backlog")]
+    section = prd[prd.index("### M31:"):prd.index("### M32:")]  # M31's section ends where M32's starts
     assert CRITERIA == {"W_S_median_seconds_to_popup_max": 15.0, "W_U_usable_min_of_18": 17,
                         "W_R_own_read_before_acting_min_of_18": 18, "W_T_input_times_the_sessions_first_max": 3.0,
                         "W_B_billing_and_session_clean_min_of_18": 18}

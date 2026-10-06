@@ -2,7 +2,7 @@
 
 Owner: Sai Rishi Ventrapragada
 Repo: https://github.com/rishi-ventrapragada/Pseudo
-Status: Phase 1-4 complete (M11 evaluated OCR and skipped it). Phase 5 (Make it usable) in progress: M13 done (Hermes Desktop ruled out; own brain per D15), M14 done (`pseudo_brain`), M15 done (providers evaluated; D16), M16 done (providers: allowlist, same-provider fallback, private mode), M17 done (Claude desktop app ruled out; D17), M18 done (own face: Electron, over a child-process pipe; D18), M19 done (redactor precision; D19). M20 done (Indian names; D21), but recall on fresh held-out names was only 57%. M21 tried a rule for that gap and didn't ship it. M22 done (a 49,000-word names list from Wikidata; D22): held-out recall 99% (section 11). Phase 6 (Memory): M23 done (local keyword search with SQLite FTS5; D23), M24 done (Pseudo remembers answered tasks, with your approval). Phase 7 (Voice): M25 done (listen through Groq's `whisper-large-v3`, speak with Windows' own voices; D24), M26 done (push-to-talk in the face; answers spoken with Windows' Ravi voice). P7-fix done (the approval popup stays on top). Phase 8 (Click and type control): M27 done (UI Automation actions recommended; D25), M28 done (click and type, behind the approval popup). M29 done (only Claude through Claude Code passed; D26). M30 done: action requests go to Claude Code, one launch per request. M31 done (a warm session restarted every 6 requests passed all five criteria; a build would be its own milestone). M32 done: a warm Claude Code session answers action requests, restarted after 6 requests or at 3 times the first request's input. P8-fix done (`focus_window` refuses assistant apps, which get no window id). Open follow-ups are in section 15, Backlog.
+Status: Phase 1-4 complete (M11 evaluated OCR and skipped it). Phase 5 (Make it usable) in progress: M13 done (Hermes Desktop ruled out; own brain per D15), M14 done (`pseudo_brain`), M15 done (providers evaluated; D16), M16 done (providers: allowlist, same-provider fallback, private mode), M17 done (Claude desktop app ruled out; D17), M18 done (own face: Electron, over a child-process pipe; D18), M19 done (redactor precision; D19). M20 done (Indian names; D21), but recall on fresh held-out names was only 57%. M21 tried a rule for that gap and didn't ship it. M22 done (a 49,000-word names list from Wikidata; D22): held-out recall 99% (section 11). Phase 6 (Memory): M23 done (local keyword search with SQLite FTS5; D23), M24 done (Pseudo remembers answered tasks, with your approval). Phase 7 (Voice): M25 done (listen through Groq's `whisper-large-v3`, speak with Windows' own voices; D24), M26 done (push-to-talk in the face; answers spoken with Windows' Ravi voice). P7-fix done (the approval popup stays on top). Phase 8 (Click and type control): M27 done (UI Automation actions recommended; D25), M28 done (click and type, behind the approval popup). M29 done (only Claude through Claude Code passed; D26). M30 done: action requests go to Claude Code, one launch per request. M31 done (a warm session restarted every 6 requests passed all five criteria; a build would be its own milestone). M32 done: a warm Claude Code session answers action requests, restarted after 6 requests or at 3 times the first request's input. P8-fix done (`focus_window` refuses assistant apps, which get no window id). Phase 9 (Daily-use polish) planned: M33 to M38, section 15; M33 (how to package Pseudo.exe, evaluate first) in progress. Open follow-ups are in section 16, Backlog.
 Last updated: 2026-10-06
 
 ## 1. What Pseudo is
@@ -57,6 +57,7 @@ See ARCHITECTURE.md. These later phases may change once the owner understands th
 | 6 | Memory | Pseudo remembers every task in a local markdown vault and sends only relevant, redacted memories to the model (L6). |
 | 7 | Voice | Talk to Pseudo and hear it answer: push-to-talk first, through free voice services evaluated for privacy first (D20, L5). |
 | 8 | Click and type control | Pseudo acts on the window you're on (click, type, tick, choose), one approved action at a time, through UI Automation first (D13, D14). |
+| 9 | Daily-use polish | Pseudo is something you leave running: `Pseudo.exe`, optional start with Windows, global hotkeys and a compact overlay, with what it costs measured first. |
 
 ### Roadmap toward the vision (section 1)
 
@@ -557,7 +558,91 @@ Goal: Pseudo acts on the window you were on (click, type, tick, choose), one app
 - **The M15 battery scored 12/12** on `gpt-oss-120b`, on its second run. The first run scored 11 of 11: one question was skipped, unsent, because another window was in front of the fake one.
 - **Side effect:** "switch to Claude" and "switch to Hermes" are refused too, since they are on the same list.
 
-## 15. Backlog
+## 15. Phase 9 scope: Daily-use polish
+
+Goal: Pseudo is something you leave running: a real `Pseudo.exe`, optionally started with Windows, reachable by a hotkey from any app, and small on screen and in RAM. Three rules must survive every step: Pseudo never reads or acts on its own window (`assistant_apps.txt`, P8-fix), the approval popup stays above the face (D13, P7-fix), and no action touches the popup or `pseudo_hands`' own windows (D14). Fake windows only while building and measuring. All criteria below were fixed on 2026-10-06, before any measurement.
+
+### M33: How to package Pseudo.exe (evaluate first)
+- **Candidates, the face:**
+  - K1: by hand. A short script copies Electron's own folder, renames `electron.exe` to `Pseudo.exe`, and puts the face's files in `resources/app`. No new package.
+  - K2: `@electron/packager`.
+  - K3: `electron-builder` (its plain-folder target; its installer is reported, not judged).
+  - K4: Electron Forge. Its packages are counted only: it wraps K2 and would restructure `package.json`.
+- **Candidates, the Python side:**
+  - Y1: `Pseudo.exe` uses the repo's `.venv`. The build writes the repo's path into a small file beside the app.
+  - Y2: `pseudo_brain` and `pseudo_hands` frozen with PyInstaller, built in a scratch venv (never added to `requirements.txt` during the evaluation).
+- Ruled out on paper: Tauri (a rewrite of the face's shell plus a Rust toolchain; L5 chose Electron); paid certificates and Azure Trusted Signing (D3); the Microsoft Store.
+- **Criteria, fixed in the plan:**
+  - P-W: the packaged app works. It reaches "ready", `koffi` loads (the grant returns true), `app://` serves only `dist`, there is no menu or developer tools, and quitting leaves 0 processes, 3 of 3.
+  - P-R: every window of the packaged app belongs to `Pseudo.exe`. With that name on the list, a question from the packaged face reads the fake window 5 of 5 and never its own; acting on the face is refused before any popup.
+  - P-N: nothing listens on a port (D18), and the face's processes make no outside connections.
+  - P-S: the folder is at most 400 MB (Electron alone is 367). For Y2, the Python part is reported.
+  - P-D: new packages added to `face/node_modules`, counted. Anything a tool downloads from outside npm at build time is named.
+  - P-B: one command builds it in at most 3 minutes, into a gitignored folder.
+  - P-M: RAM at "ready" within 20 MB of `npm start`; time to "ready" within 2 s.
+  - P-Y (Y2 only): Claude Code can still launch `pseudo_hands` with `--tools`, and time to "ready" is at most 5 s worse than Y1.
+  - A tie goes to the fewest new packages, then to the smallest.
+- **Code signing, reported with a rule:** unsigned if Windows starts it without a block or warning (locally built files carry no download mark, and Smart App Control is off on this laptop). Self-signed only if it is blocked. Paid signing stays ruled out.
+- **Done when:** each candidate is measured against the criteria, with a recommendation.
+
+### M34: Pseudo.exe (build)
+- The build script for M33's winner, `npm run package`, with its output gitignored.
+- `brain-process.js` takes the repo's path from the packaged app's file, or from its own folder under `npm start`. A missing Python is reported as today ("brain stopped").
+- `Pseudo.exe` is added to `assistant_apps.txt`.
+- One Pseudo at a time: a second launch shows the first one's window.
+- **Done when:** tests pass; with fake windows and the packaged app, the M18 checks pass (a question reads the fake window, never Pseudo's own), a `focus_window` popup and an action popup are on top, push-to-talk works with the fake microphone, quitting leaves 0 processes, and the M15 battery scores 12/12.
+
+### M35: What running all day costs (evaluate first)
+- **Candidates:**
+  - A0: today. Face, brain and `pseudo_hands` all start at launch and stay.
+  - A1: the brain (and so `pseudo_hands`) starts when Pseudo is first shown or asked, then stays.
+  - A2: A1, and the brain is stopped after 10 minutes hidden and idle, and started again on the next show.
+  - A3: A2, and the hidden face closes its page, keeping only the main process and the tray icon.
+- **Measured:** 10 idle minutes each, hidden, sampled every 5 s: private memory and CPU seconds per group (face, brain, `pseudo_hands`). The chosen candidate also gets a 60-minute run.
+- **Criteria, fixed in the plan:**
+  - I1: idle CPU at most 3 CPU-seconds per 10 minutes, all Pseudo processes together.
+  - I2: hidden and idle, at most 400 MB of private memory in total.
+  - I3: from show to typing, at most 1 s. If the brain had to start, "ready" within 15 s, with the wait shown and a question typed meanwhile kept.
+  - I4: quit leaves 0 processes; five stop-and-start cycles leave nothing behind.
+  - I5: a hidden start uses at most 5 CPU-seconds in its first minute and shows no window.
+  - I6: memory after 60 idle minutes within 10% of the 10-minute figure.
+- **Decision rule:** the simplest candidate that passes all six, in the order A0, A1, A2, A3. If none passes, the numbers are recorded and the switch still ships, off by default, with the cost shown beside it.
+- **Done when:** each candidate is measured, with a recommendation.
+
+### M36: Start with Windows (build)
+- A "Start with Windows" switch in the face, off by default. It shows what Windows says (Electron's login-item setting, a per-user registry entry), not a remembered value. Under `npm start` it is disabled, with the reason.
+- Started that way, Pseudo starts hidden, with a tray icon (Show, Quit). The close button still quits.
+- The start strategy M35 chose.
+- **Done when:** tests pass; the switch adds and removes exactly its own entry; a launch with the login arguments shows no window and meets I1, I2 and I5; Show brings the window; the entry is gone at the end of the check.
+- **Limit:** the check doesn't sign you out or restart the laptop. Your next real sign-in is the true test.
+
+### M37: Global hotkeys (build)
+- Two shortcuts through Electron's `globalShortcut` (Windows' `RegisterHotKey`): show or hide Pseudo (Ctrl+Alt+Space), and talk (Ctrl+Alt+T), which shows Pseudo and starts recording; pressing it again stops. The 30 s cap, the silence rule and "nothing is sent until Enter" are unchanged (D24, L8).
+- Ruled out on paper: hold-to-talk from any app. It needs a keyboard hook that sees every key you press in every app, the shape of a keylogger, inside a privacy tool.
+- A shortcut another program already holds is reported in the face and left off. Changing the keys: Backlog.
+- **Criteria, fixed in the plan:**
+  - H1: from a fake window, the hotkey shows Pseudo within 0.5 s, 10 of 10; hiding gives focus back to that same window, 10 of 10.
+  - H2: after a hotkey show, a read returns the fake window 10 of 10; reading, focusing and acting on Pseudo's window are each refused before any popup.
+  - H3: the talk hotkey with the fake microphone puts the words in the input box; nothing is asked until Enter; a second press stops; recording stops at 30 s.
+  - H4: with an approval popup open, hide and show leave it on top and unanswered, 6 of 6.
+  - H5: idle CPU and memory stay within M35's I1 and I2.
+  - H6: a taken shortcut is reported; both are released at quit; the code installs no keyboard hook.
+- **Done when:** tests pass and H1 to H6 hold; the M15 battery scores 12/12.
+
+### M38: Compact overlay (build, with a step-0 probe)
+- A compact mode: a small always-on-top bar (input, mic, status) that grows to show the steps, the approval banner and the answer. Resizable, with each mode's size and place remembered.
+- Step 0 picks the window, by the simplest that passes: O1, the same window made small and always on top, title bar kept; O2, a frameless bar, which means recreating the window on a mode switch.
+- While a tool waits for approval, the bar gives up always-on-top, so the popup can't end up under it.
+- **Criteria, fixed in the plan:**
+  - C1: with the bar on top and a fake window in use, a read returns the fake window 10 of 10.
+  - C2: approval popups are above the bar and clickable 12 of 12, including after clicking the bar while a tool waits.
+  - C3: focusing or acting on the bar is refused before any popup (D14, D25). The bar is an ordinary window, never click-through.
+  - C4: the approval banner and the answer are visible in compact mode.
+  - C5: sizes are remembered; a saved place that is off-screen is corrected; there is a minimum size.
+  - C6: idle CPU and memory within I1 and I2.
+- **Done when:** tests pass and C1 to C6 hold; the M15 battery scores 12/12.
+
+## 16. Backlog
 
 Found while building; not scheduled. Each needs a plan and approval before work starts.
 
