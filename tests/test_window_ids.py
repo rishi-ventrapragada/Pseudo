@@ -6,8 +6,11 @@ with a fresh registry, so the first window listed is always "w1".
 
 import itertools
 import os
+from pathlib import Path
 
-from pseudo_hands.core import window_ids
+import pytest
+
+from pseudo_hands.core import assistant_apps, window_ids
 from pseudo_hands.core.windows import RawWindow, list_open_windows
 
 HANDLES = itertools.count(101)
@@ -52,6 +55,22 @@ def test_blocked_unknown_and_pseudos_own_windows_get_no_id(desktop) -> None:
     desktop([fake_window("Vault", "KeePass.exe"), fake_window("Vault", None),
              fake_window("Pseudo: approve this action?", "python.exe", process_id=os.getpid())])  # D14
     assert [w["id"] for w in list_open_windows()] == [None, None, None]
+
+
+def test_an_assistant_app_is_listed_but_gets_no_id(desktop) -> None:  # (P8-fix)
+    desktop([fake_window("Pseudo", "Electron.exe"), fake_window("a - Notepad")])
+    face, notes = list_open_windows()
+    assert (face["title"], face["app"], face["id"]) == ("Pseudo", "Electron.exe", None)
+    assert notes["id"] == "w1"  # the face didn't use up an id either
+
+
+def test_an_unreadable_assistant_list_means_no_ids_at_all(desktop, monkeypatch: pytest.MonkeyPatch,
+                                                          tmp_path: Path) -> None:  # (P8-fix)
+    desktop([fake_window("Pseudo", "electron.exe"), fake_window("a - Notepad")])
+    monkeypatch.setattr(assistant_apps, "ASSISTANT_APPS_FILE", tmp_path / "missing.txt")
+    listed = list_open_windows()
+    assert [w["id"] for w in listed] == [None, None]  # fail closed: we can't tell the face apart
+    assert [w["title"] for w in listed] == ["Pseudo", "a - Notepad"]  # still listed
 
 
 def test_the_registry_only_knows_ids_it_handed_out(desktop) -> None:

@@ -9,8 +9,9 @@ from pathlib import Path
 
 import pytest
 
-from pseudo_hands.core import active_window, blocked_apps, redactor
-from pseudo_hands.core.active_window import ASSISTANT_LIST_UNREADABLE, load_assistant_apps, pick_window, read_active_window
+from pseudo_hands.core import active_window, assistant_apps, blocked_apps, redactor
+from pseudo_hands.core.active_window import ASSISTANT_LIST_UNREADABLE, pick_window, read_active_window
+from pseudo_hands.core.assistant_apps import load_assistant_apps
 from pseudo_hands.core.ui_tree import TreeLine, TreeRead
 from pseudo_hands.core.windows import RawWindow
 
@@ -39,7 +40,7 @@ def screen(monkeypatch: pytest.MonkeyPatch, tmp_path: Path):
         listed = tmp_path / "assistant_apps.txt"
         if assistants is not None:
             listed.write_text(assistants, encoding="utf-8")
-        monkeypatch.setattr(active_window, "ASSISTANT_APPS_FILE", listed)  # a missing file if assistants is None
+        monkeypatch.setattr(assistant_apps, "ASSISTANT_APPS_FILE", listed)  # a missing file if assistants is None
         monkeypatch.setattr(active_window, "read_all_windows", lambda: windows)
         monkeypatch.setattr(active_window, "read_tree", fake_read_tree)
         return reads

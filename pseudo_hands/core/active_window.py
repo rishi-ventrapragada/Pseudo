@@ -23,18 +23,17 @@ in core, before anything is returned (D6, D11):
 
 import os
 import time
-from pathlib import Path
 from typing import TypedDict
 
 from pseudo_hands.core import control_ids
-from pseudo_hands.core.blocked_apps import RESTRICTED, is_blocked, load_blocked_apps, parse_blocked_apps
+from pseudo_hands.core.assistant_apps import AssistantAppsError, is_assistant, load_assistant_apps
+from pseudo_hands.core.blocked_apps import RESTRICTED, is_blocked, load_blocked_apps
 from pseudo_hands.core.control_ids import ControlKey, shown_ids
 from pseudo_hands.core.outline import outline, page_first
 from pseudo_hands.core.redactor import RedactionError, redact
 from pseudo_hands.core.ui_tree import TreeLine, TreeRead, read_tree
 from pseudo_hands.core.windows import RawWindow, is_user_window, read_all_windows, safe_title
 
-ASSISTANT_APPS_FILE = Path(__file__).resolve().parent / "assistant_apps.txt"  # (M18) the face, Hermes, the Claude app
 ASSISTANT_LIST_UNREADABLE = "assistant-apps list can't be read: nothing read"
 MAX_CONTENT_CHARS = 1200
 SETTLE_WAIT_SECONDS = 1.0  # (M28) between reads; the M27 stand-in used 1.0 s on fresh Brave pages
@@ -55,24 +54,12 @@ class WindowContent(TypedDict):
     note: str  # "" or a short reason, never an error message (those could contain text)
 
 
-class AssistantAppsError(Exception):
-    """(M18) assistant_apps.txt could not be read, so we can't tell the face from your window."""
-
-
-def load_assistant_apps() -> set[str]:
-    """(M18) Read assistant_apps.txt (same format as blocked_apps.txt). Raises instead of guessing."""
-    try:
-        return parse_blocked_apps(ASSISTANT_APPS_FILE.read_text(encoding="utf-8"))
-    except (OSError, UnicodeDecodeError):
-        raise AssistantAppsError(f"can't read {ASSISTANT_APPS_FILE.name}") from None
-
-
 def pick_window() -> RawWindow | None:
     """The front-most window a person can see that isn't an assistant app or one of Pseudo's own
     windows, such as the approval popup (M28, D14). Raises AssistantAppsError."""
-    assistants = load_assistant_apps()
+    assistants = load_assistant_apps()  # (P8-fix) the list now lives in assistant_apps.py
     for raw in read_all_windows():  # z-order: front-most first
-        if is_user_window(raw) and (raw.app or "").lower() not in assistants and raw.process_id != os.getpid():
+        if is_user_window(raw) and not is_assistant(raw.app, assistants) and raw.process_id != os.getpid():
             return raw
     return None
 

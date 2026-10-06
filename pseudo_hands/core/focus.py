@@ -4,10 +4,13 @@ only if a person clicks OK in the approval popup.
 What it demonstrates: an action tool is mostly checks. The one line that acts
 (SetForegroundWindow) runs last, after everything below has passed, all in core
 (D11, D13), so the rules hold for any brain:
-  0. the blocked-apps list must load, or nothing happens (fail closed, D6)
+  0. the blocked-apps and (P8-fix) assistant-apps lists must load, or nothing happens
+     (fail closed, D6)
   1. the id must be one list_open_windows() handed out, and its window must still
      exist, belong to the same program, and be a normal visible window
-  2. Pseudo's own windows (the popup itself, D14) and blocked apps are never touched
+  2. Pseudo's own windows (the popup itself, D14), blocked apps and (P8-fix) assistant
+     apps, such as Pseudo's own face, are never touched. list_open_windows() gives an
+     assistant app no id; this check also covers an id handed out before the list changed
   3. a window that's already in front needs no popup
   4. the popup: the person sees the REAL title (it stays on this screen) and must say yes
   5. check the window again: in 20 s it could have closed or been replaced
@@ -24,6 +27,7 @@ import win32con
 import win32gui
 
 from pseudo_hands.core import approval, window_ids
+from pseudo_hands.core.assistant_apps import AssistantAppsError, is_assistant, load_assistant_apps
 from pseudo_hands.core.blocked_apps import RESTRICTED, is_blocked, load_blocked_apps
 from pseudo_hands.core.windows import RawWindow, is_user_window, read_window, safe_title
 
@@ -36,6 +40,8 @@ NOT_APPROVED = "not approved"  # denied, closed, or no answer in time: nothing w
 ALREADY_IN_FRONT = "already in front"
 BLOCKED = "restricted"  # a blocked app: never shown in a popup, never touched
 OWN_WINDOW = "own window"  # D14: a window of pseudo_hands itself, such as the popup
+ASSISTANT_APP = "assistant app"  # (P8-fix) Pseudo's own face, or another assistant on the list
+LISTS_UNREADABLE = "assistant-apps list can't be read: nothing done"  # (P8-fix) the words act.py uses
 UNKNOWN_ID = "unknown id"  # not an id list_open_windows() handed out
 WINDOW_GONE = "window gone"  # closed, hidden, or its handle now belongs to another program
 FOCUS_REFUSED = "focus refused"  # approved, but Windows didn't let the focus change happen
@@ -92,6 +98,10 @@ def focus_window(window_id: str) -> FocusResult:
     Raises BlockedAppsError if the blocked-apps list can't be read (as list_open_windows does).
     """
     blocked = load_blocked_apps()  # 0. no list, no action
+    try:
+        assistants = load_assistant_apps()
+    except AssistantAppsError:
+        return result(window_id, LISTS_UNREADABLE)
     key = window_ids.registry.find(window_id)  # 1. only ids we handed out
     if key is None:
         return result(window_id, UNKNOWN_ID)
@@ -102,6 +112,8 @@ def focus_window(window_id: str) -> FocusResult:
         return result(window_id, OWN_WINDOW)
     if is_blocked(raw.app, blocked):  # 2. blocked apps: no popup, no action
         return result(window_id, BLOCKED, RESTRICTED, RESTRICTED)
+    if is_assistant(raw.app, assistants):  # 2. (P8-fix) never the face, or another assistant
+        return result(window_id, ASSISTANT_APP)
     title, app = safe_title(raw.title), raw.app
     if raw.focused:  # 3. nothing to do
         return result(window_id, ALREADY_IN_FRONT, title, app)

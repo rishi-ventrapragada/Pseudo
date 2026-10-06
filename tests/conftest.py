@@ -10,7 +10,8 @@ parameter, like beforeEach in Jest, but only for the tests that want it):
                record every preview they were shown.
   desktop   -> (M4, M5) desktop([RawWindow, ...]) makes list_open_windows()
                see exactly those fake windows, with a test blocked list that
-               holds only KeePass.exe. The real desktop is never read.
+               holds only KeePass.exe and (P8-fix) a test assistant list that
+               holds only electron.exe. The real desktop is never read.
                Title redaction is a pass-through here unless a test also asks
                for real_redaction (M8). Each test gets a fresh id registry
                (M10), so the first listed window is always "w1".
@@ -36,7 +37,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "playground"))
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 import agent_tools  # noqa: E402  (has to come after the sys.path lines above)
-from pseudo_hands.core import approval, blocked_apps, memory, memory_search, window_ids, windows  # noqa: E402
+from pseudo_hands.core import approval, assistant_apps, blocked_apps, memory, memory_search, window_ids, windows  # noqa: E402
 from pseudo_hands.core.windows import RawWindow  # noqa: E402
 from pseudo_brain import model  # noqa: E402
 
@@ -119,6 +120,9 @@ def desktop(monkeypatch: pytest.MonkeyPatch, tmp_path: Path):
     list_file = tmp_path / "blocked_apps.txt"
     list_file.write_text("# test list\nKeePass.exe\n", encoding="utf-8")
     monkeypatch.setattr(blocked_apps, "BLOCKED_APPS_FILE", list_file)
+    assistants_file = tmp_path / "assistant_apps.txt"  # (P8-fix) list_open_windows reads this list too
+    assistants_file.write_text("# test list\nelectron.exe\n", encoding="utf-8")
+    monkeypatch.setattr(assistant_apps, "ASSISTANT_APPS_FILE", assistants_file)
 
     # Redaction off by default, so M4/M5 tests test blocking alone; M8 tests add `real_redaction`.
     monkeypatch.setattr(windows, "redact", lambda title: title)

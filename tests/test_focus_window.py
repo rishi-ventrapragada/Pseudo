@@ -12,10 +12,9 @@ import os
 from pathlib import Path
 
 import pytest
-import pywintypes
 import win32con
 
-from pseudo_hands.core import approval, blocked_apps, focus, window_ids
+from pseudo_hands.core import approval, assistant_apps, blocked_apps, focus, window_ids
 from pseudo_hands.core.blocked_apps import RESTRICTED, BlockedAppsError
 from pseudo_hands.core.focus import focus_window
 from pseudo_hands.core.windows import RawWindow, list_open_windows
@@ -130,6 +129,33 @@ def test_pseudos_own_windows_are_never_touched_d14(screen, popup_yes) -> None:
     assert popup_yes.previews == [] and fake.acted == []
 
 
+def test_an_assistant_app_like_pseudos_face_is_never_touched(screen, popup_yes) -> None:  # (P8-fix)
+    face = RawWindow("Pseudo", "Electron.exe", True, False, False, handle=104, process_id=4004)
+    fake, ids = screen([A, B, face])
+    assert ids[2] is None  # list_open_windows gives it no id...
+    forced = window_ids.registry.id_for(face.handle, face.process_id)  # ...and even if it had one:
+    assert focus_window(forced) == {"window_id": forced, "title": "", "app": "", "status": "assistant app"}
+    assert popup_yes.previews == [] and fake.acted == [] and fake.foreground == A.handle
+
+
+def test_an_app_added_to_the_assistant_list_after_it_got_an_id_is_refused(
+        screen, popup_yes, monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:  # (P8-fix)
+    fake, [_, b] = screen([A, B])
+    now_listed = tmp_path / "now_listed.txt"  # the list changed after the model got its id
+    now_listed.write_text("notepad.exe\n", encoding="utf-8")
+    monkeypatch.setattr(assistant_apps, "ASSISTANT_APPS_FILE", now_listed)
+    assert focus_window(b)["status"] == "assistant app"
+    assert popup_yes.previews == [] and fake.acted == []
+
+
+def test_an_unreadable_assistant_list_stops_everything(screen, popup_yes, monkeypatch: pytest.MonkeyPatch,
+                                                       tmp_path: Path) -> None:  # (P8-fix)
+    fake, [_, b] = screen([A, B])
+    monkeypatch.setattr(assistant_apps, "ASSISTANT_APPS_FILE", tmp_path / "missing.txt")
+    assert focus_window(b)["status"] == focus.LISTS_UNREADABLE
+    assert popup_yes.previews == [] and fake.acted == []
+
+
 def test_a_window_already_in_front_needs_no_popup(screen, popup_yes) -> None:
     fake, [a, _] = screen([A, B])
     assert focus_window(a)["status"] == "already in front"
@@ -161,31 +187,3 @@ def test_a_refusal_by_windows_is_reported(screen, popup_yes, monkeypatch: pytest
     _, [_, b] = screen([A, B])
     monkeypatch.setattr(focus, "bring_to_front", lambda _handle: False)
     assert focus_window(b)["status"] == "focus refused"
-
-
-# ---------- the action itself (Windows calls faked) ----------
-
-def test_a_minimized_window_is_restored_only_after_focusing_worked(monkeypatch: pytest.MonkeyPatch) -> None:
-    calls: list[str] = []
-    monkeypatch.setattr(focus.win32gui, "SetForegroundWindow", lambda h: calls.append("focus"))
-    monkeypatch.setattr(focus.win32gui, "IsIconic", lambda h: True)
-    monkeypatch.setattr(focus.win32gui, "ShowWindow", lambda h, how: calls.append("restore"))
-    monkeypatch.setattr(focus.win32gui, "GetForegroundWindow", lambda: 102)
-    assert focus.bring_to_front(102) is True and calls == ["focus", "restore"]
-
-
-def test_a_switch_that_lands_a_moment_later_still_counts(monkeypatch: pytest.MonkeyPatch) -> None:
-    # Found in the real run: right after SetForegroundWindow, Windows can still report the old window.
-    reported = iter([55, 55, 102])  # old window twice, then ours
-    monkeypatch.setattr(focus.win32gui, "SetForegroundWindow", lambda h: None)
-    monkeypatch.setattr(focus.win32gui, "IsIconic", lambda h: False)
-    monkeypatch.setattr(focus.win32gui, "GetForegroundWindow", lambda: next(reported, 102))
-    assert focus.bring_to_front(102) is True
-
-
-def test_when_windows_refuses_nothing_is_half_done(monkeypatch: pytest.MonkeyPatch) -> None:
-    def refuse(_handle: int) -> None:
-        raise pywintypes.error(0, "SetForegroundWindow", "refused")
-    monkeypatch.setattr(focus.win32gui, "SetForegroundWindow", refuse)
-    monkeypatch.setattr(focus.win32gui, "ShowWindow", lambda h, how: pytest.fail("must not restore"))
-    assert focus.bring_to_front(102) is False

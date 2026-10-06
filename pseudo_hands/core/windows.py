@@ -12,6 +12,9 @@ Privacy is applied HERE, before anything is returned (DECISIONS.md D6):
      a title the redactor can't process comes back as "[title withheld]", never raw.
 (M10) Each window also gets a short id for focus_window(). Blocked apps and
 Pseudo's own windows (the approval popup, D14) get None: nothing to point at.
+(P8-fix) So do assistant apps (assistant_apps.txt: Pseudo's own face, Claude, Hermes): they
+are still listed, but with no id a model can't ask to bring the face to the front. If that
+list can't be read, NO window gets an id (fail closed).
 (M12) Invisible and click-through overlays (e.g. a GPU overlay) aren't windows a
 person reads: they're dropped by is_user_window(), so they're never listed, never
 get an id, and are never read or focused.
@@ -30,6 +33,7 @@ import win32gui
 import win32process
 
 from pseudo_hands.core import window_ids
+from pseudo_hands.core.assistant_apps import AssistantAppsError, is_assistant, load_assistant_apps
 from pseudo_hands.core.blocked_apps import RESTRICTED, load_blocked_apps, mask_if_blocked
 from pseudo_hands.core.redactor import RedactionError, redact
 
@@ -137,6 +141,20 @@ def safe_title(title: str) -> str:
         return TITLE_WITHHELD
 
 
+def assistants_or_none() -> set[str] | None:
+    """(P8-fix) The assistant-apps list, or None if it can't be read (then nothing gets an id)."""
+    try:
+        return load_assistant_apps()
+    except AssistantAppsError:
+        return None
+
+
+def may_get_id(raw: RawWindow, assistants: set[str] | None) -> bool:
+    """May focus_window() be pointed at this window? Never Pseudo's own windows (D14), never an
+    assistant app (P8-fix), and no window at all while the assistant list is unreadable."""
+    return raw.process_id != os.getpid() and assistants is not None and not is_assistant(raw.app, assistants)
+
+
 def list_open_windows() -> list[Window]:
     """The windows a person can see, front-most first, blocked apps masked, titles redacted.
 
@@ -144,6 +162,7 @@ def list_open_windows() -> list[Window]:
     list we can't know what to hide, so nothing is returned (fail closed, D6).
     """
     blocked = load_blocked_apps()  # first, so a broken list stops us before we read any window
+    assistants = assistants_or_none()
     result: list[Window] = []
     for raw in read_all_windows():
         if not is_user_window(raw):
@@ -152,7 +171,7 @@ def list_open_windows() -> list[Window]:
         window_id = None
         if title != RESTRICTED:  # blocked apps' titles never even reach the redactor
             title = safe_title(title)
-            if raw.process_id != os.getpid():  # D14: never an id for Pseudo's own windows
+            if may_get_id(raw, assistants):
                 window_id = window_ids.registry.id_for(raw.handle, raw.process_id)
         result.append({"id": window_id, "title": title, "app": app, "focused": raw.focused})
     return result

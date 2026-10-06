@@ -15,7 +15,7 @@ from pathlib import Path
 import pytest
 from uia_fakes import P, FakeControl, FakePattern
 
-from pseudo_hands.core import act, action_rules, active_window, approval, blocked_apps, control_ids, ui_tree
+from pseudo_hands.core import act, action_rules, approval, assistant_apps, blocked_apps, control_ids, ui_tree
 from pseudo_hands.core.act import act_on_control
 from pseudo_hands.core.action_rules import MASKED_TEXT, PopupBudget
 from pseudo_hands.core.blocked_apps import BlockedAppsError
@@ -64,7 +64,7 @@ def world(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> World:
     (tmp_path / "blocked.txt").write_text("KeePass.exe\n", encoding="utf-8")
     (tmp_path / "assistants.txt").write_text("electron.exe\n", encoding="utf-8")
     monkeypatch.setattr(blocked_apps, "BLOCKED_APPS_FILE", tmp_path / "blocked.txt")
-    monkeypatch.setattr(active_window, "ASSISTANT_APPS_FILE", tmp_path / "assistants.txt")
+    monkeypatch.setattr(assistant_apps, "ASSISTANT_APPS_FILE", tmp_path / "assistants.txt")
     fake = World()
     monkeypatch.setattr(control_ids, "registry", fake.ids)
     monkeypatch.setattr(act, "read_window", lambda handle, _focused: fake.windows.get(handle))
@@ -174,6 +174,6 @@ def test_a_missing_blocked_list_stops_everything(world: World, popup_yes, monkey
 
 def test_an_unreadable_assistant_list_stops_everything(world: World, popup_yes, monkeypatch: pytest.MonkeyPatch,
                                                        tmp_path: Path) -> None:
-    monkeypatch.setattr(active_window, "ASSISTANT_APPS_FILE", tmp_path / "missing.txt")
+    monkeypatch.setattr(assistant_apps, "ASSISTANT_APPS_FILE", tmp_path / "missing.txt")
     assert act_on_control(world.id_for("save"), "press")["status"] == act.LISTS_UNREADABLE
     assert popup_yes.previews == [] and world.calls() == []

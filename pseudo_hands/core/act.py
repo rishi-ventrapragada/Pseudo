@@ -28,7 +28,8 @@ from comtypes import COMError
 
 from pseudo_hands.core import action_rules, approval, control_ids
 from pseudo_hands.core.action_rules import ACTIONS, Action, check_text, question
-from pseudo_hands.core.active_window import AssistantAppsError, load_assistant_apps, pick_window
+from pseudo_hands.core.active_window import pick_window
+from pseudo_hands.core.assistant_apps import AssistantAppsError, is_assistant, load_assistant_apps
 from pseudo_hands.core.blocked_apps import is_blocked, load_blocked_apps
 from pseudo_hands.core.control_ids import ControlKey
 from pseudo_hands.core.ui_actions import P, actions_of, name_of, perform
@@ -78,7 +79,7 @@ def window_refusal(key: ControlKey, raw: RawWindow | None, blocked: set[str], as
         return OWN_WINDOW
     if is_blocked(raw.app, blocked):
         return BLOCKED
-    if (raw.app or "").lower() in assistants:
+    if is_assistant(raw.app, assistants):
         return ASSISTANT_APP
     target = pick_window()
     return None if target is not None and target.handle == key.handle else NOT_TARGET
