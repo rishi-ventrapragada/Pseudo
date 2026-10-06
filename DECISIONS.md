@@ -138,6 +138,12 @@ For requests that ask Pseudo to act on a window, `pseudo_brain` may hand the que
 *Limits:* it uses the owner's subscription quota; an open session holds about 240 to 440 MB; about 10 s to the popup in a session and about 19 s from a launch; in a session, a fresh read before each action rests on the model (18 of 18 in M31), on core's re-check of the control and on the popup; the rule misses "Can I see the test form?".
 *Would change if:* a free Groq model passes M29's criteria, or the subscription ends.
 
+### D27. Pseudo.exe is the face only, packaged by hand (M33)
+`Pseudo.exe` is Electron's own folder with `electron.exe` renamed and the face's run-time files in `resources/app`, built by a short script with no packaging tool. Python is not bundled: `Pseudo.exe` starts the brain from the repo's `.venv`, whose path the build writes beside the app. It is unsigned.
+*Why (M33):* by-hand packaging, `@electron/packager` and `electron-builder` all passed every criterion with the same start time and memory as `npm start`; by hand adds no package (38 and 265 for the tools). PyInstaller took 272 s to build and its brain couldn't find `.env`. Nine unsigned launches started without a warning.
+*Limits:* the exe still describes itself as "Electron"; it works only on this laptop, with the repo and `.venv` where the build found them.
+*Would change if:* Pseudo has to run on another machine, Windows starts blocking the unsigned exe, or the "Electron" label proves a problem (then `@electron/packager`).
+
 ## LEANING (revisit after Phase 1)
 
 L1 moved to LOCKED as D12 (2026-09-28).
