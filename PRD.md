@@ -522,6 +522,16 @@ Goal: Pseudo acts on the window you were on (click, type, tick, choose), one app
   - **How it ran:** warm first, then cold. Three cold launches (each session's first request) found their prompt already cached by the warm phase and cost about $0.003; on the other 15 requests warm cost 1.5% more than cold (12% more over all 18). The routing rule would send 17 of the 18 to Claude Code (missed: "Rename the booking: the title should be 'Design review' and nothing else."). Step 0 used 7 small requests, 4 more than planned.
   - **Found before measuring:** the first version of the fake booking page (F6) didn't fit `read_active_window`'s 1,200-character cut, so three asked controls had no id: each line of a read is indented by its depth, and a heading is read twice. The page was shortened and committed again before any model saw it; no question changed. The redactor masked "Whiteboard" as a name, and on some reads a button's type next to its id ("[LOCATION] #c160: Check availability"; Backlog).
 
+### M32: The warm Claude Code session (build)
+- `pseudo_brain` keeps one Claude Code session open for action requests, as M31 measured it: a launch's options plus `--input-format stream-json`, each request written to its input as one JSON line (D26).
+- The session is stopped and a new one started after 6 requests, or early as soon as a request's input reaches 3 times the session's first request's (M31's margin was 2.83). It is stopped after 10 idle minutes.
+- Whenever no warm session is open, a request is answered by a launch of its own, as in M30; once it is answered, a session is opened for the next ones.
+- The billing check runs before every request and before every session start.
+- A switch in the face turns warm sessions off, which stops the open one and frees its 310 to 440 MB; the face remembers it. While a session is open, the face shows its RAM.
+- The 4-action-popups-per-2-minutes limit (D25) is one count across launches and warm requests.
+- A session serves one conversation and never receives memories; a request that fails inside it stops it and isn't retried.
+- **Done when:** tests pass on a fake Claude Code; and with the real face, a real Enter, real popups and fake windows: a request with no session open is a launch and a session opens behind it; the next requests are answered by that session, each action type approved once with its effect read back; the session restarts after its 6th request, and early when a request's input reaches 3 times its first; the off switch leaves no Claude Code process, stays off after the face restarts, and requests are launches while it is off; a 5th action popup within 2 minutes is refused across launches and warm requests; a not-clean billing check sends nothing and opens no session; an idle session is stopped after 10 minutes; the M15 battery scores 12/12.
+
 ## 15. Backlog
 
 Found while building; not scheduled. Each needs a plan and approval before work starts.
@@ -539,3 +549,4 @@ Found while building; not scheduled. Each needs a plan and approval before work 
 - **Model misses on actions (M28 Live B). Evaluated in M29:** no Groq setup passed; Claude Sonnet 5.5 through Claude Code did (18 of 18 held-out). Built in M30 (D26). Still open on Groq: "add text" asked as a replace, and an action popup on a read-only question.
 - **MAX_ITERATIONS = 6 stops multi-action requests** (a 4-action task needs ~7 calls); Groq's 8K tokens/min may also force the fallback model mid-task.
 - **OCR revisit: DaVinci Resolve.** In M11 it exposed only 44 content chars (53 controls), just above the 40-char line. Revisit OCR if Pseudo needs to read Resolve (or games).
+- **Warm sessions let core accept an action on the previous request's ids without a fresh read (M32).** Enforce in core, e.g. control ids expire after a short time; this changes D25 and needs its own evaluation.
