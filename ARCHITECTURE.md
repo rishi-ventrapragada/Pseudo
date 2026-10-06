@@ -128,7 +128,8 @@ Only text the owner types (and files inside `playground/sandbox/`) is sent to th
 ```
 pseudo_hands/
   core/                 plain Python; never imports MCP or Hermes (D11)
-    windows.py          list_open_windows(): Windows API -> clean list of dicts; skips overlays (M12)
+    windows.py          list_open_windows(): Windows API -> clean list of dicts; skips overlays (M12);
+                        (P8-fix) assistant apps are listed but get no id
     blocked_apps.py     load the blocked list, mask blocked windows (D6)
     blocked_apps.txt    owner-editable list of .exe names
     redactor.py         redact(text): Presidio + spaCy, fail closed (M7)
@@ -153,9 +154,11 @@ pseudo_hands/
                         reads again until the line count settles (replacing M12's single retry), never
                         reads Pseudo's own windows (M28)
     assistant_apps.txt  owner-editable list of assistant .exe names (the face, Claude, Hermes) (M18)
+    assistant_apps.py   (P8-fix) loads that list for reading, listing, focusing and acting: never read,
+                        no window id, never focused, never acted on; unreadable -> nothing (fail closed)
     window_ids.py       short ids ("w3") for listed windows, never reused (M10)
     approval.py         the approval gate: native popup, always on top, default no (D13, M10, P7-fix)
-    focus.py            focus_window(): validate id, block, ask, act (M10)
+    focus.py            focus_window(): validate id, block, ask, act (M10); refuses assistant apps (P8-fix)
     ui_actions.py       what a control can do (its patterns), act, read back (M28)
     action_rules.py     text rules, the popup's text, at most 4 action popups per 2 minutes (M28, D25)
     action_budget.py    that limit as ONE count for every pseudo_hands process: a small locked file,
