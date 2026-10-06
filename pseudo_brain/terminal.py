@@ -82,6 +82,16 @@ def format_event(kind: str, data: dict) -> str | None:
                 f"{data['privacy']} ---")
     if kind == "billing":  # (M30) names and booleans only
         return f"--- {data['line']} ---"
+    if kind == "launch":  # (M32) the four steps of warm_sessions.py; the face words them the same (events.ts)
+        return f"--- LAUNCH: starting Claude Code for this request ({data['why']}) ---"
+    if kind == "warm":
+        return f"--- WARM SESSION: request {data['request']} of {data['of']} in the open Claude Code session ---"
+    if kind == "warm_restart":
+        return f"--- WARM SESSION: restarting it after this request ({data['why']}) ---"
+    if kind == "warm_opened":
+        if data["opened"]:
+            return f"--- WARM SESSION: opened for your next action requests (restarted after {data['of']}) ---"
+        return f"--- WARM SESSION: not opened ({data['why']}) ---"
     if kind == "memory_saved":
         return f"--- MEMORY: saved this task, redacted, as {data['note']} ---"
     if kind == "memory_not_saved":

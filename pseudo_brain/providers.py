@@ -81,6 +81,13 @@ class Allowlist:
         return provider
 
 
+def provider_info(provider: Provider) -> dict:
+    """What an interface shows about a provider (the face's provider bar and privacy note)."""
+    return {"id": provider.id, "name": provider.name, "models": list(provider.models),
+            "leaves_laptop": provider.leaves_laptop, "privacy": provider.privacy,
+            "transcribe_model": provider.transcribe_model}  # M26: "" = no voice input on this provider
+
+
 def load_allowlist(path: Path = PROVIDERS_FILE) -> Allowlist:
     """Read and check the whole file. Raises ProviderRefused on the first problem."""
     try:

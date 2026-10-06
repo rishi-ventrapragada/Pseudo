@@ -13,6 +13,9 @@ switch_tool = "focus_window"
 # memory tools), Pseudo's own system prompt, and a billing check first (pseudo_brain/claude_billing.py):
 # nothing may outrank your subscription login, and the login must be the account named in .env.
 # If the check fails or Claude Code is missing, Pseudo says so and doesn't act; it never falls back to Groq.
+# (M32) With the face's warm-session switch on, one Claude Code may stay open and answer several requests:
+# the same tools, prompt and model, the same billing check before every request and every session start
+# (pseudo_brain/warm_sessions.py). Whenever none is open, a request is still a launch of its own.
 [action_brain]
 name = "Claude Code"
 command = ["claude"]

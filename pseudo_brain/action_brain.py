@@ -40,6 +40,12 @@ class Routing:
     action_brain: ActionBrain | None  # None: every question stays on the chat provider
 
 
+def action_brain_info(routing: Routing | None) -> dict | None:
+    """(M30) Who answers action requests, for an interface to show. None: nobody, everything stays on the chat provider."""
+    brain = routing.action_brain if routing else None
+    return {"id": brain.id, "name": brain.name, "model": brain.model, "privacy": brain.privacy} if brain else None
+
+
 def is_names(value: object) -> bool:
     return isinstance(value, list) and bool(value) and all(isinstance(item, str) and item for item in value)
 

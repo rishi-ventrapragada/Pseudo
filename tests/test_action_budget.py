@@ -39,6 +39,22 @@ def test_a_fifth_popup_is_refused_even_from_another_process(tmp_path: Path) -> N
     assert second.take() == 0.0
 
 
+def test_a_warm_sessions_process_and_each_launchs_process_share_one_count(tmp_path: Path) -> None:
+    """(M32) A warm session's pseudo_hands lives for minutes; every launch starts a new one. One count for all."""
+    clock, path = Clock(), tmp_path / "count.json"
+    warm = SharedPopupBudget(clock=clock, path=path)  # the open session's pseudo_hands
+
+    def launch() -> SharedPopupBudget:
+        return SharedPopupBudget(clock=clock, path=path)  # a new process for one request, then gone
+
+    for budget in (launch(), warm, warm, launch()):  # a launch, two warm requests, another launch
+        assert budget.take() == 0.0
+        clock.now += 20
+    assert warm.take() == 40.0 and launch().take() == 40.0  # the 5th is refused whichever way it comes
+    clock.now += 40  # the first popup has left the 2-minute window: room for one more, and then full again
+    assert warm.take() == 0.0 and launch().take() == 20.0
+
+
 def test_a_brand_new_process_starts_with_the_same_count(tmp_path: Path) -> None:
     clock, first, _ = two_processes(tmp_path / "count.json")
     assert [first.take() for _ in range(4)] == [0.0] * 4

@@ -28,6 +28,10 @@ The rules (M16, D16, and one from M18):
       * in private mode nothing is routed: an action request stays on the laptop like the rest.
     The action brain gets the question alone (no history). The question and its final answer are
     kept in the session, labelled with who answered.
+  - (M32) When the interface gave this Chat warm sessions (the face does; the terminal doesn't), an
+    action request goes through their rules (warm_sessions.py): an open Claude Code session answers
+    it, or a launch as in M30. A warm session serves ONE conversation, so each request says which
+    session it comes from, and switching provider stops the open one.
 """
 
 from pseudo_brain.action_brain import ActionBrain, Routing
@@ -39,6 +43,7 @@ from pseudo_brain.model import NO_KEY, Model, ModelFailure, connect_provider
 from pseudo_brain.providers import Allowlist, Provider, ProviderRefused
 from pseudo_brain.routing import is_action_request, offers_focus
 from pseudo_brain.session import Session, SessionNotFound, load_latest, load_session
+from pseudo_brain.warm_sessions import WarmSessions
 
 REFUSALS = (ProviderRefused, ModelFailure, ServerFailure, SessionNotFound)  # can't do that; the reason says why
 
@@ -50,6 +55,7 @@ class Chat:
                  routing: Routing | None = None) -> None:
         self.allowlist, self.on_event, self.secrets = allowlist, on_event, secrets
         self.routing = routing  # (M30) None: no routing at all, as before M30
+        self.warm: WarmSessions | None = None  # (M32) set by the face's bridge; None: a launch per request
         self.servers: dict[str, LocalServer] = {}
         self.model: Model | None = None  # set by start()
         self.session: Session | None = None
@@ -96,6 +102,8 @@ class Chat:
         old, self.model = self.model, model
         if old is not None and old is not model:
             await old.close()
+            if self.warm:  # (M32) the conversation it served is over, and private mode keeps nothing open
+                await self.warm.end("the provider was switched")
 
     def new_session(self) -> None:
         """A fresh session on the same provider."""
@@ -137,7 +145,10 @@ class Chat:
         self.on_event("routed", {"to": brain.id, "name": brain.name, "model": brain.model, "privacy": brain.privacy})
         self.session.provider = self.session.provider or self.provider.id
         self.session.start_turn(text)
-        result = await ask_claude(brain, text, self.on_event, memories, intro)
+        if self.warm:  # (M32) the open session if its rules allow, else a launch
+            result = await self.warm.ask(brain, text, self.on_event, memories, intro, self.session.started)
+        else:
+            result = await ask_claude(brain, text, self.on_event, memories, intro)
         if result.ok:
             self.session.add({"role": "assistant", "content": result.answer})
             self.session.note_answer(f"{brain.id} · {result.model}")

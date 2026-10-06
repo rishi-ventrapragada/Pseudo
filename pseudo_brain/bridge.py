@@ -8,9 +8,11 @@ web page can reach the brain (D18: the M5 and M17 lesson, "anything reachable ge
 
 Face -> brain:  ask {text} | provider {id} | new_session | list_sessions | open_session {name} | quit
                 | transcribe {audio} | speak_answers {on}    (M26: voice, in bridge_voice.py)
+                | warm_sessions {on}                         (M32: the warm session's switch, in bridge_warm.py)
 Brain -> face:  ready {providers, provider, session, tools, hands_pid, action_brain} | event {kind, data} | refused {reason}
                 | switched {provider, session} | session {name, provider, messages}
                 | sessions {items} | turn_done {ok} | transcript {text, note, seconds} | speech {audio, reason}
+                | warm {on, open, ram_mb, asked, of, idle_minutes, note}    (M32: the warm session's state)
 `event` carries every event the loop, the model and the private server report (loop.py).
 
 Rules:
@@ -33,12 +35,12 @@ from collections.abc import Awaitable, Callable
 import anyio
 from anyio.abc import TaskGroup
 
-from pseudo_brain import bridge_voice
-from pseudo_brain.action_brain import load_routing
+from pseudo_brain import bridge_voice, bridge_warm
+from pseudo_brain.action_brain import action_brain_info, load_routing
 from pseudo_brain.bridge_voice import VOICE_REFUSALS
 from pseudo_brain.chat import REFUSALS, Chat
 from pseudo_brain.hands import Hands, connect_hands
-from pseudo_brain.providers import load_allowlist
+from pseudo_brain.providers import load_allowlist, provider_info
 from pseudo_brain.session import list_sessions
 
 BOM = "﻿"
@@ -69,6 +71,7 @@ class Bridge:
         self.busy = False
         self.tasks: TaskGroup | None = None  # where background work runs (M26: speaking an answer)
         self.speak_answers = True  # M26, D24: on by default; the face's switch turns it off
+        self.warm = None  # M32: the warm sessions (bridge_warm.running sets it); off until the face says on
 
     def send(self, message_type: str, **fields) -> None:
         """One protocol line. ASCII-only JSON, so no pipe encoding can garble it; keys hidden."""
@@ -101,6 +104,8 @@ class Bridge:
             self.send("sessions", items=list_sessions())
         elif kind == "speak_answers":
             bridge_voice.set_speaking(self, message)
+        elif kind == "warm_sessions":
+            bridge_warm.set_warm(self, message)
         elif kind not in JOBS:
             self.send("refused", reason="not a message the brain understands")
         elif self.busy:
@@ -144,18 +149,6 @@ class Bridge:
             self.send("turn_done", ok=result.ok)
 
 
-def provider_info(provider) -> dict:
-    return {"id": provider.id, "name": provider.name, "models": list(provider.models),
-            "leaves_laptop": provider.leaves_laptop, "privacy": provider.privacy,
-            "transcribe_model": provider.transcribe_model}  # M26: "" = no voice input on this provider
-
-
-def action_brain_info(routing) -> dict | None:
-    """(M30) Who answers action requests, for the face to show. None: nobody, everything stays on the chat provider."""
-    brain = routing.action_brain if routing else None
-    return {"id": brain.id, "name": brain.name, "model": brain.model, "privacy": brain.privacy} if brain else None
-
-
 async def serve(receive: Receive, write: Write) -> int:
     """Run until the face says quit or closes the pipe. Returns the exit code."""
     bridge = Bridge(write)
@@ -166,7 +159,7 @@ async def serve(receive: Receive, write: Write) -> int:
         except REFUSALS as refusal:  # a bad allowlist, a missing key, an unreachable provider
             bridge.send("refused", reason=f"can't start: {refusal}")
             return 1
-        async with connect_hands() as hands, anyio.create_task_group() as tasks:
+        async with connect_hands() as hands, anyio.create_task_group() as tasks, bridge_warm.running(bridge, tasks):
             bridge.hands, bridge.tasks = hands, tasks
             bridge.send("ready", providers=[provider_info(p) for p in bridge.chat.allowlist.providers.values()],
                         provider=bridge.chat.provider.id, session=bridge.session_info(), tools=hands.names,

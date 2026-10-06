@@ -152,6 +152,12 @@ class WarmSessions:
         left = await session.stop(now)
         self.note = f"stopped: {why}" + (f" ({left} of its processes would not end)" if left else "")
 
+    async def end(self, why: str) -> None:
+        """Stop the session from outside a request (chat.py: the provider was switched)."""
+        async with self.lock:
+            await self.stop(why)
+        self.report()
+
     async def set_on(self, on: bool) -> None:
         """The face's switch (rule 7). It counts at once; a running request is allowed to finish first."""
         self.on = on

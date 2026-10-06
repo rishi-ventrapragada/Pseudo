@@ -133,6 +133,58 @@ async def test_no_action_brain_still_applies_the_switch_rule(world: dict) -> Non
     assert world["asked"] == [] and "focus_window" not in offered(world)
 
 
+class FakeWarm:
+    """(M32) Stands in for the warm sessions' rules: records what chat.py hands them. No process is started."""
+
+    def __init__(self) -> None:
+        self.asked, self.ended = [], []
+
+    async def ask(self, brain, text, on_event, memories=(), intro="", conversation=""):
+        self.asked.append((brain, text, conversation))
+        return TurnResult(ok=True, answer="Fake: ticked.", model="claude-sonnet-fake")
+
+    async def end(self, why: str) -> None:
+        self.ended.append(why)
+
+
+@pytest.mark.anyio
+async def test_with_warm_sessions_an_action_request_goes_through_their_rules(world: dict) -> None:
+    chat = await chat_on(world)
+    chat.warm = FakeWarm()
+    async with connect_hands(FAKE_HANDS) as hands:
+        result = await chat.ask(ACTION, hands)
+        first = chat.session.started
+        await chat.ask(QUESTION, hands)  # not an action request: stays on Groq, never reaches the rules
+        chat.new_session()
+        chat.session.started = "another-session"  # two sessions started in the same second would share a name
+        await chat.ask(ACTION, hands)
+    assert result.ok and world["asked"] == []  # the plain launch (ask_claude) was not used
+    assert chat.warm.asked == [(BRAIN, ACTION, first), (BRAIN, ACTION, "another-session")]  # each says its conversation
+    assert chat.session.turns[-1][-1] == {"role": "assistant", "content": "Fake: ticked."}
+
+
+@pytest.mark.anyio
+async def test_switching_provider_stops_the_warm_session(world: dict) -> None:
+    chat = await chat_on(world)
+    chat.warm = FakeWarm()
+    assert await chat.switch("local") and chat.warm.ended == ["the provider was switched"]
+    assert not await chat.switch("local") and len(chat.warm.ended) == 1  # already there: nothing to stop
+
+
+def test_the_terminal_words_the_warm_session_steps() -> None:  # (M32) events.ts words them the same
+    from pseudo_brain.terminal import format_event
+    assert format_event("launch", {"why": "no warm session is open"}) == \
+        "--- LAUNCH: starting Claude Code for this request (no warm session is open) ---"
+    assert format_event("warm", {"request": 3, "of": 6}) == \
+        "--- WARM SESSION: request 3 of 6 in the open Claude Code session ---"
+    assert format_event("warm_restart", {"why": "it has answered 6 requests"}) == \
+        "--- WARM SESSION: restarting it after this request (it has answered 6 requests) ---"
+    assert format_event("warm_opened", {"opened": True, "why": "", "of": 6}) == \
+        "--- WARM SESSION: opened for your next action requests (restarted after 6) ---"
+    assert format_event("warm_opened", {"opened": False, "why": "the billing check wasn't clean", "of": 6}) == \
+        "--- WARM SESSION: not opened (the billing check wasn't clean) ---"
+
+
 def test_the_terminal_shows_the_route_and_the_billing_line() -> None:
     from pseudo_brain.terminal import format_event
     routed = format_event("routed", {"to": "claude-code", "name": "Fake Code", "model": "sonnet", "privacy": "fake note"})
