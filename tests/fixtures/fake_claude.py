@@ -60,6 +60,8 @@ def answer(number: int, allowed: list[str], tag: str = "") -> int | None:
     say(init)  # Claude Code prints an init line for EVERY request, also in a warm session (M31)
     if mode == "hang":
         time.sleep(60)
+    if mode == "slow":  # answers, but only after a while: time for a test to do something meanwhile
+        time.sleep(1.5)
     if mode == "dies":
         return 3
     for step in range(8 if mode == "too_many" else 1):
