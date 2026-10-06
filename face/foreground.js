@@ -22,6 +22,11 @@
  * is granted to the pid from `ready`. (Found in M30's live check: 16 of 16 memory popups after an
  * action request were granted to Claude Code's pseudo_hands, which had already exited.)
  *
+ * M32: a warm session answers several action requests from ONE Claude Code, so its pseudo_hands
+ * stays the same process. Nothing changes here: Claude Code announces itself at the start of every
+ * request (one init line per request, M31), so the brain sends `hands_pid` again each time, and it
+ * is still forgotten at `turn_done`. A Groq question in between is granted to the brain's own.
+ *
  * If anything is off (no pid yet, an odd pid, koffi can't load), nothing is granted. The
  * popup still appears, possibly behind the face, and still means no after 20 s (D13).
  * koffi is the npm package that lets JavaScript call a function in a Windows DLL.

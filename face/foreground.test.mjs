@@ -85,6 +85,23 @@ describe('ForegroundGrant', () => {
     expect(granted).toEqual([4321, 4321, 4321, 4321, 4321, 4321]);
   });
 
+  it("M32: a warm session's pseudo_hands is named again by every request, and only for that request", () => {
+    const { grant, granted } = setup();
+    const warmRequest = () => {
+      grant.fromBrain({ type: 'event', kind: 'hands_pid', data: { pid: 7777 } }); // the same process each time
+      grant.fromBrain(toolCall);
+      grant.fromBrain({ type: 'turn_done', ok: true });
+    };
+    grant.fromBrain({ type: 'ready', hands_pid: 4321 });
+    warmRequest();
+    grant.fromBrain(toolCall); // a Groq question in between: the brain's own pseudo_hands
+    grant.fromBrain({ type: 'turn_done', ok: true });
+    warmRequest();
+    grant.fromBrain({ type: 'warm', on: true, open: true, ram_mb: 350, asked: 2, of: 6, idle_minutes: 10, note: '' });
+    grant.fromBrain(toolCall); // the session's state is not a grant, and names no process
+    expect(granted).toEqual([7777, 4321, 7777, 4321]);
+  });
+
   it("M30: Pseudo's own memory popup is granted to the brain's pseudo_hands, even during an action request", () => {
     const { grant, granted } = setup();
     grant.fromBrain({ type: 'ready', hands_pid: 4321 });

@@ -49,6 +49,16 @@ export function describeEvent(kind: string, data: EventData): string | null {
       return `ACTION REQUEST: going to ${data.name} (${data.model}), not the chat provider | ${data.privacy}`;
     case 'billing': // M30: names and booleans only
       return String(data.line);
+    case 'launch': // M32: the four steps of the warm session's rules (pseudo_brain/warm_sessions.py)
+      return `LAUNCH: starting Claude Code for this request (${data.why})`;
+    case 'warm':
+      return `WARM SESSION: request ${data.request} of ${data.of} in the open Claude Code session`;
+    case 'warm_restart':
+      return `WARM SESSION: restarting it after this request (${data.why})`;
+    case 'warm_opened':
+      return data.opened
+        ? `WARM SESSION: opened for your next action requests (restarted after ${data.of})`
+        : `WARM SESSION: not opened (${data.why})`;
     case 'model_retry':
       return 'MODEL WROTE AN INVALID TOOL CALL (400): asking again';
     case 'tool_call':

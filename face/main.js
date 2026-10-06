@@ -39,7 +39,8 @@ const { TaskbarFlash } = require('./taskbar-flash');
 const DIST = path.join(__dirname, 'dist');
 const PAGE = 'app://pseudo/index.html';
 const TO_BRAIN = new Set(['ask', 'provider', 'new_session', 'list_sessions', 'open_session', 'transcribe',
-                          'speak_answers']);
+                          'speak_answers', 'warm_sessions']);
+const SWITCHES = new Set(['speak_answers', 'warm_sessions']); // M26, M32: each carries one true/false, `on`
 const FIELDS = ['text', 'id', 'name']; // the only text fields a message to the brain may carry
 // M26: a push-to-talk recording, base64. 30.5 s of 16 kHz 16-bit mono is about 1.3 million characters;
 // anything bigger is dropped here, and the brain checks the length again (voice_in.py).
@@ -113,7 +114,7 @@ ipcMain.on('pseudo:send', (event, message) => {
     if (typeof message.audio !== 'string' || message.audio.length > MAX_AUDIO_CHARS) return;
     clean.audio = message.audio;
   }
-  if (message.type === 'speak_answers') {
+  if (SWITCHES.has(message.type)) {
     if (typeof message.on !== 'boolean') return;
     clean.on = message.on;
   }

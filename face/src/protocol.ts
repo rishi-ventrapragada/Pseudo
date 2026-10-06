@@ -4,6 +4,9 @@
 export type Provider = { id: string; name: string; models: string[]; leaves_laptop: boolean; privacy: string;
                          transcribe_model: string }; // M26: '' = no voice input on this provider
 export type ActionBrain = { id: string; name: string; model: string; privacy: string }; // M30, D26
+// M32: the warm Claude Code session, as the brain reports it (bridge_warm.py). Numbers and names only.
+export type Warm = { on: boolean; open: boolean; ram_mb: number | null; asked: number; of: number;
+                     idle_minutes: number; note: string };
 export type SavedMessage = { role: 'user' | 'assistant'; content: string; answered_by?: string };
 export type SessionInfo = { name: string; provider: string; messages: SavedMessage[] };
 export type SessionItem = { name: string; provider: string; questions: number; title: string };
@@ -20,6 +23,7 @@ export type FromBrain =
   | { type: 'turn_done'; ok: boolean }
   | { type: 'transcript'; text: string; note: string; seconds: number } // M26: goes into the input box, never sent by itself
   | { type: 'speech'; audio: string; reason: string } // M26: a spoken answer (base64 WAV), or why there's none
+  | ({ type: 'warm' } & Warm) // M32: sent whenever the warm session's state changes
   | { type: 'brain_stopped'; code: number | null }; // sent by the main process, not the brain
 
 export type ToBrain =
@@ -30,7 +34,8 @@ export type ToBrain =
   | { type: 'open_session'; name: string }
   | { type: 'restart' } // handled by the main process: start the brain again
   | { type: 'transcribe'; audio: string } // M26: one push-to-talk recording, base64 PCM (16 kHz mono 16-bit)
-  | { type: 'speak_answers'; on: boolean }; // M26: the Speak answers switch
+  | { type: 'speak_answers'; on: boolean } // M26: the Speak answers switch
+  | { type: 'warm_sessions'; on: boolean }; // M32: the warm-session switch
 
 declare global {
   interface Window {

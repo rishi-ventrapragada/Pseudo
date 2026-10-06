@@ -225,3 +225,9 @@ form button { padding: 0 22px; border: 0; border-radius: 8px; background: var(--
 }
 .brain.action { color: var(--cloud); border-color: var(--cloud); }
 .action-brain { display: block; margin-top: 3px; }
+
+/* ---------- M32: the warm Claude Code session: its switch, and its state in one line ---------- */
+.warm { display: flex; align-items: baseline; gap: 12px; max-width: 760px; margin: 0 auto 8px; font-size: 13px; }
+.warm .keep { display: flex; align-items: center; gap: 6px; flex: none; color: var(--muted); }
+.warm .warm-state { font: 12px/1.4 var(--mono); color: var(--muted); }
+.warm.open .warm-state { color: var(--cloud); } /* a Claude Code is running, and holding memory */

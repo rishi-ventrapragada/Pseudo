@@ -126,4 +126,30 @@ describe('reduce', () => {
     expect(state.turns[0].answer).toBeUndefined();
     expect(state.turns[0].failed).toBe('billing check: NOT CLEAN. Nothing was sent');
   });
+
+  it("M32: keeps the brain's latest word on its warm session, between questions too, and forgets it with the brain", () => {
+    const open = { on: true, open: true, ram_mb: 356.4, asked: 2, of: 6, idle_minutes: 10, note: '' };
+    const asked = run(brain(READY), { type: 'asked', text: 'Tick the fake box.' });
+    expect(asked.warm).toBeNull();
+    const during = reduce(asked, brain({ type: 'warm', ...open }));
+    expect(during.warm).toMatchObject(open);
+    expect(during.working).toBe(asked.working); // it is not a step: what Pseudo is doing stays said
+    expect(during.turns).toEqual(asked.turns);
+    const idle = reduce(reduce(during, brain({ type: 'turn_done', ok: true })),
+      brain({ type: 'warm', ...open, open: false, ram_mb: null, asked: 0, note: 'stopped: idle for 10 minutes' }));
+    expect([idle.warm?.open, idle.warm?.note, idle.working]).toEqual([false, 'stopped: idle for 10 minutes', null]);
+    expect(reduce(idle, brain(READY)).warm).toBeNull(); // a restarted brain has no session until it says so
+    expect(reduce(idle, brain({ type: 'brain_stopped', code: 1 })).phase).toBe('stopped');
+  });
+
+  it('M32: the warm-session steps join the turn, also the ones that come after the answer', () => {
+    const state = run(brain(READY), { type: 'asked', text: 'Tick the fake box.' },
+      brain({ type: 'event', kind: 'warm', data: { request: 6, of: 6 } }),
+      brain({ type: 'event', kind: 'answer', data: { text: 'Done.', calls: 3, tokens_in: 1, tokens_out: 1,
+                                                     provider: 'claude-code', model: 'claude-sonnet-5-5', fallback: false } }),
+      brain({ type: 'event', kind: 'warm_restart', data: { why: 'it has answered 6 requests' } }),
+      brain({ type: 'event', kind: 'warm_opened', data: { opened: true, why: '', of: 6 } }));
+    expect(state.turns[0].answer).toBe('Done.');
+    expect(state.turns[0].steps.map((step) => step.split(':')[0])).toEqual(['WARM SESSION', 'ANSWER (claude-code · claude-sonnet-5-5 | 3 model call(s), 1 tokens in / 1 out)', 'WARM SESSION', 'WARM SESSION']);
+  });
 });

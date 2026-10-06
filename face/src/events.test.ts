@@ -75,4 +75,17 @@ describe('describeEvent', () => {
     expect(brainOf('groq · openai/gpt-oss-120b, fallback')).toBe('chat');
     expect(brainOf(undefined)).toBe('chat');
   });
+
+  it('M32: words the warm-session steps like the terminal', () => {
+    expect(describeEvent('launch', { why: 'no warm session is open' }))
+      .toBe('LAUNCH: starting Claude Code for this request (no warm session is open)');
+    expect(describeEvent('warm', { request: 3, of: 6 }))
+      .toBe('WARM SESSION: request 3 of 6 in the open Claude Code session');
+    expect(describeEvent('warm_restart', { why: 'it has answered 6 requests' }))
+      .toBe('WARM SESSION: restarting it after this request (it has answered 6 requests)');
+    expect(describeEvent('warm_opened', { opened: true, why: '', of: 6 }))
+      .toBe('WARM SESSION: opened for your next action requests (restarted after 6)');
+    expect(describeEvent('warm_opened', { opened: false, why: "the billing check wasn't clean", of: 6 }))
+      .toBe("WARM SESSION: not opened (the billing check wasn't clean)");
+  });
 });

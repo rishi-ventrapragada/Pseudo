@@ -13,7 +13,9 @@ import { PrivacyNote, ProviderBar } from './ProviderBar';
 import { Sessions } from './Sessions';
 import { initial, reduce, type Turn } from './state';
 import { useVoice } from './useVoice';
+import { useWarm } from './useWarm';
 import { VoiceControls } from './VoiceControls';
+import { WarmControl } from './WarmControl';
 
 export function TurnView({ turn }: { turn: Turn }) {
   return (
@@ -79,6 +81,7 @@ export function App() {
 
   const voice = useVoice({ canTalk, ready: state.phase === 'ready', speech: state.speech,
                            onRecorded: (audio) => send({ type: 'transcribe', audio }, 'Turning what you said into text') });
+  const warm = useWarm(state.phase === 'ready'); // M32: the remembered warm-session switch
   useEffect(() => { // a transcript lands in the input box, after anything you'd already typed
     const heard = state.heard?.text;
     if (!heard) return;
@@ -153,6 +156,9 @@ export function App() {
           </div>
         ) : (
           <>
+          {state.actionBrain && current?.leaves_laptop && ( // M32: only where action requests go to Claude Code
+            <WarmControl warm={state.warm} warmOn={warm.warmOn} setWarmOn={warm.setWarmOn} />
+          )}
           <VoiceControls voice={voice} canTalk={canTalk} why={why} />
           <form onSubmit={(event) => { event.preventDefault(); ask(); }}>
             <textarea
