@@ -9,8 +9,11 @@
 
 const { contextBridge, ipcRenderer } = require('electron');
 
+// The same types are listed in main.js (TO_BRAIN) and src/protocol.ts (ToBrain); message-types.test.mjs
+// checks the three agree. (M32: `warm_sessions` was missing here at first, and the switch did nothing.)
 const TYPES = ['ask', 'provider', 'new_session', 'list_sessions', 'open_session', 'restart',
-               'transcribe', 'speak_answers']; // M26: push-to-talk and the Speak answers switch
+               'transcribe', 'speak_answers', // M26: push-to-talk and the Speak answers switch
+               'warm_sessions']; // M32: the warm-session switch
 let listener = null;
 const early = []; // messages that arrived before the page started listening
 
