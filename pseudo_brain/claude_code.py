@@ -18,7 +18,8 @@ What keeps it inside Pseudo's rules:
     (D11, D13), and this pseudo_hands is the same code as pseudo_brain's own.
 Like loop.py it never prints: it reports the same events (sending, tool_call, tool_result,
 answer, failed), plus hands_pid so the face can let THIS pseudo_hands bring its popup forward.
-It keeps no history: each request is sent alone (the measured way; a warm session is M31).
+A launch keeps no history: each request is sent alone. (M32) A WARM session, one process that
+answers several requests, is claude_session.py; it reuses command_line, follow and the checks here.
 """
 
 import json
@@ -28,12 +29,12 @@ import sys
 from pathlib import Path
 
 import anyio
-import psutil
 from anyio.streams.buffered import BufferedByteReceiveStream
 
 from pseudo_brain import claude_billing
 from pseudo_brain.action_brain import ActionBrain
-from pseudo_brain.hands import HANDS_MODULE, REPO_ROOT, find_hands_pid
+from pseudo_brain.claude_process import hands_pid, stop_tree  # (M32) the process tree, moved to its own file
+from pseudo_brain.hands import HANDS_MODULE, REPO_ROOT
 from pseudo_brain.loop import MAX_ITERATIONS, SYSTEM_PROMPT, EventSink, TurnResult, fail
 
 SERVER_NAME = "pseudo_hands"
@@ -52,12 +53,16 @@ def write_config(brain: ActionBrain) -> Path:
     return path
 
 
-def command_line(program: list[str], brain: ActionBrain, config: Path, system_prompt: str) -> list[str]:
-    """The question itself is NOT here: it goes in through stdin, so it can never be read as an option."""
+def command_line(program: list[str], brain: ActionBrain, config: Path, system_prompt: str,
+                 warm: bool = False) -> list[str]:
+    """The question itself is NOT here: it goes in through stdin, so it can never be read as an option.
+
+    (M32) warm=True starts a session that stays open and reads requests from stdin as JSON lines.
+    --max-turns would count across the whole session, so it is left out there; follow() caps each request."""
+    turns = ["--input-format", "stream-json"] if warm else ["--max-turns", str(MAX_ITERATIONS)]
     return [*program, "-p", "--strict-mcp-config", "--mcp-config", str(config), "--tools", "",
             "--allowedTools", *[PREFIX + tool for tool in brain.tools], "--system-prompt", system_prompt,
-            "--model", brain.model, "--max-turns", str(MAX_ITERATIONS), "--output-format", "stream-json",
-            "--verbose", "--no-session-persistence"]
+            "--model", brain.model, *turns, "--output-format", "stream-json", "--verbose", "--no-session-persistence"]
 
 
 def session_problem(init: dict, brain: ActionBrain) -> str:
@@ -71,68 +76,77 @@ def session_problem(init: dict, brain: ActionBrain) -> str:
     return ""
 
 
-def stop_tree(pid: int) -> None:
-    """Stop Claude Code and everything it started (its pseudo_hands). Only this process tree."""
-    try:
-        family = psutil.Process(pid).children(recursive=True) + [psutil.Process(pid)]
-    except psutil.Error:
-        return
-    for process in family:
-        try:
-            process.kill()
-        except psutil.Error:
-            pass
-
-
-def hands_pid(claude_pid: int) -> int | None:
-    """The pseudo_hands that Claude Code started (the one that will show the popup); None if unsure."""
-    try:
-        return find_hands_pid(psutil.Process(claude_pid))
-    except psutil.Error:
-        return None
-
-
 def blocks(event: dict, kind: str) -> list[dict]:
     message = event.get("message") if isinstance(event.get("message"), dict) else {}
     content = message.get("content")
     return [b for b in content if isinstance(b, dict) and b.get("type") == kind] if isinstance(content, list) else []
 
 
+async def billing_check(brain: ActionBrain, on_event: EventSink) -> tuple[bool, str]:
+    """The billing check (claude_billing.py), off the event loop, reported as an event. (clean, its line)."""
+    clean, why = await anyio.to_thread.run_sync(claude_billing.check, brain)
+    on_event("billing", {"clean": clean, "line": why})
+    return clean, why
+
+
+def not_sent(brain: ActionBrain, why: str, on_event: EventSink) -> TurnResult:
+    return fail(TurnResult(), f"{why}. Nothing was sent to {brain.name}, and nothing was done.", on_event)
+
+
+def too_slow(brain: ActionBrain, result: TurnResult, on_event: EventSink) -> TurnResult:
+    return fail(result, f"{brain.name} didn't finish within {brain.timeout_seconds:.0f} seconds; stopped", on_event)
+
+
+def report_sending(brain: ActionBrain, on_event: EventSink, chars: int, memories: int = 0) -> None:
+    on_event("sending", {"call": 1, "of": MAX_ITERATIONS, "messages": 1, "tools": len(brain.tools),
+                         "estimate": chars // 4, "dropped_turns": 0, "memories": memories,
+                         "provider": brain.id, "model": brain.model})
+
+
+async def open_claude(command: list[str]):
+    """Start Claude Code in its own empty folder, with the cleaned environment and no console window."""
+    return await anyio.open_process(command, cwd=str(WORK_DIR), env=claude_billing.child_env(),
+                                    stderr=subprocess.DEVNULL, creationflags=claude_billing.NO_WINDOW)
+
+
 async def ask_claude(brain: ActionBrain, text: str, on_event: EventSink, memories: list[str] = (),
                      intro: str = "") -> TurnResult:
     """One action request through Claude Code. ok=False always means: there is no answer (as in loop.py)."""
+    clean, why = await billing_check(brain, on_event)
+    return await launch(brain, text, on_event, memories, intro) if clean else not_sent(brain, why, on_event)
+
+
+async def launch(brain: ActionBrain, text: str, on_event: EventSink, memories: list[str] = (),
+                 intro: str = "") -> TurnResult:
+    """A LAUNCH: one Claude Code process for this one request, stopped when it ends. The billing check
+    is the caller's job (ask_claude above, or warm_sessions.py, which checks once and then chooses)."""
     result = TurnResult()
-    clean, why = await anyio.to_thread.run_sync(claude_billing.check, brain)
-    on_event("billing", {"clean": clean, "line": why})
-    if not clean:
-        return fail(result, f"{why}. Nothing was sent to {brain.name}, and nothing was done.", on_event)
     prompt = SYSTEM_PROMPT + ("\n\n" + "\n".join([intro, *memories]) if memories else "")
     command = command_line(claude_billing.program(brain), brain, write_config(brain), prompt)
-    on_event("sending", {"call": 1, "of": MAX_ITERATIONS, "messages": 1, "tools": len(brain.tools),
-                         "estimate": (len(prompt) + len(text)) // 4, "dropped_turns": 0, "memories": len(memories),
-                         "provider": brain.id, "model": brain.model})
+    report_sending(brain, on_event, len(prompt) + len(text), len(memories))
     try:
-        process = await anyio.open_process(command, cwd=str(WORK_DIR), env=claude_billing.child_env(),
-                                           stderr=subprocess.DEVNULL,
-                                           creationflags=claude_billing.NO_WINDOW)
+        process = await open_claude(command)
     except OSError as error:
         return fail(result, f"{brain.name} couldn't be started ({type(error).__name__})", on_event)
     try:
         with anyio.fail_after(brain.timeout_seconds):
             await process.stdin.send(text.encode("utf-8"))
             await process.stdin.aclose()
-            return await follow(process, brain, result, on_event)
+            return await follow(BufferedByteReceiveStream(process.stdout), process.pid, brain, result, on_event)
     except TimeoutError:
-        return fail(result, f"{brain.name} didn't finish within {brain.timeout_seconds:.0f} seconds; stopped", on_event)
+        return too_slow(brain, result, on_event)
     finally:
         with anyio.CancelScope(shield=True):  # also when you quit mid-question: never leave it running
             stop_tree(process.pid)
             await process.aclose()
 
 
-async def follow(process, brain: ActionBrain, result: TurnResult, on_event: EventSink) -> TurnResult:
-    """Read Claude Code's output, one JSON event per line, until its result line."""
-    lines, names = BufferedByteReceiveStream(process.stdout), {}
+async def follow(lines: BufferedByteReceiveStream, pid: int, brain: ActionBrain, result: TurnResult,
+                 on_event: EventSink) -> TurnResult:
+    """Read Claude Code's output, one JSON event per line, until ONE request's result line.
+
+    `lines` is the caller's reader: a launch makes one for its only request; a warm session keeps one."""
+    names = {}
     while True:
         try:
             raw = await lines.receive_until(b"\n", MAX_LINE)
@@ -146,7 +160,7 @@ async def follow(process, brain: ActionBrain, result: TurnResult, on_event: Even
             if problem:
                 return fail(result, f"{brain.name} was stopped: {problem}", on_event)
             result.model = str(event.get("model", brain.model))
-            on_event("hands_pid", {"pid": hands_pid(process.pid)})
+            on_event("hands_pid", {"pid": hands_pid(pid)})
         for block in blocks(event, "tool_use"):
             name = str(block.get("name", "")).removeprefix(PREFIX)
             if len(result.tools) >= MAX_ITERATIONS:
