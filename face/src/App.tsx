@@ -7,6 +7,7 @@
 import { useEffect, useReducer, useRef, useState } from 'react';
 import { ApprovalBanner } from './ApprovalBanner';
 import { AutostartControl } from './AutostartControl';
+import { Composer } from './Composer';
 import { HotkeysNote } from './HotkeysNote';
 import { brainOf } from './events';
 import { Markdown } from './Markdown';
@@ -167,26 +168,7 @@ export function App() {
           )}
           <AutostartControl autostart={state.autostart} />
           <VoiceControls voice={voice} canTalk={canTalk} why={why} />
-          <form onSubmit={(event) => { event.preventDefault(); ask(); }}>
-            <textarea
-              ref={box}
-              aria-label="Your question"
-              rows={2}
-              autoFocus
-              value={draft}
-              placeholder="Ask about the window you were on"
-              onChange={(event) => setDraft(event.target.value)}
-              onKeyDown={(event) => {
-                // Enter asks; Shift+Enter is a new line. (M37) Not with Ctrl or Alt: Ctrl+Alt+Enter is the global
-                // show-or-hide shortcut, and if another program holds it, pressing it here must not send a draft.
-                if (event.key === 'Enter' && !event.shiftKey && !event.ctrlKey && !event.altKey) {
-                  event.preventDefault();
-                  ask();
-                }
-              }}
-            />
-            <button type="submit" disabled={!idle || !draft.trim()}>Ask</button>
-          </form>
+          <Composer draft={draft} setDraft={setDraft} canAsk={idle} onAsk={ask} box={box} />
           </>
         )}
         <HotkeysNote keys={state.hotkeys} />
