@@ -14,7 +14,7 @@
  *     preload's internals, so a bug in the page can't read files or start programs.
  *   - webSecurity stays on: the page gets a normal browser's same-origin rules.
  *   - Pages come from app://pseudo/, a protocol that serves only files inside face/dist
- *     (the path is resolved and anything outside is refused, like the M3 sandbox). There
+ *     (serve-file.js: the path is resolved and anything outside is refused, like the M3 sandbox). There
  *     is no web server and no port (D18), not even Vite's dev server.
  *   - A strict Content-Security-Policy (index.html): scripts and styles only from our own
  *     files, and no network requests at all.
@@ -33,7 +33,6 @@
  */
 
 const path = require('node:path');
-const { pathToFileURL } = require('node:url');
 const { app, BrowserWindow, Menu, Tray, globalShortcut, ipcMain, nativeImage, nativeTheme, net, protocol, session } = require('electron');
 const { autostartState, setAutostart, startedHidden } = require('./autostart');
 const { brainHome } = require('./brain-home');
@@ -42,6 +41,7 @@ const { ForegroundGrant, windowsAllow } = require('./foreground');
 const { Hotkeys } = require('./hotkeys');
 const { allowCheck, allowRequest } = require('./permissions');
 const { Reveal } = require('./reveal');
+const { serveFrom } = require('./serve-file');
 const { onlyOne } = require('./single-instance');
 const { TaskbarFlash } = require('./taskbar-flash');
 const { cleanForBrain } = require('./to-brain');
@@ -94,22 +94,6 @@ function ensureTray() {
 /** A message for the page: from the brain, or brain_stopped from here. */
 function toPage(message) {
   if (win && !win.isDestroyed()) win.webContents.send('pseudo:message', message);
-}
-
-/** app://pseudo/<path> -> that file inside face/dist, and nothing else. */
-function serveFile(request) {
-  try {
-    const url = new URL(request.url);
-    const wanted = decodeURIComponent(url.pathname === '/' ? '/index.html' : url.pathname);
-    const file = path.resolve(DIST, '.' + wanted);
-    const inside = path.relative(DIST, file);
-    if (url.host !== 'pseudo' || !inside || inside.startsWith('..') || path.isAbsolute(inside)) {
-      return new Response('refused', { status: 403 });
-    }
-    return net.fetch(pathToFileURL(file).toString());
-  } catch {
-    return new Response('bad request', { status: 400 }); // e.g. a broken %-escape in the path
-  }
 }
 
 /** Did this IPC message come from our own page (not some other frame or page)? */
@@ -167,7 +151,7 @@ app.whenReady().then(() => {
     (_contents, permission, answer, details) => answer(allowRequest(permission, details)));
   session.defaultSession.setPermissionCheckHandler(
     (_contents, permission, origin, details) => allowCheck(permission, origin, details));
-  protocol.handle('app', serveFile);
+  protocol.handle('app', serveFrom(DIST, (fileUrl) => net.fetch(fileUrl))); // M38: serve-file.js
   hotkeys.register();
   createWindow();
   if (startHidden) ensureTray();

@@ -24,7 +24,7 @@ const APP = path.join(OUT, 'resources', 'app');
 
 // package-files.test.mjs checks that everything these files `require` is on these two lists.
 export const FILES = ['main.js', 'preload.js', 'autostart.js', 'brain-home.js', 'brain-process.js', 'foreground.js', 'hotkeys.js',
-                      'permissions.js', 'reveal.js', 'single-instance.js', 'taskbar-flash.js', 'to-brain.js', 'tray.js'];
+                      'permissions.js', 'reveal.js', 'serve-file.js', 'single-instance.js', 'taskbar-flash.js', 'to-brain.js', 'tray.js'];
 export const MODULES = ['koffi', '@koromix/koffi-win32-x64']; // koffi, and its binary for 64-bit Windows
 
 function stop(message) {
