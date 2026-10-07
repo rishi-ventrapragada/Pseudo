@@ -31,6 +31,7 @@
 const path = require('node:path');
 const { pathToFileURL } = require('node:url');
 const { app, BrowserWindow, Menu, ipcMain, nativeTheme, net, protocol, session } = require('electron');
+const { brainHome } = require('./brain-home');
 const { BrainProcess } = require('./brain-process');
 const { ForegroundGrant, windowsAllow } = require('./foreground');
 const { allowCheck, allowRequest } = require('./permissions');
@@ -69,6 +70,7 @@ const brain = new BrainProcess(
     flash.brainStopped();
     if (!quitting) toPage({ type: 'brain_stopped', code }); // the page offers a Restart button
   },
+  brainHome(app.isPackaged, process.resourcesPath, __dirname), // M34: Pseudo.exe reads where the repo is
 );
 
 /** A message for the page: from the brain, or brain_stopped from here. */

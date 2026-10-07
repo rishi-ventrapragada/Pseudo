@@ -3,8 +3,9 @@
  *
  * What it demonstrates: starting, talking to and stopping another program over a pipe.
  * The face runs `.venv\Scripts\python.exe -m pseudo_brain.bridge`, with the repo as its
- * working folder. We write one JSON object per line to its stdin and read one per line
- * from its stdout (the protocol in pseudo_brain/bridge.py). No port is opened (D18).
+ * working folder (M34: brain-home.js says where the repo is). We write one JSON object
+ * per line to its stdin and read one per line from its stdout (the protocol in
+ * pseudo_brain/bridge.py). No port is opened (D18).
  *
  * Stopping: first we ASK ({"type":"quit"}). The bridge stops a running question,
  * private mode's server (if Pseudo started it) and pseudo_hands, then exits. If it
@@ -14,20 +15,19 @@
  */
 
 const { execFile, spawn } = require('node:child_process');
-const path = require('node:path');
 
-const REPO = path.resolve(__dirname, '..');
-const PYTHON = path.join(REPO, '.venv', 'Scripts', 'python.exe');
 const QUIT_WAIT_MS = 8000;
 
 class BrainProcess {
   /**
    * @param {(message: object) => void} onMessage called with every protocol message the brain writes
    * @param {(code: number | null) => void} onExit called once the brain process has exited
+   * @param {{ repo: string, python: string } | null} home where the repo and its Python are (brain-home.js)
    */
-  constructor(onMessage, onExit) {
+  constructor(onMessage, onExit, home) {
     this.onMessage = onMessage;
     this.onExit = onExit;
+    this.home = home;
     this.child = null;
   }
 
@@ -37,8 +37,13 @@ class BrainProcess {
 
   start() {
     if (this.child) return; // one brain at a time
-    const child = spawn(PYTHON, ['-m', 'pseudo_brain.bridge'], {
-      cwd: REPO,
+    if (!this.home) {
+      // M34: Pseudo.exe couldn't read where the repo is. Reported like a missing Python: "brain stopped".
+      setImmediate(() => this.onExit(null));
+      return;
+    }
+    const child = spawn(this.home.python, ['-m', 'pseudo_brain.bridge'], {
+      cwd: this.home.repo,
       stdio: ['pipe', 'pipe', 'inherit'], // stdin + stdout: the protocol; stderr: the brain's log, to our terminal
       windowsHide: true, // no console window
     });
