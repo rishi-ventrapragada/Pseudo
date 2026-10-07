@@ -627,6 +627,15 @@ Goal: Pseudo is something you leave running: a real `Pseudo.exe`, optionally sta
   - I5: a hidden start uses at most 5 CPU-seconds in its first minute and shows no window.
   - I6: memory after 60 idle minutes within 10% of the 10-minute figure.
 - **Decision rule:** the simplest candidate that passes all six, in the order A0, A1, A2, A3. If none passes, the numbers are recorded and the switch still ships, off by default, with the cost shown beside it.
+- **Measuring rules, fixed before measuring (2026-10-07):**
+  - Measured on the packaged app (M34), from a temporary copy with a scratch start-up file per candidate. Nothing in the repo changes.
+  - Hidden means the window is hidden (not minimized). Idle means no question, no open warm session, nobody touching Pseudo.
+  - Each candidate is measured in its steady hidden state, after 60 s to settle: A0 and A1 with the brain running; A2 and A3 after their idle stop. A1 is also measured before its first show (face only). Each criterion is judged on the candidate's heaviest steady hidden state; the others are reported.
+  - For the runs only, A2's and A3's idle stop fires after 1 minute, not 10. The cost after the stop doesn't depend on the wait.
+  - Memory is private memory (USS) and CPU is user plus kernel seconds, added over every process in Pseudo's tree, sampled every 5 s. A run with a gap of more than 15 s between samples (the laptop slept) is void and repeated.
+  - I3 "show to typing" runs from the show signal until the face is the front window with the question box focused, 5 times per candidate, judged on the slowest. When the brain has to start, a fake draft typed during the wait must still be in the box at "ready".
+  - I4 and I5 as written. A hidden start is a launch with a hide flag; "no window" is checked for its first minute.
+  - A tie is not possible: the rule takes the first candidate that passes, in the order A0, A1, A2, A3.
 - **Done when:** each candidate is measured, with a recommendation.
 
 ### M36: Start with Windows (build)
