@@ -7,6 +7,7 @@
 import { useEffect, useReducer, useRef, useState } from 'react';
 import { ApprovalBanner } from './ApprovalBanner';
 import { AutostartControl } from './AutostartControl';
+import { CompactToggle, HideAnswer } from './CompactToggle';
 import { Composer } from './Composer';
 import { HotkeysNote } from './HotkeysNote';
 import { brainOf } from './events';
@@ -15,6 +16,7 @@ import type { ToBrain } from './protocol';
 import { PrivacyNote, ProviderBar } from './ProviderBar';
 import { Sessions } from './Sessions';
 import { initial, reduce, type Turn } from './state';
+import { useCompact } from './useCompact';
 import { useVoice } from './useVoice';
 import { useWarm } from './useWarm';
 import { VoiceControls } from './VoiceControls';
@@ -85,6 +87,7 @@ export function App() {
   const voice = useVoice({ canTalk, ready: state.phase === 'ready', speech: state.speech,
                            onRecorded: (audio) => send({ type: 'transcribe', audio }, 'Turning what you said into text') });
   const warm = useWarm(state.phase === 'ready'); // M32: the remembered warm-session switch
+  const compact = useCompact(state.compact, state.turns.length, state.phase); // M38: the bar, and whether it shows an answer
   useEffect(() => { // a transcript lands in the input box, after anything you'd already typed
     const heard = state.heard?.text;
     if (!heard) return;
@@ -101,6 +104,7 @@ export function App() {
     if (!text || !idle) return;
     window.pseudo.send({ type: 'ask', text });
     dispatch({ type: 'asked', text });
+    compact.open(); // M38: the bar grows to show this turn's steps, banner and answer
     setDraft('');
   }
 
@@ -115,7 +119,8 @@ export function App() {
     : state.working ?? (voice.problem || state.notice || 'Ready. Pseudo reads the window you were on before this one.');
 
   return (
-    <div className={state.sessions ? 'app with-sessions' : 'app'}>
+    // M38: compact.css hides what a bar has no room for (header, privacy note, switches, sessions).
+    <div className={`app${state.sessions ? ' with-sessions' : ''}${compact.on ? ' compact' : ''}${compact.grown ? ' grown' : ''}`}>
       <header className="top">
         <h1 className="wordmark">Pseudo</h1>
         <ProviderBar providers={state.providers} current={state.provider} disabled={!idle}
@@ -127,6 +132,7 @@ export function App() {
           <button type="button" disabled={state.phase !== 'ready'} onClick={() => window.pseudo.send({ type: 'list_sessions' })}>
             Saved sessions
           </button>
+          <CompactToggle compact={compact} />
         </div>
       </header>
       <PrivacyNote provider={current} actionBrain={state.actionBrain} />
@@ -141,8 +147,9 @@ export function App() {
             <p>Go to that window, then switch back here and ask.</p>
           </div>
         )}
-        {state.turns.map((turn, index) => (
-          <TurnView key={`${state.session}-${index}`} turn={turn} />
+        <HideAnswer compact={compact} />
+        {(compact.on ? state.turns.slice(-1) : state.turns).map((turn, index) => ( // the bar shows the latest turn only
+          <TurnView key={`${state.session}-${compact.on ? 'latest' : index}`} turn={turn} />
         ))}
         <div ref={end} />
       </main>
@@ -171,6 +178,7 @@ export function App() {
           <Composer draft={draft} setDraft={setDraft} canAsk={idle} onAsk={ask} box={box} />
           </>
         )}
+        {compact.on && <CompactToggle compact={compact} />}
         <HotkeysNote keys={state.hotkeys} />
       </footer>
     </div>
