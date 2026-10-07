@@ -23,7 +23,7 @@ describe('clock', () => {
   });
 });
 
-const key = (code: string, key: string, ctrlKey: boolean, repeat = false, altKey = false) => ({ code, key, ctrlKey, altKey, repeat });
+const key = (code: string, key: string, ctrlKey: boolean, repeat = false) => ({ code, key, ctrlKey, repeat });
 
 describe('push-to-talk key', () => {
   it('starts on the first Ctrl+Space only', () => {
@@ -32,11 +32,6 @@ describe('push-to-talk key', () => {
     expect(isTalkKey(key('Space', ' ', true, true))).toBe(true); // ...but it still mustn't type a space
     expect(startsTalking(key('Space', ' ', false))).toBe(false); // a plain space types a space
     expect(startsTalking(key('KeyS', 's', true))).toBe(false);
-  });
-
-  it('M37: Ctrl+Alt+Space is the global shortcut, never the talk key', () => {
-    expect(isTalkKey(key('Space', ' ', true, false, true))).toBe(false);
-    expect(startsTalking(key('Space', ' ', true, false, true))).toBe(false);
   });
 
   it('stops when Space or Ctrl is let go', () => {

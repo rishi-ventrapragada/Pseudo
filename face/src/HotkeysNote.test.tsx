@@ -4,17 +4,17 @@ import { describe, expect, it } from 'vitest';
 import { HotkeysNote, hotkeysLine } from './HotkeysNote';
 import type { Hotkey } from './protocol';
 
-const BOTH: Hotkey[] = [{ id: 'toggle', label: 'Ctrl+Alt+Space', ok: true }, { id: 'talk', label: 'Ctrl+Alt+T', ok: true }];
+const BOTH: Hotkey[] = [{ id: 'toggle', label: 'Ctrl+Alt+Enter', ok: true }, { id: 'talk', label: 'Ctrl+Alt+T', ok: true }];
 const TALK_TAKEN: Hotkey[] = [BOTH[0], { ...BOTH[1], ok: false }];
 
 describe('hotkeysLine', () => {
   it('says what each shortcut does', () => {
-    expect(hotkeysLine(BOTH)).toBe('Ctrl+Alt+Space shows or hides Pseudo from any app · Ctrl+Alt+T starts and stops talking');
+    expect(hotkeysLine(BOTH)).toBe('Ctrl+Alt+Enter shows or hides Pseudo from any app · Ctrl+Alt+T starts and stops talking');
   });
 
   it('says which one another program holds, and still names the one that works', () => {
     expect(hotkeysLine(TALK_TAKEN))
-      .toBe('Ctrl+Alt+Space shows or hides Pseudo from any app · Ctrl+Alt+T is held by another program, so it is off here');
+      .toBe('Ctrl+Alt+Enter shows or hides Pseudo from any app · Ctrl+Alt+T is held by another program, so it is off here');
   });
 
   it('a shortcut this page has no words for is still named', () => {

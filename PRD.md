@@ -681,7 +681,7 @@ Goal: Pseudo is something you leave running: a real `Pseudo.exe`, optionally sta
   - **Known limits:** the check didn't sign out, so your next sign-in is the real test; the entry holds the exe's full path, so after moving the repo switch it off and on again; until M37, a hidden Pseudo is reached by the tray icon or by starting Pseudo.exe again.
 
 ### M37: Global hotkeys (build)
-- Two shortcuts through Electron's `globalShortcut` (Windows' `RegisterHotKey`): show or hide Pseudo (Ctrl+Alt+Space), and talk (Ctrl+Alt+T), which shows Pseudo and starts recording; pressing it again stops. The 30 s cap, the silence rule and "nothing is sent until Enter" are unchanged (D24, L8).
+- Two shortcuts through Electron's `globalShortcut` (Windows' `RegisterHotKey`): show or hide Pseudo (Ctrl+Alt+Enter; planned as Ctrl+Alt+Space and changed on 2026-10-09, before the live check, because the Claude desktop app already holds that key on this laptop), and talk (Ctrl+Alt+T), which shows Pseudo and starts recording; pressing it again stops. The 30 s cap, the silence rule and "nothing is sent until Enter" are unchanged (D24, L8).
 - Ruled out on paper: hold-to-talk from any app. It needs a keyboard hook that sees every key you press in every app, the shape of a keylogger, inside a privacy tool.
 - A shortcut another program already holds is reported in the face and left off. Changing the keys: Backlog.
 - **Criteria, fixed in the plan:**

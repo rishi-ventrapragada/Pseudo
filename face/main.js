@@ -62,7 +62,7 @@ const startHidden = startedHidden(app); // M36: started by the Start with Window
 const reveal = new Reveal(() => win, () => brain.start(), ensureTray); // M36: every way of showing the window
 const first = onlyOne(app, () => reveal.show()); // M34: a second launch shows the first Pseudo's window
 if (!first) app.quit(); // and then quits, before it opens a window or starts a brain
-// M37: Ctrl+Alt+Space shows or hides; Ctrl+Alt+T shows and presses the page's mic button (start, or stop).
+// M37: Ctrl+Alt+Enter shows or hides; Ctrl+Alt+T shows and presses the page's mic button (start, or stop).
 const hotkeys = new Hotkeys(globalShortcut, {
   toggle: () => reveal.toggle(),
   talk: () => reveal.show() && toPage({ type: 'talk' }),

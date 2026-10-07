@@ -1,7 +1,7 @@
 /**
  * M37: two global shortcuts, so Pseudo can be called from any app.
  *
- *   Ctrl+Alt+Space   show Pseudo, or hide it if it is the window you are in (reveal.js)
+ *   Ctrl+Alt+Enter   show Pseudo, or hide it if it is the window you are in (reveal.js)
  *   Ctrl+Alt+T       show Pseudo and start talking; press it again to stop (the page's mic button)
  *
  * What it demonstrates: a global shortcut is a reservation with Windows, not a listener.
@@ -18,10 +18,13 @@
  * A combination can be reserved by one program only. If another program got there first,
  * register() returns false: that shortcut stays off, the page says so, and the other one
  * still works. Both are given back when Pseudo quits.
+ *
+ * That is why the first key is Enter and not Space, as first planned: on this laptop the Claude
+ * desktop app already holds Ctrl+Alt+Space (found before M37's live check).
  */
 
 const SHORTCUTS = [
-  { id: 'toggle', keys: 'Control+Alt+Space', label: 'Ctrl+Alt+Space' },
+  { id: 'toggle', keys: 'Control+Alt+Enter', label: 'Ctrl+Alt+Enter' },
   { id: 'talk', keys: 'Control+Alt+T', label: 'Ctrl+Alt+T' },
 ];
 

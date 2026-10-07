@@ -47,7 +47,7 @@ describe('M37: a message the page does not know', () => {
 });
 
 describe('M37: the global shortcuts', () => {
-  const keys = [{ id: 'toggle', label: 'Ctrl+Alt+Space', ok: true }, { id: 'talk', label: 'Ctrl+Alt+T', ok: false }];
+  const keys = [{ id: 'toggle', label: 'Ctrl+Alt+Enter', ok: true }, { id: 'talk', label: 'Ctrl+Alt+T', ok: false }];
   const told: Action = { type: 'from_brain', message: { type: 'hotkeys', keys } };
   const pressed: Action = { type: 'from_brain', message: { type: 'talk' } };
 

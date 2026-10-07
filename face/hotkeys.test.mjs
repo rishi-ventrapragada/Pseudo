@@ -29,9 +29,9 @@ function setup(options) {
 }
 
 describe('Hotkeys', () => {
-  it('the two shortcuts are Ctrl+Alt+Space and Ctrl+Alt+T', () => {
+  it('the two shortcuts are Ctrl+Alt+Enter and Ctrl+Alt+T', () => {
     expect(SHORTCUTS.map(({ keys, label }) => [keys, label]))
-      .toEqual([['Control+Alt+Space', 'Ctrl+Alt+Space'], ['Control+Alt+T', 'Ctrl+Alt+T']]);
+      .toEqual([['Control+Alt+Enter', 'Ctrl+Alt+Enter'], ['Control+Alt+T', 'Ctrl+Alt+T']]);
   });
 
   it('before register, nothing is held and the page is told so', () => {
@@ -43,8 +43,8 @@ describe('Hotkeys', () => {
   it('registers both, and each press does only its own thing', () => {
     const { hotkeys, shortcuts, done } = setup();
     expect(hotkeys.register()).toEqual({ type: 'hotkeys', keys: [
-      { id: 'toggle', label: 'Ctrl+Alt+Space', ok: true }, { id: 'talk', label: 'Ctrl+Alt+T', ok: true }] });
-    shortcuts.press('Control+Alt+Space');
+      { id: 'toggle', label: 'Ctrl+Alt+Enter', ok: true }, { id: 'talk', label: 'Ctrl+Alt+T', ok: true }] });
+    shortcuts.press('Control+Alt+Enter');
     expect(done).toEqual(['toggle']);
     shortcuts.press('Control+Alt+T');
     expect(done).toEqual(['toggle', 'talk']);
@@ -53,14 +53,14 @@ describe('Hotkeys', () => {
   it('a shortcut another program holds is reported and left off; the other still works', () => {
     const { hotkeys, shortcuts, done } = setup({ taken: ['Control+Alt+T'] });
     expect(hotkeys.register().keys.map((key) => [key.id, key.ok])).toEqual([['toggle', true], ['talk', false]]);
-    expect([...shortcuts.held.keys()]).toEqual(['Control+Alt+Space']);
+    expect([...shortcuts.held.keys()]).toEqual(['Control+Alt+Enter']);
     shortcuts.press('Control+Alt+T'); // goes to the other program: nothing happens here
-    shortcuts.press('Control+Alt+Space');
+    shortcuts.press('Control+Alt+Enter');
     expect(done).toEqual(['toggle']);
   });
 
   it('an error while registering one is a refusal, not a crash', () => {
-    const { hotkeys } = setup({ broken: ['Control+Alt+Space'] });
+    const { hotkeys } = setup({ broken: ['Control+Alt+Enter'] });
     expect(hotkeys.register().keys.map((key) => key.ok)).toEqual([false, true]);
   });
 
@@ -71,7 +71,7 @@ describe('Hotkeys', () => {
     shortcuts.unregister = (keys) => { unregistered.push(keys); real(keys); };
     hotkeys.register();
     hotkeys.release();
-    expect(unregistered).toEqual(['Control+Alt+Space']); // never the one another program holds
+    expect(unregistered).toEqual(['Control+Alt+Enter']); // never the one another program holds
     expect(shortcuts.held.size).toBe(0);
     expect(hotkeys.state().keys.map((key) => key.ok)).toEqual([false, false]);
   });

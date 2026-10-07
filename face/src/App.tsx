@@ -177,7 +177,9 @@ export function App() {
               placeholder="Ask about the window you were on"
               onChange={(event) => setDraft(event.target.value)}
               onKeyDown={(event) => {
-                if (event.key === 'Enter' && !event.shiftKey) { // Enter asks; Shift+Enter is a new line
+                // Enter asks; Shift+Enter is a new line. (M37) Not with Ctrl or Alt: Ctrl+Alt+Enter is the global
+                // show-or-hide shortcut, and if another program holds it, pressing it here must not send a draft.
+                if (event.key === 'Enter' && !event.shiftKey && !event.ctrlKey && !event.altKey) {
                   event.preventDefault();
                   ask();
                 }
