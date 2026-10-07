@@ -68,8 +68,17 @@ def test_an_unlisted_app_in_front_is_read(screen) -> None:
     assert pick_window().handle == 1  # only the listed apps are skipped
 
 
-def test_the_committed_list_holds_the_three_assistants() -> None:
-    assert load_assistant_apps() == {"hermes.exe", "claude.exe", "electron.exe"}
+def test_the_committed_list_holds_the_four_assistants() -> None:
+    # (M34) pseudo.exe is the packaged face; names are compared in lower case.
+    assert load_assistant_apps() == {"hermes.exe", "claude.exe", "electron.exe", "pseudo.exe"}
+
+
+def test_with_the_packaged_face_in_front_the_notes_behind_it_are_read(screen) -> None:
+    """(M34) The same M18 case with Pseudo.exe, as Windows reports its name, against the committed list's text."""
+    committed = assistant_apps.ASSISTANT_APPS_FILE.read_text(encoding="utf-8")
+    reads = screen([window("Pseudo.exe", 7), window("notepad.exe", 101)], committed)
+    result = read_active_window()
+    assert result["app"] == "notepad.exe" and "BLUE" in result["content"] and set(reads) == {101}
 
 
 def test_an_unreadable_list_withholds_the_content(screen) -> None:

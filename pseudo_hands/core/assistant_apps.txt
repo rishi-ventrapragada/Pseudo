@@ -13,3 +13,4 @@
 hermes.exe     # Hermes Agent and Hermes Desktop (M6-M13)
 claude.exe     # the Claude desktop app (M17)
 electron.exe   # Pseudo's own face while it runs from `npm start` (M18)
+Pseudo.exe     # Pseudo's own face as the packaged app, built by `npm run package` (M34)
