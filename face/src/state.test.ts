@@ -178,3 +178,11 @@ describe('M36: the Start with Windows entry', () => {
     expect(reduce(stopped, { type: 'restarting' })).toEqual({ ...initial, autostart: { available: true, on: true, note: '' } });
   });
 });
+
+describe('M37: a message the page does not know', () => {
+  it('changes nothing, instead of blanking the page', () => {
+    const unknown = { type: 'something_new', value: 1 } as unknown as FromBrain;
+    const before = run({ type: 'from_brain', message: READY });
+    expect(reduce(before, { type: 'from_brain', message: unknown })).toBe(before);
+  });
+});

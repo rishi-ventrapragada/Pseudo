@@ -29,15 +29,17 @@
  *
  * (M36) Started by Windows at sign-in (`--start-hidden`, autostart.js), the window stays hidden, a tray
  * icon stands in for it (tray.js), and the brain is started the first time the window is shown (reveal.js).
+ * (M37) Two global shortcuts show or hide the window and start or stop talking (hotkeys.js); no keyboard hook.
  */
 
 const path = require('node:path');
 const { pathToFileURL } = require('node:url');
-const { app, BrowserWindow, Menu, Tray, ipcMain, nativeImage, nativeTheme, net, protocol, session } = require('electron');
+const { app, BrowserWindow, Menu, Tray, globalShortcut, ipcMain, nativeImage, nativeTheme, net, protocol, session } = require('electron');
 const { autostartState, setAutostart, startedHidden } = require('./autostart');
 const { brainHome } = require('./brain-home');
 const { BrainProcess } = require('./brain-process');
 const { ForegroundGrant, windowsAllow } = require('./foreground');
+const { Hotkeys } = require('./hotkeys');
 const { allowCheck, allowRequest } = require('./permissions');
 const { Reveal } = require('./reveal');
 const { onlyOne } = require('./single-instance');
@@ -60,6 +62,11 @@ const startHidden = startedHidden(app); // M36: started by the Start with Window
 const reveal = new Reveal(() => win, () => brain.start(), ensureTray); // M36: every way of showing the window
 const first = onlyOne(app, () => reveal.show()); // M34: a second launch shows the first Pseudo's window
 if (!first) app.quit(); // and then quits, before it opens a window or starts a brain
+// M37: Ctrl+Alt+Space shows or hides; Ctrl+Alt+T shows and presses the page's mic button (start, or stop).
+const hotkeys = new Hotkeys(globalShortcut, {
+  toggle: () => reveal.toggle(),
+  talk: () => reveal.show() && toPage({ type: 'talk' }),
+});
 const grant = new ForegroundGrant(windowsAllow());
 const flash = new TaskbarFlash(
   (on) => win && !win.isDestroyed() && win.flashFrame(on),
@@ -142,6 +149,7 @@ function createWindow() {
     },
   });
   win.on('focus', () => toPage(autostartState(app))); // it may have been changed in Task Manager meanwhile
+  win.webContents.on('did-finish-load', () => toPage(hotkeys.state())); // M37: which shortcuts Windows gave us
   win.loadURL(PAGE);
 }
 
@@ -160,13 +168,17 @@ app.whenReady().then(() => {
   session.defaultSession.setPermissionCheckHandler(
     (_contents, permission, origin, details) => allowCheck(permission, origin, details));
   protocol.handle('app', serveFile);
+  hotkeys.register();
   createWindow();
   if (startHidden) ensureTray();
   else reveal.startBrain(); // opened by hand: everything starts at once, as before
 });
 
 app.on('window-all-closed', () => app.quit());
-app.on('will-quit', () => tray && tray.destroy()); // or Windows keeps a dead icon until the mouse passes over it
+app.on('will-quit', () => {
+  hotkeys.release(); // M37: give the two shortcuts back
+  if (tray) tray.destroy(); // or Windows keeps a dead icon until the mouse passes over it
+});
 
 // Quitting: stop the brain first (it stops pseudo_hands and private mode's server), then quit.
 app.on('before-quit', (event) => {

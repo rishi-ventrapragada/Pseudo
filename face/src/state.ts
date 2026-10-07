@@ -116,6 +116,8 @@ function fromBrain(state: State, message: FromBrain): State {
     case 'brain_stopped':
       return { ...state, phase: 'stopped', working: null, toolWaiting: null,
                turns: updateRunning(state.turns, () => ({ failed: 'The brain stopped before answering.', running: false })) };
+    default: // a message this page doesn't know (a newer main process): ignored. Without this line the state
+      return state; // became undefined and the page went blank (M35's prototype, and nearly M36).
   }
 }
 
