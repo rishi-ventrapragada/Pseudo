@@ -6,6 +6,7 @@
 
 import { useEffect, useReducer, useRef, useState } from 'react';
 import { ApprovalBanner } from './ApprovalBanner';
+import { AutostartControl } from './AutostartControl';
 import { brainOf } from './events';
 import { Markdown } from './Markdown';
 import type { ToBrain } from './protocol';
@@ -159,6 +160,7 @@ export function App() {
           {state.actionBrain && current?.leaves_laptop && ( // M32: only where action requests go to Claude Code
             <WarmControl warm={state.warm} warmOn={warm.warmOn} setWarmOn={warm.setWarmOn} />
           )}
+          <AutostartControl autostart={state.autostart} />
           <VoiceControls voice={voice} canTalk={canTalk} why={why} />
           <form onSubmit={(event) => { event.preventDefault(); ask(); }}>
             <textarea
