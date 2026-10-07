@@ -31,10 +31,12 @@ export type State = {
   autostart: Autostart | null; // M36: what Windows says about Start with Windows; null = not asked yet
   hotkeys: Hotkey[] | null; // M37: the global shortcuts and whether each is ours; null = not told yet
   talk: number; // M37: how often Ctrl+Alt+T was pressed; each press lands once on the mic button
+  compact: boolean; // M38: the window is the compact bar (the main process says so; the page only lays itself out)
 };
 
 /** What the MAIN process told the page. The brain starting, restarting or stopping never clears it. */
-const fromMain = (state: State) => ({ autostart: state.autostart, hotkeys: state.hotkeys, talk: state.talk });
+const fromMain = (state: State) => ({ autostart: state.autostart, hotkeys: state.hotkeys, talk: state.talk,
+                                      compact: state.compact });
 
 export type Action =
   | { type: 'from_brain'; message: FromBrain }
@@ -45,7 +47,7 @@ export type Action =
 
 export const initial: State = {
   phase: 'starting', providers: [], provider: '', actionBrain: null, session: '', turns: [], working: null, toolWaiting: null, notice: '',
-  sessions: null, heard: null, speech: null, warm: null, autostart: null, hotkeys: null, talk: 0,
+  sessions: null, heard: null, speech: null, warm: null, autostart: null, hotkeys: null, talk: 0, compact: false,
 };
 
 /** A saved session's messages -> turns: each question with the answer that followed it. */
@@ -114,6 +116,8 @@ function fromBrain(state: State, message: FromBrain): State {
       return { ...state, hotkeys: message.keys };
     case 'talk': // M37: App turns each new count into one press of the mic button
       return { ...state, talk: state.talk + 1 };
+    case 'window_mode': // M38: from the main process, which has already resized the window
+      return { ...state, compact: message.compact === true };
     case 'refused': {
       const last = state.turns[state.turns.length - 1];
       if (last?.running && !last.steps.length) { // the question itself was refused: it was never sent

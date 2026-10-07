@@ -14,7 +14,8 @@ const { contextBridge, ipcRenderer } = require('electron');
 const TYPES = ['ask', 'provider', 'new_session', 'list_sessions', 'open_session', 'restart',
                'transcribe', 'speak_answers', // M26: push-to-talk and the Speak answers switch
                'warm_sessions', // M32: the warm-session switch
-               'autostart']; // M36: the Start with Windows switch (answered by the main process)
+               'autostart', // M36: the Start with Windows switch (answered by the main process)
+               'window_mode']; // M38: full or compact, and whether the bar shows an answer (answered by the main process)
 let listener = null;
 const early = []; // messages that arrived before the page started listening
 

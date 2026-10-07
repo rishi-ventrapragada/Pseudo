@@ -30,10 +30,13 @@
  * (M36) Started by Windows at sign-in (`--start-hidden`, autostart.js), the window stays hidden, a tray
  * icon stands in for it (tray.js), and the brain is started the first time the window is shown (reveal.js).
  * (M37) Two global shortcuts show or hide the window and start or stop talking (hotkeys.js); no keyboard hook.
+ * (M38) The window has two modes, full and a compact always-on-top bar (window-mode.js). The bar gives up
+ * always-on-top while a tool waits, so an approval popup can't end up under it.
  */
 
+const fs = require('node:fs');
 const path = require('node:path');
-const { app, BrowserWindow, Menu, Tray, globalShortcut, ipcMain, nativeImage, nativeTheme, net, protocol, session } = require('electron');
+const { app, BrowserWindow, Menu, Tray, globalShortcut, ipcMain, nativeImage, nativeTheme, net, protocol, screen, session } = require('electron');
 const { autostartState, setAutostart, startedHidden } = require('./autostart');
 const { brainHome } = require('./brain-home');
 const { BrainProcess } = require('./brain-process');
@@ -46,6 +49,8 @@ const { onlyOne } = require('./single-instance');
 const { TaskbarFlash } = require('./taskbar-flash');
 const { cleanForBrain } = require('./to-brain');
 const { createTray } = require('./tray');
+const { WindowMode } = require('./window-mode');
+const { fileStore } = require('./window-store');
 
 const DIST = path.join(__dirname, 'dist');
 const PAGE = 'app://pseudo/index.html';
@@ -59,7 +64,10 @@ let win = null;
 let quitting = false;
 let tray = null; // made at a hidden start (M36), or the first time the window is hidden (M37)
 const startHidden = startedHidden(app); // M36: started by the Start with Windows entry
-const reveal = new Reveal(() => win, () => brain.start(), ensureTray); // M36: every way of showing the window
+// M38: full, or a compact always-on-top bar, on the same window; sizes are remembered in the profile folder.
+const mode = new WindowMode(() => win, screen, fileStore(path.join(app.getPath('userData'), 'window-mode.json'), fs));
+// M36: every way of showing the window. Before a hide: a tray icon exists (M37) and the bar lets go of always-on-top (M38).
+const reveal = new Reveal(() => win, () => brain.start(), () => { ensureTray(); mode.letGo(); });
 const first = onlyOne(app, () => reveal.show()); // M34: a second launch shows the first Pseudo's window
 if (!first) app.quit(); // and then quits, before it opens a window or starts a brain
 // M37: Ctrl+Alt+Enter shows or hides; Ctrl+Alt+T shows and presses the page's mic button (start, or stop).
@@ -76,11 +84,13 @@ const brain = new BrainProcess(
   (message) => {
     grant.fromBrain(message); // `ready` names pseudo_hands' process; `tool_call` grants
     flash.fromBrain(message); // `tool_call` flashes if you're elsewhere; its result stops it
+    mode.fromBrain(message); // M38: `tool_call` takes the bar out of always-on-top; its result puts it back
     toPage(message);
   },
   (code) => {
     grant.brainStopped();
     flash.brainStopped();
+    mode.brainStopped();
     if (!quitting) toPage({ type: 'brain_stopped', code }); // the page offers a Restart button
   },
   brainHome(app.isPackaged, process.resourcesPath, __dirname), // M34: Pseudo.exe reads where the repo is
@@ -111,16 +121,14 @@ ipcMain.on('pseudo:send', (event, message) => {
   if (message.type === 'restart') return brain.start(); // after "brain stopped"; ignored while it runs
   // M36: the Start with Windows switch is answered here, with what Windows says; it never reaches the brain.
   if (message.type === 'autostart') return toPage(typeof message.on === 'boolean' ? setAutostart(app, message.on) : autostartState(app));
+  if (message.type === 'window_mode') return toPage(mode.fromPage(message)); // M38: answered here too (window-mode.js)
   const clean = cleanForBrain(message); // M37: rebuilt from the fields it may have (to-brain.js), or dropped
   if (clean) brain.send(clean);
 });
 
 function createWindow() {
   win = new BrowserWindow({
-    width: 980,
-    height: 740,
-    minWidth: 520,
-    minHeight: 420,
+    ...mode.options(), // M38: the remembered mode's size, place and minimum
     title: 'Pseudo',
     show: !startHidden,
     backgroundColor: nativeTheme.shouldUseDarkColors ? '#15181e' : '#eef1f5',
@@ -133,7 +141,11 @@ function createWindow() {
     },
   });
   win.on('focus', () => toPage(autostartState(app))); // it may have been changed in Task Manager meanwhile
-  win.webContents.on('did-finish-load', () => toPage(hotkeys.state())); // M37: which shortcuts Windows gave us
+  win.webContents.on('did-finish-load', () => {
+    toPage(hotkeys.state()); // M37: which shortcuts Windows gave us
+    toPage(mode.state()); // M38: full or compact
+  });
+  mode.attach(win);
   win.loadURL(PAGE);
 }
 

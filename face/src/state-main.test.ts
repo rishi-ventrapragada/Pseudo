@@ -1,5 +1,5 @@
-// M36, M37: what the MAIN process tells the page (state.ts): the Start with Windows entry, the global
-// shortcuts, a Ctrl+Alt+T press, and messages the page doesn't know. None of it is the brain's to clear.
+// M36, M37, M38: what the MAIN process tells the page (state.ts): the Start with Windows entry, the global
+// shortcuts, a Ctrl+Alt+T press, the compact bar, and messages the page doesn't know. None of it is the brain's to clear.
 // Split from state.test.ts (the 200-line rule). All messages are fake.
 import { describe, expect, it } from 'vitest';
 import type { FromBrain } from './protocol';
@@ -66,5 +66,23 @@ describe('M37: the global shortcuts', () => {
     expect([ready.phase, ready.hotkeys, ready.talk]).toEqual(['ready', keys, 1]);
     const restarted = reduce(reduce(ready, { type: 'from_brain', message: { type: 'brain_stopped', code: 1 } }), { type: 'restarting' });
     expect([restarted.phase, restarted.hotkeys, restarted.talk]).toEqual(['starting', keys, 1]);
+  });
+});
+
+describe('M38: the compact bar', () => {
+  const bar: Action = { type: 'from_brain', message: { type: 'window_mode', compact: true } };
+
+  it('records what the main process says, and changes nothing else', () => {
+    const state = run(bar);
+    expect(state.compact).toBe(true);
+    expect({ ...state, compact: false }).toEqual(initial);
+    expect(run(bar, { type: 'from_brain', message: { type: 'window_mode', compact: false } }).compact).toBe(false);
+  });
+
+  it('the brain becoming ready, stopping or restarting does not change the window', () => {
+    const ready = run(bar, { type: 'from_brain', message: READY });
+    expect([ready.phase, ready.compact]).toEqual(['ready', true]);
+    const restarted = reduce(reduce(ready, { type: 'from_brain', message: { type: 'brain_stopped', code: 1 } }), { type: 'restarting' });
+    expect([restarted.phase, restarted.compact]).toEqual(['starting', true]);
   });
 });

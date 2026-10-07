@@ -31,7 +31,8 @@ export type FromBrain =
   | { type: 'brain_stopped'; code: number | null } // sent by the main process, not the brain
   | ({ type: 'autostart' } & Autostart) // M36: sent by the main process: what Windows says right now
   | { type: 'hotkeys'; keys: Hotkey[] } // M37: sent by the main process: the two global shortcuts
-  | { type: 'talk' }; // M37: sent by the main process: Ctrl+Alt+T was pressed (in any app)
+  | { type: 'talk' } // M37: sent by the main process: Ctrl+Alt+T was pressed (in any app)
+  | { type: 'window_mode'; compact: boolean }; // M38: sent by the main process: the window is the compact bar, or full
 
 export type ToBrain =
   | { type: 'ask'; text: string }
@@ -43,7 +44,10 @@ export type ToBrain =
   | { type: 'transcribe'; audio: string } // M26: one push-to-talk recording, base64 PCM (16 kHz mono 16-bit)
   | { type: 'speak_answers'; on: boolean } // M26: the Speak answers switch
   | { type: 'warm_sessions'; on: boolean } // M32: the warm-session switch
-  | { type: 'autostart'; on?: boolean }; // M36: answered by the main process; without `on`, it only asks
+  | { type: 'autostart'; on?: boolean } // M36: answered by the main process; without `on`, it only asks
+  // M38: answered by the main process (face/window-mode.js). `compact` switches the mode; `grown` says the bar is
+  // showing an answer, so it needs its taller size.
+  | { type: 'window_mode'; compact?: boolean; grown?: boolean };
 
 declare global {
   interface Window {
