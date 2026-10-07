@@ -7,6 +7,7 @@
 import { useEffect, useReducer, useRef, useState } from 'react';
 import { ApprovalBanner } from './ApprovalBanner';
 import { AutostartControl } from './AutostartControl';
+import { HotkeysNote } from './HotkeysNote';
 import { brainOf } from './events';
 import { Markdown } from './Markdown';
 import type { ToBrain } from './protocol';
@@ -89,6 +90,10 @@ export function App() {
     setDraft((typed) => (typed.trim() ? `${typed.trim()} ${heard}` : heard));
     box.current?.focus();
   }, [state.heard]);
+
+  useEffect(() => { // M37: Ctrl+Alt+T, pressed in any app, is one press of the mic button (start, or stop)
+    if (state.talk) voice.toggle(); // it does nothing while Pseudo can't listen: starting, busy, or no speech model
+  }, [state.talk]);
 
   function ask() {
     const text = draft.trim();
@@ -182,6 +187,7 @@ export function App() {
           </form>
           </>
         )}
+        <HotkeysNote keys={state.hotkeys} />
       </footer>
     </div>
   );

@@ -9,6 +9,8 @@ export type Warm = { on: boolean; open: boolean; ram_mb: number | null; asked: n
                      idle_minutes: number; note: string };
 // M36: the Start with Windows entry, as the main process read it from Windows (face/autostart.js).
 export type Autostart = { available: boolean; on: boolean; note: string };
+// M37: one global shortcut, as the main process registered it (face/hotkeys.js); ok = Windows gave it to Pseudo.
+export type Hotkey = { id: string; label: string; ok: boolean };
 export type SavedMessage = { role: 'user' | 'assistant'; content: string; answered_by?: string };
 export type SessionInfo = { name: string; provider: string; messages: SavedMessage[] };
 export type SessionItem = { name: string; provider: string; questions: number; title: string };
@@ -27,7 +29,9 @@ export type FromBrain =
   | { type: 'speech'; audio: string; reason: string } // M26: a spoken answer (base64 WAV), or why there's none
   | ({ type: 'warm' } & Warm) // M32: sent whenever the warm session's state changes
   | { type: 'brain_stopped'; code: number | null } // sent by the main process, not the brain
-  | ({ type: 'autostart' } & Autostart); // M36: sent by the main process: what Windows says right now
+  | ({ type: 'autostart' } & Autostart) // M36: sent by the main process: what Windows says right now
+  | { type: 'hotkeys'; keys: Hotkey[] } // M37: sent by the main process: the two global shortcuts
+  | { type: 'talk' }; // M37: sent by the main process: Ctrl+Alt+T was pressed (in any app)
 
 export type ToBrain =
   | { type: 'ask'; text: string }

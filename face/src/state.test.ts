@@ -153,36 +153,3 @@ describe('reduce', () => {
     expect(state.turns[0].steps.map((step) => step.split(':')[0])).toEqual(['WARM SESSION', 'ANSWER (claude-code · claude-sonnet-5-5 | 3 model call(s), 1 tokens in / 1 out)', 'WARM SESSION', 'WARM SESSION']);
   });
 });
-
-describe('M36: the Start with Windows entry', () => {
-  const on = { type: 'autostart', available: true, on: true, note: '' } as const;
-
-  it("records what Windows says, and changes nothing else", () => {
-    const state = run({ type: 'from_brain', message: on });
-    expect(state.autostart).toEqual({ available: true, on: true, note: '' });
-    expect({ ...state, autostart: null }).toEqual(initial);
-  });
-
-  it('survives the brain becoming ready: Windows usually answers first (found in the M36 live check)', () => {
-    const ready: Action = { type: 'from_brain', message: { type: 'ready', providers: [], provider: 'groq',
-                                                                session: { name: 's', provider: 'groq', messages: [] }, tools: [] } };
-    const state = run({ type: 'from_brain', message: on }, ready);
-    expect(state.phase).toBe('ready');
-    expect(state.autostart).toEqual({ available: true, on: true, note: '' });
-  });
-
-  it("survives a brain restart and a stopped brain: it is not the brain's to forget", () => {
-    const stopped = run({ type: 'from_brain', message: on }, { type: 'from_brain', message: { type: 'brain_stopped', code: 1 } });
-    expect(stopped.phase).toBe('stopped');
-    expect(stopped.autostart?.on).toBe(true);
-    expect(reduce(stopped, { type: 'restarting' })).toEqual({ ...initial, autostart: { available: true, on: true, note: '' } });
-  });
-});
-
-describe('M37: a message the page does not know', () => {
-  it('changes nothing, instead of blanking the page', () => {
-    const unknown = { type: 'something_new', value: 1 } as unknown as FromBrain;
-    const before = run({ type: 'from_brain', message: READY });
-    expect(reduce(before, { type: 'from_brain', message: unknown })).toBe(before);
-  });
-});

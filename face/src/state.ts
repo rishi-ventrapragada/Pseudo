@@ -3,7 +3,7 @@
 // about providers or sessions lives here; the brain decides, and this only records what it said.
 
 import { answerLabel, describeEvent } from './events';
-import type { ActionBrain, Autostart, FromBrain, Provider, SavedMessage, SessionItem, Warm } from './protocol';
+import type { ActionBrain, Autostart, FromBrain, Hotkey, Provider, SavedMessage, SessionItem, Warm } from './protocol';
 
 export type Turn = {
   question: string;
@@ -29,7 +29,12 @@ export type State = {
   speech: { audio: string; n: number } | null; // M26: the latest spoken answer, for the player
   warm: Warm | null; // M32: what this brain last said about its warm session; null = nothing yet
   autostart: Autostart | null; // M36: what Windows says about Start with Windows; null = not asked yet
+  hotkeys: Hotkey[] | null; // M37: the global shortcuts and whether each is ours; null = not told yet
+  talk: number; // M37: how often Ctrl+Alt+T was pressed; each press lands once on the mic button
 };
+
+/** What the MAIN process told the page. The brain starting, restarting or stopping never clears it. */
+const fromMain = (state: State) => ({ autostart: state.autostart, hotkeys: state.hotkeys, talk: state.talk });
 
 export type Action =
   | { type: 'from_brain'; message: FromBrain }
@@ -40,7 +45,7 @@ export type Action =
 
 export const initial: State = {
   phase: 'starting', providers: [], provider: '', actionBrain: null, session: '', turns: [], working: null, toolWaiting: null, notice: '',
-  sessions: null, heard: null, speech: null, warm: null, autostart: null,
+  sessions: null, heard: null, speech: null, warm: null, autostart: null, hotkeys: null, talk: 0,
 };
 
 /** A saved session's messages -> turns: each question with the answer that followed it. */
@@ -62,7 +67,7 @@ function updateRunning(turns: Turn[], change: (turn: Turn) => Partial<Turn>): Tu
 function fromBrain(state: State, message: FromBrain): State {
   switch (message.type) {
     case 'ready':
-      return { ...initial, autostart: state.autostart, phase: 'ready', // M36: Windows' answer is kept
+      return { ...initial, ...fromMain(state), phase: 'ready', // M36: what the main process said is kept
                providers: message.providers, provider: message.provider,
                actionBrain: message.action_brain ?? null,
                session: message.session.name, turns: turnsFrom(message.session.messages) };
@@ -105,6 +110,10 @@ function fromBrain(state: State, message: FromBrain): State {
       return { ...state, warm: message };
     case 'autostart': // M36: from the main process, not the brain; it can arrive at any time, even while stopped
       return { ...state, autostart: { available: message.available, on: message.on, note: message.note } };
+    case 'hotkeys': // M37: from the main process
+      return { ...state, hotkeys: message.keys };
+    case 'talk': // M37: App turns each new count into one press of the mic button
+      return { ...state, talk: state.talk + 1 };
     case 'refused': {
       const last = state.turns[state.turns.length - 1];
       if (last?.running && !last.steps.length) { // the question itself was refused: it was never sent
@@ -133,6 +142,6 @@ export function reduce(state: State, action: Action): State {
     case 'close_sessions':
       return { ...state, sessions: null };
     case 'restarting':
-      return { ...initial, autostart: state.autostart }; // Windows' answer has nothing to do with the brain
+      return { ...initial, ...fromMain(state) }; // what the main process said has nothing to do with the brain
   }
 }
