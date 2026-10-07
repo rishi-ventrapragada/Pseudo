@@ -5,11 +5,14 @@ import { describe, expect, it } from 'vitest';
 
 const { Reveal } = createRequire(import.meta.url)('./reveal.js');
 
-function fakeWindow({ minimized = false, destroyed = false } = {}) {
+function fakeWindow({ minimized = false, destroyed = false, visible = true, focused = false } = {}) {
   const done = [];
   return {
     isDestroyed: () => destroyed,
     isMinimized: () => minimized,
+    isVisible: () => visible,
+    isFocused: () => focused,
+    hide: () => done.push('hide'),
     restore: () => done.push('restore'),
     show: () => done.push('show'),
     focus: () => done.push('focus'),
@@ -20,7 +23,7 @@ function fakeWindow({ minimized = false, destroyed = false } = {}) {
 function setup(win) {
   const brain = { starts: 0 };
   const holder = { win };
-  const reveal = new Reveal(() => holder.win, () => { brain.starts += 1; });
+  const reveal = new Reveal(() => holder.win, () => { brain.starts += 1; }, () => win && win.done.push('tray made'));
   return { reveal, brain, holder };
 }
 
@@ -74,5 +77,52 @@ describe('Reveal', () => {
     expect(reveal.show()).toBe(true);
     expect(holder.win.done).toEqual(['show', 'focus']);
     expect(brain.starts).toBe(1);
+  });
+});
+
+describe('M37: hide and toggle', () => {
+  it('hide makes the tray icon first, then hides, and starts no brain', () => {
+    const win = fakeWindow({ focused: true });
+    const { reveal, brain } = setup(win);
+    expect(reveal.hide()).toBe(true);
+    expect(win.done).toEqual(['tray made', 'hide']);
+    expect(brain.starts).toBe(0);
+  });
+
+  it('toggle hides Pseudo when it is the window you are in', () => {
+    const win = fakeWindow({ visible: true, focused: true });
+    setup(win).reveal.toggle();
+    expect(win.done).toEqual(['tray made', 'hide']);
+  });
+
+  it('toggle brings Pseudo to you when it is hidden, behind another window, or minimized', () => {
+    const hidden = fakeWindow({ visible: false });
+    const first = setup(hidden);
+    first.reveal.toggle();
+    expect(hidden.done).toEqual(['show', 'focus']);
+    expect(first.brain.starts).toBe(1); // a hidden start: the shortcut is one more way to wake it
+    const behind = fakeWindow({ visible: true, focused: false });
+    setup(behind).reveal.toggle();
+    expect(behind.done).toEqual(['show', 'focus']);
+    const small = fakeWindow({ visible: true, focused: false, minimized: true });
+    setup(small).reveal.toggle();
+    expect(small.done).toEqual(['restore', 'show', 'focus']);
+  });
+
+  it('no window, or a closing one: hide and toggle do nothing', () => {
+    const none = setup(null);
+    expect(none.reveal.hide()).toBe(false);
+    expect(none.reveal.toggle()).toBe(false);
+    const closing = fakeWindow({ destroyed: true, focused: true });
+    const gone = setup(closing);
+    expect(gone.reveal.hide()).toBe(false);
+    expect(gone.reveal.toggle()).toBe(false);
+    expect(closing.done).toEqual([]);
+  });
+
+  it('without a beforeHide it still hides (the default does nothing)', () => {
+    const win = fakeWindow({ focused: true });
+    new Reveal(() => win, () => {}).hide();
+    expect(win.done).toEqual(['hide']);
   });
 });

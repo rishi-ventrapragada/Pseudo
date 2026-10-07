@@ -12,16 +12,23 @@
  *
  * The brain is started ONCE. If it stops later, the page says so and offers Restart, as
  * before; showing the window again never restarts it behind your back.
+ *
+ * (M37) hide() and toggle(), for the show-or-hide shortcut (hotkeys.js). Hiding the window
+ * you are in makes Windows hand the keyboard to the window underneath: the one you came from.
+ * Before the window disappears, `beforeHide` runs: main.js uses it to make sure a tray icon
+ * exists, so a hidden Pseudo can always be reached, even if a shortcut couldn't be registered.
  */
 
 class Reveal {
   /**
    * @param {() => object | null} getWindow the face's window right now, or null before it exists
    * @param {() => void} startBrain starts the brain process (BrainProcess.start)
+   * @param {() => void} beforeHide runs right before the window is hidden (M37: make the tray icon)
    */
-  constructor(getWindow, startBrain) {
+  constructor(getWindow, startBrain, beforeHide = () => {}) {
     this.getWindow = getWindow;
     this.start = startBrain;
+    this.beforeHide = beforeHide;
     this.started = false;
   }
 
@@ -41,6 +48,22 @@ class Reveal {
     win.focus();
     this.startBrain();
     return true;
+  }
+
+  /** (M37) Hide the window. The brain keeps running (D27). False if there is no window to hide. */
+  hide() {
+    const win = this.getWindow();
+    if (!win || win.isDestroyed()) return false;
+    this.beforeHide();
+    win.hide();
+    return true;
+  }
+
+  /** (M37) The shortcut: hide Pseudo if it is the window you are in; otherwise bring it to you. */
+  toggle() {
+    const win = this.getWindow();
+    const inFront = Boolean(win) && !win.isDestroyed() && win.isVisible() && win.isFocused();
+    return inFront ? this.hide() : this.show();
   }
 }
 

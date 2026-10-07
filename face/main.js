@@ -55,9 +55,9 @@ app.enableSandbox(); // every renderer is sandboxed, whatever its window says
 
 let win = null;
 let quitting = false;
-let tray = null; // only after a hidden start
+let tray = null; // made at a hidden start (M36), or the first time the window is hidden (M37)
 const startHidden = startedHidden(app); // M36: started by the Start with Windows entry
-const reveal = new Reveal(() => win, () => brain.start()); // M36: every way of showing the window
+const reveal = new Reveal(() => win, () => brain.start(), ensureTray); // M36: every way of showing the window
 const first = onlyOne(app, () => reveal.show()); // M34: a second launch shows the first Pseudo's window
 if (!first) app.quit(); // and then quits, before it opens a window or starts a brain
 const grant = new ForegroundGrant(windowsAllow());
@@ -78,6 +78,11 @@ const brain = new BrainProcess(
   },
   brainHome(app.isPackaged, process.resourcesPath, __dirname), // M34: Pseudo.exe reads where the repo is
 );
+
+/** A hidden Pseudo must stay reachable: one tray icon, made when first needed. */
+function ensureTray() {
+  if (!tray) tray = createTray({ Tray, Menu, nativeImage }, () => reveal.show(), () => app.quit());
+}
 
 /** A message for the page: from the brain, or brain_stopped from here. */
 function toPage(message) {
@@ -156,7 +161,7 @@ app.whenReady().then(() => {
     (_contents, permission, origin, details) => allowCheck(permission, origin, details));
   protocol.handle('app', serveFile);
   createWindow();
-  if (startHidden) tray = createTray({ Tray, Menu, nativeImage }, () => reveal.show(), () => app.quit());
+  if (startHidden) ensureTray();
   else reveal.startBrain(); // opened by hand: everything starts at once, as before
 });
 
