@@ -24,3 +24,6 @@ pseudo_hands/core/redaction_terms.txt
 # M18: the face's npm packages and its built page: rebuilt by `npm install` and `npm run build`.
 face/node_modules/
 face/dist/
+
+# M34: Pseudo.exe, rebuilt by `npm run package` (370 MB, and it holds this laptop's repo path).
+face/out/
