@@ -21,7 +21,7 @@
  *   - Navigation, new windows and <webview> are blocked, and there is no menu (no reload,
  *     no developer tools). Every permission request is refused except one (M26,
  *     permissions.js): the microphone, audio only, for our own page, for push-to-talk.
- *   - IPC is accepted only from our own page, and only the message types the brain knows.
+ *   - IPC is accepted only from our own page, and only the message types the brain knows (to-brain.js).
  *
  * Before each tool runs, this process lets pseudo_hands' process (only that one) bring its
  * approval popup to the front, above this window (foreground.js), and flashes the taskbar
@@ -42,17 +42,11 @@ const { allowCheck, allowRequest } = require('./permissions');
 const { Reveal } = require('./reveal');
 const { onlyOne } = require('./single-instance');
 const { TaskbarFlash } = require('./taskbar-flash');
+const { cleanForBrain } = require('./to-brain');
 const { createTray } = require('./tray');
 
 const DIST = path.join(__dirname, 'dist');
 const PAGE = 'app://pseudo/index.html';
-const TO_BRAIN = new Set(['ask', 'provider', 'new_session', 'list_sessions', 'open_session', 'transcribe',
-                          'speak_answers', 'warm_sessions']);
-const SWITCHES = new Set(['speak_answers', 'warm_sessions']); // M26, M32: each carries one true/false, `on`
-const FIELDS = ['text', 'id', 'name']; // the only text fields a message to the brain may carry
-// M26: a push-to-talk recording, base64. 30.5 s of 16 kHz 16-bit mono is about 1.3 million characters;
-// anything bigger is dropped here, and the brain checks the length again (voice_in.py).
-const MAX_AUDIO_CHARS = 1400000;
 
 protocol.registerSchemesAsPrivileged([
   { scheme: 'app', privileges: { standard: true, secure: true, supportFetchAPI: true } },
@@ -121,20 +115,8 @@ ipcMain.on('pseudo:send', (event, message) => {
   if (message.type === 'restart') return brain.start(); // after "brain stopped"; ignored while it runs
   // M36: the Start with Windows switch is answered here, with what Windows says; it never reaches the brain.
   if (message.type === 'autostart') return toPage(typeof message.on === 'boolean' ? setAutostart(app, message.on) : autostartState(app));
-  if (!TO_BRAIN.has(message.type)) return;
-  const clean = { type: message.type };
-  for (const field of FIELDS) {
-    if (typeof message[field] === 'string') clean[field] = message[field];
-  }
-  if (message.type === 'transcribe') {
-    if (typeof message.audio !== 'string' || message.audio.length > MAX_AUDIO_CHARS) return;
-    clean.audio = message.audio;
-  }
-  if (SWITCHES.has(message.type)) {
-    if (typeof message.on !== 'boolean') return;
-    clean.on = message.on;
-  }
-  brain.send(clean);
+  const clean = cleanForBrain(message); // M37: rebuilt from the fields it may have (to-brain.js), or dropped
+  if (clean) brain.send(clean);
 });
 
 function createWindow() {
