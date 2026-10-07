@@ -35,6 +35,7 @@ const { brainHome } = require('./brain-home');
 const { BrainProcess } = require('./brain-process');
 const { ForegroundGrant, windowsAllow } = require('./foreground');
 const { allowCheck, allowRequest } = require('./permissions');
+const { onlyOne } = require('./single-instance');
 const { TaskbarFlash } = require('./taskbar-flash');
 
 const DIST = path.join(__dirname, 'dist');
@@ -54,6 +55,8 @@ app.enableSandbox(); // every renderer is sandboxed, whatever its window says
 
 let win = null;
 let quitting = false;
+const first = onlyOne(app, () => win); // M34: a second launch shows the first Pseudo's window
+if (!first) app.quit(); // and then quits, before it opens a window or starts a brain
 const grant = new ForegroundGrant(windowsAllow());
 const flash = new TaskbarFlash(
   (on) => win && !win.isDestroyed() && win.flashFrame(on),
@@ -150,6 +153,7 @@ app.on('web-contents-created', (_event, contents) => {
 });
 
 app.whenReady().then(() => {
+  if (!first) return; // quitting: another Pseudo is running
   Menu.setApplicationMenu(null);
   session.defaultSession.setPermissionRequestHandler(
     (_contents, permission, answer, details) => answer(allowRequest(permission, details)));
