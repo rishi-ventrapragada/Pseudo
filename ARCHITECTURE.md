@@ -246,13 +246,21 @@ face/                   Pseudo's own window (M18): Electron + React, display onl
   autostart.js          (M36) "Start with Windows": reads and writes ONE per-user Run value named Pseudo
                         ("<Pseudo.exe>" --start-hidden); reports what Windows says; does nothing under `npm start`
   reveal.js             (M36, D27) the one way to show the window (tray, second launch, shortcut); starts the
-                        brain the first time, once; (M37) hide = give up the keyboard, then hide; toggle
+                        brain the first time, once; (M37) hide = give up the keyboard, then hide; toggle;
+                        (M38) before a hide the bar lets go of always-on-top
   tray.js               (M36) the tray icon: click = show, right-click = Show / Quit; drawn in code; made at a
                         hidden start, or (M37) the first time the window is hidden
   hotkeys.js            (M37) two global shortcuts through Windows' RegisterHotKey: Ctrl+Alt+Enter show or hide,
                         Ctrl+Alt+T talk; a taken one is reported and left off; released at quit; NO keyboard hook
   to-brain.js           (M37, moved from main.js) a message from the page is rebuilt from the fields it may have,
                         or dropped, before it reaches the brain
+  serve-file.js         (M38, moved from main.js) app://pseudo/<path> -> that file inside face/dist, and nothing else
+  window-bounds.js      (M38) plain arithmetic: each mode's default and minimum size; a saved place that is
+                        off-screen is corrected; the bar grows upward with its bottom edge kept
+  window-mode.js        (M38) two modes on ONE window: full, or a compact always-on-top bar (title bar kept, never
+                        click-through). The bar gives up always-on-top while a tool waits and before it is hidden;
+                        only sizes YOU set are remembered
+  window-store.js       (M38) those sizes, in window-mode.json in the profile folder; unreadable -> defaults
   package.mjs           (M34, D27) `npm run package`: builds face/out/Pseudo/Pseudo.exe by hand, no packaging tool
   preload.js            the only door between page and main process: window.pseudo.send / onMessage
   foreground.js         before each tool runs, lets ONLY pseudo_hands bring its approval popup to
@@ -266,7 +274,8 @@ face/                   Pseudo's own window (M18): Electron + React, display onl
                         the warm-session switch (remembered) and the open session's memory; (M36)
                         AutostartControl.tsx: the Start with Windows switch, showing what Windows says; (M37)
                         HotkeysNote.tsx: the two shortcuts and whether each is ours; a Ctrl+Alt+T press is one
-                        press of the mic button
+                        press of the mic button; (M38) Composer.tsx, useCompact.ts, CompactToggle.tsx, compact.css:
+                        the question box, and the compact bar's button, layout and Hide answer
 ```
 
 ```

@@ -163,7 +163,7 @@ Main brain on a free cloud model; cheap model for auxiliary tasks; fallback only
 
 ### L5. Interface
 Pseudo's face is our own web UI: a React window in Electron that talks to `pseudo_brain` over a child-process pipe (M18, D18). Hermes Desktop was ruled out in M13 (D15) and the Claude desktop app in M17 (D17). PySide6 is dropped.
-Voice (D24, M25): Groq's Whisper listens and Windows' voices speak, push-to-talk only. M25 ruled out a wake word: a local wake model breaks D20, and streaming everything to the cloud breaks privacy. (M37) Two global shortcuts, through Windows' `RegisterHotKey`: Ctrl+Alt+Enter shows or hides Pseudo, Ctrl+Alt+T starts and stops talking. No keyboard hook, so there is no hold-to-talk from other apps.
+Voice (D24, M25): Groq's Whisper listens and Windows' voices speak, push-to-talk only. M25 ruled out a wake word: a local wake model breaks D20, and streaming everything to the cloud breaks privacy. (M37) Two global shortcuts, through Windows' `RegisterHotKey`: Ctrl+Alt+Enter shows or hides Pseudo, Ctrl+Alt+T starts and stops talking. No keyboard hook, so there is no hold-to-talk from other apps. (M38) A compact mode: the same window made small and always on top, title bar kept, never click-through. It gives up always-on-top while a tool waits and before it is hidden.
 
 L6 moved to LOCKED as D23 (2026-10-02).
 
