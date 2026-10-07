@@ -143,6 +143,10 @@ For requests that ask Pseudo to act on a window, `pseudo_brain` may hand the que
 *Why (M33):* by-hand packaging, `@electron/packager` and `electron-builder` all passed every criterion with the same start time and memory as `npm start`; by hand adds no package (38 and 265 for the tools). PyInstaller took 272 s to build and its brain couldn't find `.env`. Nine unsigned launches started without a warning.
 *Limits:* the exe still describes itself as "Electron"; it works only on this laptop, with the repo and `.venv` where the build found them.
 *Would change if:* Pseudo has to run on another machine, Windows starts blocking the unsigned exe, or the "Electron" label proves a problem (then `@electron/packager`).
+**(M35) What stays running.** Started hidden (with Windows, M36), `Pseudo.exe` starts only the face. The brain and `pseudo_hands` start the first time Pseudo is shown, and then stay until Pseudo quits. Started by hand, everything starts at once, as before.
+*Why (M35):* starting the brain at a hidden start used 9.6 CPU-seconds in the first minute against a limit of 5; starting it on first show used 2.8, cost one wait of 7.6 s, and passed every criterion. Idle, Pseudo used under 2 CPU-seconds per 10 minutes and peaked at 248 MB in RAM.
+*Limits:* with the brain running Pseudo commits about 590 MB, of which about 250 is in RAM at most; stopping an idle brain would bring that to about 80 MB but needs a new page state (measured as A2, not built).
+*Would change if:* real use shows the laptop short of memory with Pseudo idle (then A2).
 
 ## LEANING (revisit after Phase 1)
 
