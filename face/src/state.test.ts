@@ -163,6 +163,14 @@ describe('M36: the Start with Windows entry', () => {
     expect({ ...state, autostart: null }).toEqual(initial);
   });
 
+  it('survives the brain becoming ready: Windows usually answers first (found in the M36 live check)', () => {
+    const ready: Action = { type: 'from_brain', message: { type: 'ready', providers: [], provider: 'groq',
+                                                                session: { name: 's', provider: 'groq', messages: [] }, tools: [] } };
+    const state = run({ type: 'from_brain', message: on }, ready);
+    expect(state.phase).toBe('ready');
+    expect(state.autostart).toEqual({ available: true, on: true, note: '' });
+  });
+
   it("survives a brain restart and a stopped brain: it is not the brain's to forget", () => {
     const stopped = run({ type: 'from_brain', message: on }, { type: 'from_brain', message: { type: 'brain_stopped', code: 1 } });
     expect(stopped.phase).toBe('stopped');

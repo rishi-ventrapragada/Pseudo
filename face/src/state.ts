@@ -62,7 +62,8 @@ function updateRunning(turns: Turn[], change: (turn: Turn) => Partial<Turn>): Tu
 function fromBrain(state: State, message: FromBrain): State {
   switch (message.type) {
     case 'ready':
-      return { ...initial, phase: 'ready', providers: message.providers, provider: message.provider,
+      return { ...initial, autostart: state.autostart, phase: 'ready', // M36: Windows' answer is kept
+               providers: message.providers, provider: message.provider,
                actionBrain: message.action_brain ?? null,
                session: message.session.name, turns: turnsFrom(message.session.messages) };
     case 'event': {
