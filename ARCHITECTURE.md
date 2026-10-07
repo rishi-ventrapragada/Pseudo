@@ -242,7 +242,12 @@ face/                   Pseudo's own window (M18): Electron + React, display onl
   brain-process.js      starts `python -m pseudo_brain.bridge` as a child process; stops it on quit
   brain-home.js         (M34) where the repo and its Python are: the folder above face/ under `npm start`,
                         resources/pseudo-home.json inside Pseudo.exe (the repo's path only); unreadable -> no brain
-  single-instance.js    (M34) one Pseudo at a time: a second launch quits and the first shows its window
+  single-instance.js    (M34) one Pseudo at a time: a second launch quits and the first shows its window (reveal.js)
+  autostart.js          (M36) "Start with Windows": reads and writes ONE per-user Run value named Pseudo
+                        ("<Pseudo.exe>" --start-hidden); reports what Windows says; does nothing under `npm start`
+  reveal.js             (M36, D27) the one way to show the window (tray, second launch); starts the brain the
+                        first time, once
+  tray.js               (M36) the tray icon of a hidden start: click = show, right-click = Show / Quit; drawn in code
   package.mjs           (M34, D27) `npm run package`: builds face/out/Pseudo/Pseudo.exe by hand, no packaging tool
   preload.js            the only door between page and main process: window.pseudo.send / onMessage
   foreground.js         before each tool runs, lets ONLY pseudo_hands bring its approval popup to
@@ -253,7 +258,8 @@ face/                   Pseudo's own window (M18): Electron + React, display onl
   src/                  the React page: chat, live steps, Markdown answers, provider bar, sessions,
                         the approval banner; (M26) recorder.ts, speaker.ts, useVoice.ts, VoiceControls.tsx:
                         the mic button, Ctrl+Space, the Speak answers switch; (M32) useWarm.ts, WarmControl.tsx:
-                        the warm-session switch (remembered) and the open session's memory
+                        the warm-session switch (remembered) and the open session's memory; (M36)
+                        AutostartControl.tsx: the Start with Windows switch, showing what Windows says
 ```
 
 ```
@@ -272,6 +278,8 @@ face/out/Pseudo/
   resources/pseudo-home.json    { "repo": "<this repo>" }, written by the build; Python stays in the repo's .venv
   (the rest)                    Electron and Chromium, unchanged
 ```
+Started by Windows (M36): `Pseudo.exe --start-hidden` -> no window, a tray icon, no brain; the first show
+(tray click, or starting Pseudo.exe again) starts the brain. Started by hand: everything starts at once.
 
 Routing (M30, D26): decided from your words, before any model is asked.
 ```
