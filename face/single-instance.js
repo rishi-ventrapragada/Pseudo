@@ -11,22 +11,19 @@
  * its own approval popups, for one person at one keyboard.
  *
  * `npm start` and Pseudo.exe keep separate profile folders, so one of each can still run.
+ *
+ * (M36) How the window is shown moved to reveal.js, which also starts the brain if this
+ * Pseudo was started hidden: double-clicking Pseudo.exe is one of the ways to wake it.
  */
 
 /**
  * @param {{ requestSingleInstanceLock: () => boolean, on: (event: string, listener: () => void) => void }} app Electron's app
- * @param {() => object | null} getWindow the face's window right now, or null before it exists
+ * @param {() => void} show brings the first Pseudo's window to you (Reveal.show)
  * @returns {boolean} true if this is the first Pseudo; false means: quit, another one is running
  */
-function onlyOne(app, getWindow) {
+function onlyOne(app, show) {
   if (!app.requestSingleInstanceLock()) return false;
-  app.on('second-instance', () => {
-    const win = getWindow();
-    if (!win || win.isDestroyed()) return; // still starting, or closing: nothing to show
-    if (win.isMinimized()) win.restore();
-    win.show();
-    win.focus();
-  });
+  app.on('second-instance', () => show());
   return true;
 }
 
