@@ -26,11 +26,15 @@
  * Before each tool runs, this process lets pseudo_hands' process (only that one) bring its
  * approval popup to the front, above this window (foreground.js), and flashes the taskbar
  * button if you're in another window (taskbar-flash.js).
+ *
+ * (M36) Started by Windows at sign-in (`--start-hidden`, autostart.js), the window stays hidden, a tray
+ * icon stands in for it (tray.js), and the brain is started the first time the window is shown (reveal.js).
  */
 
 const path = require('node:path');
 const { pathToFileURL } = require('node:url');
-const { app, BrowserWindow, Menu, ipcMain, nativeTheme, net, protocol, session } = require('electron');
+const { app, BrowserWindow, Menu, Tray, ipcMain, nativeImage, nativeTheme, net, protocol, session } = require('electron');
+const { autostartState, setAutostart, startedHidden } = require('./autostart');
 const { brainHome } = require('./brain-home');
 const { BrainProcess } = require('./brain-process');
 const { ForegroundGrant, windowsAllow } = require('./foreground');
@@ -38,6 +42,7 @@ const { allowCheck, allowRequest } = require('./permissions');
 const { Reveal } = require('./reveal');
 const { onlyOne } = require('./single-instance');
 const { TaskbarFlash } = require('./taskbar-flash');
+const { createTray } = require('./tray');
 
 const DIST = path.join(__dirname, 'dist');
 const PAGE = 'app://pseudo/index.html';
@@ -56,6 +61,8 @@ app.enableSandbox(); // every renderer is sandboxed, whatever its window says
 
 let win = null;
 let quitting = false;
+let tray = null; // only after a hidden start
+const startHidden = startedHidden(app); // M36: started by the Start with Windows entry
 const reveal = new Reveal(() => win, () => brain.start()); // M36: every way of showing the window
 const first = onlyOne(app, () => reveal.show()); // M34: a second launch shows the first Pseudo's window
 if (!first) app.quit(); // and then quits, before it opens a window or starts a brain
@@ -112,6 +119,8 @@ function fromOurPage(event) {
 ipcMain.on('pseudo:send', (event, message) => {
   if (!fromOurPage(event) || typeof message !== 'object' || message === null) return;
   if (message.type === 'restart') return brain.start(); // after "brain stopped"; ignored while it runs
+  // M36: the Start with Windows switch is answered here, with what Windows says; it never reaches the brain.
+  if (message.type === 'autostart') return toPage(typeof message.on === 'boolean' ? setAutostart(app, message.on) : autostartState(app));
   if (!TO_BRAIN.has(message.type)) return;
   const clean = { type: message.type };
   for (const field of FIELDS) {
@@ -135,6 +144,7 @@ function createWindow() {
     minWidth: 520,
     minHeight: 420,
     title: 'Pseudo',
+    show: !startHidden,
     backgroundColor: nativeTheme.shouldUseDarkColors ? '#15181e' : '#eef1f5',
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
@@ -144,6 +154,7 @@ function createWindow() {
       webSecurity: true,
     },
   });
+  win.on('focus', () => toPage(autostartState(app))); // it may have been changed in Task Manager meanwhile
   win.loadURL(PAGE);
 }
 
@@ -163,10 +174,12 @@ app.whenReady().then(() => {
     (_contents, permission, origin, details) => allowCheck(permission, origin, details));
   protocol.handle('app', serveFile);
   createWindow();
-  reveal.startBrain();
+  if (startHidden) tray = createTray({ Tray, Menu, nativeImage }, () => reveal.show(), () => app.quit());
+  else reveal.startBrain(); // opened by hand: everything starts at once, as before
 });
 
 app.on('window-all-closed', () => app.quit());
+app.on('will-quit', () => tray && tray.destroy()); // or Windows keeps a dead icon until the mouse passes over it
 
 // Quitting: stop the brain first (it stops pseudo_hands and private mode's server), then quit.
 app.on('before-quit', (event) => {

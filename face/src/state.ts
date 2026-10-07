@@ -3,7 +3,7 @@
 // about providers or sessions lives here; the brain decides, and this only records what it said.
 
 import { answerLabel, describeEvent } from './events';
-import type { ActionBrain, FromBrain, Provider, SavedMessage, SessionItem, Warm } from './protocol';
+import type { ActionBrain, Autostart, FromBrain, Provider, SavedMessage, SessionItem, Warm } from './protocol';
 
 export type Turn = {
   question: string;
@@ -28,6 +28,7 @@ export type State = {
   heard: { text: string; n: number } | null; // M26: the latest transcript; n counts them, so each one lands once
   speech: { audio: string; n: number } | null; // M26: the latest spoken answer, for the player
   warm: Warm | null; // M32: what this brain last said about its warm session; null = nothing yet
+  autostart: Autostart | null; // M36: what Windows says about Start with Windows; null = not asked yet
 };
 
 export type Action =
@@ -39,7 +40,7 @@ export type Action =
 
 export const initial: State = {
   phase: 'starting', providers: [], provider: '', actionBrain: null, session: '', turns: [], working: null, toolWaiting: null, notice: '',
-  sessions: null, heard: null, speech: null, warm: null,
+  sessions: null, heard: null, speech: null, warm: null, autostart: null,
 };
 
 /** A saved session's messages -> turns: each question with the answer that followed it. */
@@ -101,6 +102,8 @@ function fromBrain(state: State, message: FromBrain): State {
                            : { ...state, notice: `Couldn't speak the answer: ${message.reason}` };
     case 'warm': // M32: it doesn't touch `working`: it also arrives between questions, every few seconds
       return { ...state, warm: message };
+    case 'autostart': // M36: from the main process, not the brain; it can arrive at any time, even while stopped
+      return { ...state, autostart: { available: message.available, on: message.on, note: message.note } };
     case 'refused': {
       const last = state.turns[state.turns.length - 1];
       if (last?.running && !last.steps.length) { // the question itself was refused: it was never sent
@@ -127,6 +130,6 @@ export function reduce(state: State, action: Action): State {
     case 'close_sessions':
       return { ...state, sessions: null };
     case 'restarting':
-      return initial;
+      return { ...initial, autostart: state.autostart }; // Windows' answer has nothing to do with the brain
   }
 }

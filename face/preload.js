@@ -13,7 +13,8 @@ const { contextBridge, ipcRenderer } = require('electron');
 // checks the three agree. (M32: `warm_sessions` was missing here at first, and the switch did nothing.)
 const TYPES = ['ask', 'provider', 'new_session', 'list_sessions', 'open_session', 'restart',
                'transcribe', 'speak_answers', // M26: push-to-talk and the Speak answers switch
-               'warm_sessions']; // M32: the warm-session switch
+               'warm_sessions', // M32: the warm-session switch
+               'autostart']; // M36: the Start with Windows switch (answered by the main process)
 let listener = null;
 const early = []; // messages that arrived before the page started listening
 

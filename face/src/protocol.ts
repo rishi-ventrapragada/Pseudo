@@ -7,6 +7,8 @@ export type ActionBrain = { id: string; name: string; model: string; privacy: st
 // M32: the warm Claude Code session, as the brain reports it (bridge_warm.py). Numbers and names only.
 export type Warm = { on: boolean; open: boolean; ram_mb: number | null; asked: number; of: number;
                      idle_minutes: number; note: string };
+// M36: the Start with Windows entry, as the main process read it from Windows (face/autostart.js).
+export type Autostart = { available: boolean; on: boolean; note: string };
 export type SavedMessage = { role: 'user' | 'assistant'; content: string; answered_by?: string };
 export type SessionInfo = { name: string; provider: string; messages: SavedMessage[] };
 export type SessionItem = { name: string; provider: string; questions: number; title: string };
@@ -24,7 +26,8 @@ export type FromBrain =
   | { type: 'transcript'; text: string; note: string; seconds: number } // M26: goes into the input box, never sent by itself
   | { type: 'speech'; audio: string; reason: string } // M26: a spoken answer (base64 WAV), or why there's none
   | ({ type: 'warm' } & Warm) // M32: sent whenever the warm session's state changes
-  | { type: 'brain_stopped'; code: number | null }; // sent by the main process, not the brain
+  | { type: 'brain_stopped'; code: number | null } // sent by the main process, not the brain
+  | ({ type: 'autostart' } & Autostart); // M36: sent by the main process: what Windows says right now
 
 export type ToBrain =
   | { type: 'ask'; text: string }
@@ -35,7 +38,8 @@ export type ToBrain =
   | { type: 'restart' } // handled by the main process: start the brain again
   | { type: 'transcribe'; audio: string } // M26: one push-to-talk recording, base64 PCM (16 kHz mono 16-bit)
   | { type: 'speak_answers'; on: boolean } // M26: the Speak answers switch
-  | { type: 'warm_sessions'; on: boolean }; // M32: the warm-session switch
+  | { type: 'warm_sessions'; on: boolean } // M32: the warm-session switch
+  | { type: 'autostart'; on?: boolean }; // M36: answered by the main process; without `on`, it only asks
 
 declare global {
   interface Window {

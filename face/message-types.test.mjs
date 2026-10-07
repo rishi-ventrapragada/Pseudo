@@ -25,8 +25,10 @@ describe('the message types the page may send', () => {
     expect(preload).toEqual(pageTypes);
   });
 
-  it('the main process passes on exactly those, except restart, which it handles itself', () => {
-    expect([...toBrain, 'restart'].sort()).toEqual(preload);
+  it('the main process passes on exactly those, except restart and autostart (M36), which it handles itself', () => {
+    expect([...toBrain, 'restart', 'autostart'].sort()).toEqual(preload);
+    const main = read('./main.js');
+    for (const own of ['restart', 'autostart']) expect(main).toContain(`message.type === '${own}'`);
   });
 
   it('M32: the warm-session switch is on all three', () => {
