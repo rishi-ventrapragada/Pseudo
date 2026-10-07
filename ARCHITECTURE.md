@@ -240,6 +240,10 @@ face/                   Pseudo's own window (M18): Electron + React, display onl
   main.js               Electron's main process: one sandboxed window, app:// pages from dist/ only,
                         relays messages between the page and the brain
   brain-process.js      starts `python -m pseudo_brain.bridge` as a child process; stops it on quit
+  brain-home.js         (M34) where the repo and its Python are: the folder above face/ under `npm start`,
+                        resources/pseudo-home.json inside Pseudo.exe (the repo's path only); unreadable -> no brain
+  single-instance.js    (M34) one Pseudo at a time: a second launch quits and the first shows its window
+  package.mjs           (M34, D27) `npm run package`: builds face/out/Pseudo/Pseudo.exe by hand, no packaging tool
   preload.js            the only door between page and main process: window.pseudo.send / onMessage
   foreground.js         before each tool runs, lets ONLY pseudo_hands bring its approval popup to
                         the front (AllowSetForegroundWindow, via koffi); during an action request,
@@ -258,6 +262,15 @@ face/                   Pseudo's own window (M18): Electron + React, display onl
                   +----- events ------+   | tool result (redacted in pseudo_hands core)
                                           v
                                hands.py --MCP stdio--> pseudo_hands (blocked apps, redactor, popup)
+```
+
+Pseudo.exe (M34, D27): Electron's own folder with our files in it. Built by `npm run package`, gitignored.
+```
+face/out/Pseudo/
+  Pseudo.exe                    electron.exe, renamed; on assistant_apps.txt, so Pseudo never reads or acts on it
+  resources/app/                main.js and the other main-process files, dist/ (the built page), koffi
+  resources/pseudo-home.json    { "repo": "<this repo>" }, written by the build; Python stays in the repo's .venv
+  (the rest)                    Electron and Chromium, unchanged
 ```
 
 Routing (M30, D26): decided from your words, before any model is asked.

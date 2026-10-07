@@ -2,7 +2,7 @@
 
 A personal, privacy-first AI desktop assistant for Windows. Screen content will be understood and redacted locally before anything reaches a cloud model.
 
-**Status:** Phases 1-4 complete. Phase 5 (Make it usable) in progress: M13 done (Hermes Desktop ruled out; Pseudo gets its own brain, D15), M14 done: try it with `python -m pseudo_brain`. M15 done (providers evaluated, D16), M16 done (providers: allowlist, same-provider fallback, private mode), M17 done (Claude desktop app ruled out, D17), M18 done: Pseudo has its own window (see below). Phase 6 (Memory): M23 done (memory search evaluated, D23), M24 done: Pseudo remembers answered tasks, with your approval (see below). Phase 7 (Voice): M25 done (voice evaluated, D24), M26 done: talk to Pseudo and hear it answer (see below). Phase 8 (Click and type control): M27 done (click and type evaluated, D25), M28 done: Pseudo can click and type, behind the approval popup (see below). M29 done (only Claude through Claude Code passed the action questions, D26), M30 done: action requests go to Claude Code (see below). M31 done (a warm Claude Code session, restarted every 6 requests, halves the wait for the popup; measured, not built yet). M32 done: one Claude Code session stays open for action requests (about 11 s to the popup instead of 17), with a switch in the window to turn it off. P8-fix done (`focus_window` refuses assistant apps, which get no window id). Phase 9 (Daily-use polish) planned: M33 done (Pseudo.exe will be packaged by hand, using the repo's `.venv`, unsigned; D27). See [PRD.md](PRD.md) section 5 for the phase plan, section 11 for Phase 5, section 12 for Phase 6, section 13 for Phase 7, section 14 for Phase 8, section 15 for Phase 9 and section 16 for the backlog.
+**Status:** Phases 1-4 complete. Phase 5 (Make it usable) in progress: M13 done (Hermes Desktop ruled out; Pseudo gets its own brain, D15), M14 done: try it with `python -m pseudo_brain`. M15 done (providers evaluated, D16), M16 done (providers: allowlist, same-provider fallback, private mode), M17 done (Claude desktop app ruled out, D17), M18 done: Pseudo has its own window (see below). Phase 6 (Memory): M23 done (memory search evaluated, D23), M24 done: Pseudo remembers answered tasks, with your approval (see below). Phase 7 (Voice): M25 done (voice evaluated, D24), M26 done: talk to Pseudo and hear it answer (see below). Phase 8 (Click and type control): M27 done (click and type evaluated, D25), M28 done: Pseudo can click and type, behind the approval popup (see below). M29 done (only Claude through Claude Code passed the action questions, D26), M30 done: action requests go to Claude Code (see below). M31 done (a warm Claude Code session, restarted every 6 requests, halves the wait for the popup; measured, not built yet). M32 done: one Claude Code session stays open for action requests (about 11 s to the popup instead of 17), with a switch in the window to turn it off. P8-fix done (`focus_window` refuses assistant apps, which get no window id). Phase 9 (Daily-use polish) in progress: M33 done (Pseudo.exe will be packaged by hand, using the repo's `.venv`, unsigned; D27), M34 done: `npm run package` builds Pseudo.exe (see below). See [PRD.md](PRD.md) section 5 for the phase plan, section 11 for Phase 5, section 12 for Phase 6, section 13 for Phase 7, section 14 for Phase 8, section 15 for Phase 9 and section 16 for the backlog.
 
 ## Setup (PowerShell)
 
@@ -80,3 +80,15 @@ npm start     # builds the page, opens the window, and starts pseudo_brain as it
 Close the window to quit: it stops `pseudo_brain`, `pseudo_hands` and private mode's Ollama with it.
 If `npm start` says "Cannot find module 'electron'", your terminal has `ELECTRON_RUN_AS_NODE` set
 (some editors set it): run `Remove-Item Env:ELECTRON_RUN_AS_NODE`, then `npm start` again.
+
+### Pseudo.exe (M34)
+
+```powershell
+cd face
+npm run package          # builds face\out\Pseudo\Pseudo.exe (370 MB, about a second)
+.\out\Pseudo\Pseudo.exe  # or double-click it; a second launch just shows the first window
+```
+
+Pseudo.exe is the window only: it starts the brain from this repo's `.venv`, so the repo has to stay
+where it was when you built. Run `npm run package` again after changing anything in `face`, or after
+moving the repo. Python changes need no rebuild. It keeps its own settings, apart from `npm start`'s.
