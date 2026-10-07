@@ -13,8 +13,11 @@
  * The brain is started ONCE. If it stops later, the page says so and offers Restart, as
  * before; showing the window again never restarts it behind your back.
  *
- * (M37) hide() and toggle(), for the show-or-hide shortcut (hotkeys.js). Hiding the window
- * you are in makes Windows hand the keyboard to the window underneath: the one you came from.
+ * (M37) hide() and toggle(), for the show-or-hide shortcut (hotkeys.js). Hiding takes TWO
+ * steps: give up the keyboard (blur), then hide. Measured in the live check: hide() alone
+ * leaves the invisible window as Windows' front window, 10 of 10 times, so what you typed
+ * next would have gone into a Pseudo you can't see. With blur() first, the window you came
+ * from had the keyboard back 10 of 10.
  * Before the window disappears, `beforeHide` runs: main.js uses it to make sure a tray icon
  * exists, so a hidden Pseudo can always be reached, even if a shortcut couldn't be registered.
  */
@@ -55,6 +58,7 @@ class Reveal {
     const win = this.getWindow();
     if (!win || win.isDestroyed()) return false;
     this.beforeHide();
+    win.blur(); // first let go of the keyboard: Windows hands it to the window underneath
     win.hide();
     return true;
   }

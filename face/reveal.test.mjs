@@ -13,6 +13,7 @@ function fakeWindow({ minimized = false, destroyed = false, visible = true, focu
     isVisible: () => visible,
     isFocused: () => focused,
     hide: () => done.push('hide'),
+    blur: () => done.push('blur'),
     restore: () => done.push('restore'),
     show: () => done.push('show'),
     focus: () => done.push('focus'),
@@ -85,14 +86,21 @@ describe('M37: hide and toggle', () => {
     const win = fakeWindow({ focused: true });
     const { reveal, brain } = setup(win);
     expect(reveal.hide()).toBe(true);
-    expect(win.done).toEqual(['tray made', 'hide']);
+    expect(win.done).toEqual(['tray made', 'blur', 'hide']);
     expect(brain.starts).toBe(0);
+  });
+
+  it('lets go of the keyboard BEFORE hiding: a hidden window must not keep it (M37 live check, 0 of 10 without)', () => {
+    const win = fakeWindow({ focused: true });
+    setup(win).reveal.hide();
+    expect(win.done.indexOf('blur')).toBeGreaterThan(-1);
+    expect(win.done.indexOf('blur')).toBeLessThan(win.done.indexOf('hide'));
   });
 
   it('toggle hides Pseudo when it is the window you are in', () => {
     const win = fakeWindow({ visible: true, focused: true });
     setup(win).reveal.toggle();
-    expect(win.done).toEqual(['tray made', 'hide']);
+    expect(win.done).toEqual(['tray made', 'blur', 'hide']);
   });
 
   it('toggle brings Pseudo to you when it is hidden, behind another window, or minimized', () => {
@@ -123,6 +131,6 @@ describe('M37: hide and toggle', () => {
   it('without a beforeHide it still hides (the default does nothing)', () => {
     const win = fakeWindow({ focused: true });
     new Reveal(() => win, () => {}).hide();
-    expect(win.done).toEqual(['hide']);
+    expect(win.done).toEqual(['blur', 'hide']);
   });
 });
