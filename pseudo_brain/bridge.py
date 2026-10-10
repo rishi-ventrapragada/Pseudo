@@ -42,6 +42,7 @@ from pseudo_brain.chat import REFUSALS, Chat
 from pseudo_brain.hands import Hands, connect_hands
 from pseudo_brain.providers import load_allowlist, provider_info
 from pseudo_brain.session import list_sessions
+from pseudo_brain.suggestions import SUGGESTIONS
 
 BOM = "﻿"
 JOBS = ("ask", "provider", "new_session", "open_session", "transcribe")  # one at a time
@@ -163,7 +164,8 @@ async def serve(receive: Receive, write: Write) -> int:
             bridge.hands, bridge.tasks = hands, tasks
             bridge.send("ready", providers=[provider_info(p) for p in bridge.chat.allowlist.providers.values()],
                         provider=bridge.chat.provider.id, session=bridge.session_info(), tools=hands.names,
-                        hands_pid=hands.pid, action_brain=action_brain_info(bridge.chat.routing))
+                        hands_pid=hands.pid, action_brain=action_brain_info(bridge.chat.routing),
+                        suggestions=list(SUGGESTIONS))  # (M40) the empty chat's one-click questions
             while await bridge.handle(await receive(), tasks):
                 pass
             tasks.cancel_scope.cancel()  # quitting: a question still running is stopped, not waited for
