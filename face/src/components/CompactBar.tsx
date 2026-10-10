@@ -40,7 +40,7 @@ export function CompactBar({ compact, notice, waiting, stopped, latest, onRestar
       {compact.grown && (
         <section aria-label="Conversation" className="min-h-0 flex-1 overflow-y-auto">
           <div ref={fit.content} className="flex flex-col gap-2.5 px-3.5 pt-1 pb-2.5">
-            {latest && <BarTurn key={latest.askedAt ?? latest.question} turn={latest} waiting={waiting} compact={compact} />}
+            {latest && <BarTurn key={latest.question} turn={latest} waiting={waiting} compact={compact} />}
           </div>
         </section>
       )}
