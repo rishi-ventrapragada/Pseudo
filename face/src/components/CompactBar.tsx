@@ -7,6 +7,7 @@
 import type { ReactNode } from 'react';
 import { ApprovalBanner } from '../ApprovalBanner';
 import { CompactToggle, HideAnswer } from '../CompactToggle';
+import { cn } from '../lib/cn';
 import type { Turn } from '../state';
 import type { Compact } from '../useCompact';
 import { StatusLine } from './BottomArea';
@@ -36,7 +37,7 @@ export function CompactBar({ compact, status, working, waiting, stopped, latest,
           {latest && <TurnView turn={latest} />}
         </section>
       )}
-      <div className="flex shrink-0 flex-col gap-2 px-2.5 pb-2">
+      <div className={cn('flex flex-col gap-2 px-2.5 pb-2', compact.grown ? 'shrink-0' : 'flex-1 justify-center')}>
         <ApprovalBanner waiting={waiting} />
         <div className="flex items-center gap-1.5">
           {stopped ? <div className="min-w-0 flex-1"><Stopped onRestart={onRestart} /></div> : composer}

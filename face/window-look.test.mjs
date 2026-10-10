@@ -22,4 +22,8 @@ describe('the window look', () => {
   it("keeps the page's top-right corner free for the three buttons", () => {
     expect(theme).toContain('--controls-width: 138px'); // 3 x 46 px
   });
+
+  it('drag rows let go while a dialog is open, so its buttons always get the click', () => {
+    expect(theme).toContain('body:has(dialog[open]) .drag { -webkit-app-region: no-drag; }');
+  });
 });

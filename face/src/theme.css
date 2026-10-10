@@ -58,6 +58,12 @@
    Anything you click inside one stays clickable. */
 .drag { -webkit-app-region: drag; }
 .drag button, .drag a, .drag input { -webkit-app-region: no-drag; }
+/* A drag row would win over a dialog drawn on top of it (Electron doesn't look at what covers it), so while
+   Settings or a confirm is open, nothing drags and every click reaches the dialog. */
+body:has(dialog[open]) .drag { -webkit-app-region: no-drag; }
+
+/* Thin, dark scrollbars instead of Windows' light ones. */
+* { scrollbar-width: thin; scrollbar-color: var(--color-control) transparent; }
 
 /* Movement is decoration: with "reduce motion" on in Windows, nothing moves. */
 @media (prefers-reduced-motion: reduce) {
