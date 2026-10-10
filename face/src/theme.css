@@ -46,12 +46,18 @@
 }
 
 @layer base {
-  /* --controls-width: room kept free at the top right for the window's own buttons (M39 step 5). */
-  :root { color-scheme: dark; --controls-width: 0px; }
+  /* --controls-width: room kept free at the top right for the window's own minimize, maximize and close buttons,
+     which Electron draws over the page (window-look.js): three buttons, 46 px each. */
+  :root { color-scheme: dark; --controls-width: 138px; }
   html, body, #root { height: 100%; margin: 0; }
   body { background: var(--color-ground); color: var(--color-ink); font-family: var(--font-sans); font-size: 14px; }
   :focus-visible { outline: 2px solid var(--color-ink-soft); outline-offset: 2px; }
 }
+
+/* The blended title bar (window-look.js): dragging a .drag row moves the window, as Windows' title bar did.
+   Anything you click inside one stays clickable. */
+.drag { -webkit-app-region: drag; }
+.drag button, .drag a, .drag input { -webkit-app-region: no-drag; }
 
 /* Movement is decoration: with "reduce motion" on in Windows, nothing moves. */
 @media (prefers-reduced-motion: reduce) {

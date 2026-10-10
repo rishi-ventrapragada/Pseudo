@@ -66,21 +66,30 @@ describe('fileStore', () => {
 
 describe('C3: the bar is an ordinary window', () => {
   const here = new URL('.', import.meta.url);
-  const sources = [
-    ...readdirSync(here).filter((name) => /\.(js|mjs)$/.test(name) && !name.includes('.test.')).map((name) => new URL(name, here)),
-    ...readdirSync(new URL('./src/', here)).filter((name) => /\.tsx?$/.test(name) && !name.includes('.test.'))
-      .map((name) => new URL(`./src/${name}`, here)),
-  ];
+  // M39: every folder of the face's own code (src/components/ and its ui/ too), not only the top two.
+  const NOT_OURS = /^(node_modules|dist|out)([\\/]|$)/;
+  const sources = readdirSync(here, { recursive: true })
+    .filter((name) => !NOT_OURS.test(name) && /\.(js|mjs|ts|tsx)$/.test(name) && !name.includes('.test.'))
+    .map((name) => new URL(name.replaceAll('\\', '/'), here));
   // Click-through, unfocusable, see-through or off-the-taskbar windows. Comments are removed first: window-mode.js
   // explains in words why there are none.
   const OVERLAY = /setIgnoreMouseEvents|setFocusable|focusable\s*:|transparent\s*:|skipTaskbar|setSkipTaskbar|frame\s*:\s*false|WS_EX_/;
   const code = (url) => readFileSync(url, 'utf8').replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|\s)\/\/.*$/gm, '$1');
 
-  it('found the files', () => {
-    expect(sources.length).toBeGreaterThan(20);
+  it('found the files, in every folder', () => {
+    expect(sources.length).toBeGreaterThan(40);
+    expect(sources.some((url) => url.pathname.includes('/src/components/ui/'))).toBe(true);
   });
 
   it('no source file makes a window click-through, unfocusable, see-through, frameless or hidden from the taskbar', () => {
     for (const url of sources) expect(OVERLAY.test(code(url)), url.pathname).toBe(false);
+  });
+
+  it("M39: the title bar is blended only one way: 'hidden' with Electron's own buttons, set in window-look.js", () => {
+    const setting = sources.filter((url) => /titleBarStyle|titleBarOverlay/.test(code(url)));
+    expect(setting.map((url) => url.pathname.split('/').pop())).toEqual(['window-look.js']);
+    const look = code(setting[0]);
+    expect(look).toMatch(/titleBarStyle:\s*'hidden'/);
+    expect(look).toMatch(/titleBarOverlay:\s*\{/); // the buttons Windows users expect, drawn by Electron
   });
 });

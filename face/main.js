@@ -32,11 +32,12 @@
  * (M37) Two global shortcuts show or hide the window and start or stop talking (hotkeys.js); no keyboard hook.
  * (M38) The window has two modes, full and a compact always-on-top bar (window-mode.js). The bar gives up
  * always-on-top while a tool waits, so an approval popup can't end up under it.
+ * (M39) The window is always dark, with its title bar blended into the page (window-look.js).
  */
 
 const fs = require('node:fs');
 const path = require('node:path');
-const { app, BrowserWindow, Menu, Tray, globalShortcut, ipcMain, nativeImage, nativeTheme, net, protocol, screen, session } = require('electron');
+const { app, BrowserWindow, Menu, Tray, globalShortcut, ipcMain, nativeImage, net, protocol, screen, session } = require('electron');
 const { autostartState, setAutostart, startedHidden } = require('./autostart');
 const { brainHome } = require('./brain-home');
 const { BrainProcess } = require('./brain-process');
@@ -49,6 +50,7 @@ const { onlyOne } = require('./single-instance');
 const { TaskbarFlash } = require('./taskbar-flash');
 const { cleanForBrain } = require('./to-brain');
 const { createTray } = require('./tray');
+const { WINDOW_LOOK } = require('./window-look');
 const { WindowMode } = require('./window-mode');
 const { fileStore } = require('./window-store');
 
@@ -131,7 +133,7 @@ function createWindow() {
     ...mode.options(), // M38: the remembered mode's size, place and minimum
     title: 'Pseudo',
     show: !startHidden,
-    backgroundColor: nativeTheme.shouldUseDarkColors ? '#15181e' : '#eef1f5',
+    ...WINDOW_LOOK, // M39: always dark, with the title bar blended into the page (window-look.js)
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
