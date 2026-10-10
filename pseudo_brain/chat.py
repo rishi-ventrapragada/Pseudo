@@ -161,7 +161,7 @@ class Chat:
         """(M24) The intro and the redacted past tasks for this question; none if memory is off or fails."""
         if not hands.has_memory:
             return "", []
-        found = await hands.memory("search_memories", {"question": text})
+        found = await hands.brain_call("search_memories", {"question": text})
         memories = [m for m in (found or {}).get("memories", []) if isinstance(m, str)]
         note = "the memory search failed" if found is None else str(found.get("note", ""))
         self.on_event("memories", {"count": len(memories), "chars": sum(len(m) for m in memories), "note": note})
@@ -173,7 +173,7 @@ class Chat:
             return
         # A tool_call event, so the face lets pseudo_hands' popup come to the front, as for any tool (M18).
         self.on_event("tool_call", {"name": "save_memory", "arguments": "{}", "by": "pseudo"})
-        saved = await hands.memory("save_memory", {
+        saved = await hands.brain_call("save_memory", {
             "question": text, "answer": result.answer or "", "tools": result.tools, "provider": provider_id,
             "model": result.model, "session": self.session.started})
         self.on_event("tool_result", {"name": "save_memory", "chars": 0, "is_error": saved is None, "by": "pseudo"})

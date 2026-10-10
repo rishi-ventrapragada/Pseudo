@@ -16,6 +16,7 @@ from pseudo_brain.providers import ProviderRefused
 FAKE_ACCOUNT = "owner@fake.invalid"
 BRAIN = ActionBrain("Fake Code", ("fake-claude",), "sonnet", ("read_a", "act_b"), "FAKE_ACCOUNT_VAR", "fake note", 5.0)
 GOOD = {"loggedIn": True, "authMethod": "claude.ai", "apiProvider": "firstParty", "email": FAKE_ACCOUNT}
+MODEL_TOOLS = 'model_tools = ["read_a", "act_b", "switch_x"]\n'  # (D29) every routing file has one
 ENTRY = ('[action_brain]\nname = "Fake Code"\ncommand = ["fake-claude"]\nmodel = "sonnet"\n'
          'tools = ["read_a", "act_b"]\naccount_env = "FAKE_ACCOUNT_VAR"\nprivacy = "fake note"\ntimeout_seconds = 5\n')
 
@@ -54,18 +55,20 @@ def test_the_committed_settings_load_and_never_give_the_switch_or_memory_tools()
 
 
 def test_no_action_brain_means_everything_stays_on_the_chat_provider(tmp_path: Path) -> None:
-    assert load_routing(settings(tmp_path, 'switch_tool = "switch_x"\n')).action_brain is None
+    assert load_routing(settings(tmp_path, 'switch_tool = "switch_x"\n' + MODEL_TOOLS)).action_brain is None
 
 
 @pytest.mark.parametrize("change, reason", [
     (("act_b", "switch_x"), "never be given switch_x"),
     (("act_b", "save_memory"), "never be given save_memory"),
+    (("act_b", "looking_at"), "never be given looking_at"),  # (M42) a brain-only tool
+    (("act_b", "new_tool"), "new_tool isn't in model_tools"),  # (D29) not on the one list
     (('"FAKE_ACCOUNT_VAR"', '"someone@fake.invalid"'), "never the account itself"),
     (('tools = ["read_a", "act_b"]', "tools = []"), "non-empty lists"),
     (("model = \"sonnet\"\n", ""), "missing model"),
 ])
 def test_bad_action_brain_settings_are_refused(tmp_path: Path, change: tuple[str, str], reason: str) -> None:
-    text = 'switch_tool = "switch_x"\n' + ENTRY.replace(*change)
+    text = 'switch_tool = "switch_x"\n' + MODEL_TOOLS + ENTRY.replace(*change)
     with pytest.raises(ProviderRefused, match=reason):
         load_routing(settings(tmp_path, text))
 

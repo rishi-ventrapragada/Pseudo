@@ -8,9 +8,15 @@ default = "groq"
 # asks to see or switch to a window (pseudo_brain/routing.py). The brain's code names no tools, so the name is here.
 switch_tool = "focus_window"
 
+# (M42, D29) The ONLY pseudo_hands tools a model may be offered. A tool that isn't here reaches no model:
+# Groq's loop is offered exactly these, and the action brain's tools below must come from this list.
+# The tools Pseudo's brain calls for itself (memory, the look-at chip, the memory browser) may never be
+# here: pseudo_brain/model_tools.py refuses them.
+model_tools = ["list_open_windows", "read_active_window", "focus_window", "act_on_control"]
+
 # (M30, D26) The ACTION BRAIN: a request to act on a window (click, type, tick, choose) goes to Claude Code
-# instead of Groq. It is launched once per request, with ONLY the tools below (never switch_tool, never the
-# memory tools), Pseudo's own system prompt, and a billing check first (pseudo_brain/claude_billing.py):
+# instead of Groq. It is launched once per request, with ONLY the tools below (from model_tools, never
+# switch_tool), Pseudo's own system prompt, and a billing check first (pseudo_brain/claude_billing.py):
 # nothing may outrank your subscription login, and the login must be the account named in .env.
 # If the check fails or Claude Code is missing, Pseudo says so and doesn't act; it never falls back to Groq.
 # (M32) With the face's warm-session switch on, one Claude Code may stay open and answer several requests:

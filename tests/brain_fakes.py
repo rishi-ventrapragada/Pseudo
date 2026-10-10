@@ -45,6 +45,7 @@ FAKE_HANDS = MCPServer("fake_hands")
 FAKE_HANDS.add_tool(fake_read_active_window, name="read_active_window", description="Read the fake window.")
 FAKE_HANDS.add_tool(fake_focus_window, name="focus_window", description="Focus a fake window.")
 FAKE_HANDS.add_tool(fake_broken, name="broken_tool", description="Always fails.")
+FAKE_MODEL_TOOLS = ("read_active_window", "focus_window", "broken_tool")  # (D29) the fake server's model_tools
 
 
 def reply(content: str | None = None, tools: list = (), tokens: tuple = (100, 10)) -> ChatCompletion:
@@ -98,6 +99,6 @@ async def ask(fake_model: FakeModel, text: str = "What does my active window say
     """One question through the real loop, fake model and fake hands. Returns (result, events, session)."""
     events = [] if events is None else events
     session = session or Session()
-    async with connect_hands(FAKE_HANDS) as hands:
+    async with connect_hands(FAKE_HANDS, FAKE_MODEL_TOOLS) as hands:
         result = await run_turn(session, text, fake_model, hands, lambda kind, data: events.append((kind, data)))
     return result, events, session

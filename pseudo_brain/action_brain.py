@@ -6,8 +6,9 @@ and checked when Pseudo starts. The brain's code names no tools: the names live 
 providers.toml, so `git diff` shows any change to what a brain may call.
 
 Rules checked here:
-  - The action brain never gets the switch tool (switch requests stay on Groq) and never the
-    two memory tools (those are brain-only: no model may search or write memory, M24).
+  - The action brain never gets the switch tool (switch requests stay on Groq) and never a
+    brain-only tool (no model may search or write memory, M24).
+  - (M42, D29) Its tools must all be in model_tools, the one list of tools a model may be offered.
   - account_env is the NAME of a .env variable, never the account itself.
 """
 
@@ -15,7 +16,7 @@ import tomllib
 from dataclasses import dataclass
 from pathlib import Path
 
-from pseudo_brain.hands import MEMORY_TOOLS
+from pseudo_brain.model_tools import BRAIN_TOOLS, load_model_tools
 from pseudo_brain.providers import PROVIDERS_FILE, ProviderRefused
 
 FIELDS = ("name", "command", "model", "tools", "account_env", "privacy", "timeout_seconds")
@@ -52,6 +53,7 @@ def is_names(value: object) -> bool:
 
 def load_routing(path: Path = PROVIDERS_FILE) -> Routing:
     """Read and check the routing settings. Raises ProviderRefused on the first problem."""
+    model_tools = load_model_tools(path)  # (D29) checked first: Pseudo doesn't start with a bad list
     try:
         data = tomllib.loads(path.read_text(encoding="utf-8"))
     except (OSError, tomllib.TOMLDecodeError) as error:
@@ -67,9 +69,12 @@ def load_routing(path: Path = PROVIDERS_FILE) -> Routing:
         raise ProviderRefused(f"action_brain: missing {', '.join(missing)}")
     if not is_names(entry["command"]) or not is_names(entry["tools"]):
         raise ProviderRefused("action_brain: command and tools must be non-empty lists of names")
-    forbidden = [tool for tool in entry["tools"] if tool == switch_tool or tool in MEMORY_TOOLS]
+    forbidden = [tool for tool in entry["tools"] if tool == switch_tool or tool in BRAIN_TOOLS]
     if forbidden:
         raise ProviderRefused(f"action_brain: it may never be given {', '.join(forbidden)}")
+    unlisted = [tool for tool in entry["tools"] if tool not in model_tools]
+    if unlisted:
+        raise ProviderRefused(f"action_brain: {', '.join(unlisted)} isn't in model_tools (D29)")
     if not all(isinstance(entry[name], str) and entry[name] for name in TEXT_FIELDS):
         raise ProviderRefused("action_brain: name, model, account_env and privacy must be text, in quotes")
     if "@" in entry["account_env"]:

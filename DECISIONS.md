@@ -153,6 +153,11 @@ Pseudo's window shows no privacy strip and no "who answered" label. While it wor
 *Why:* the owner wants a calm window for daily use and screenshots (2026-10-09). The information is moved off the main view, not removed.
 *Would change if:* a request goes to a brain the owner didn't expect and the hidden label is why he missed it.
 
+### D29. One allowlist of tools a model may be offered (M42)
+`providers.toml`'s `model_tools` lists every `pseudo_hands` tool a model may be offered. Groq's loop is offered these (the switch tool only by M29's rule), and the action brain's `tools` must be a subset. The tools Pseudo's brain calls for itself are brain-only (`BRAIN_TOOLS` in `pseudo_brain/model_tools.py`): the memory search and save (M24), the look-at chip and the memory browser (M42). No model is ever offered one. A published tool in neither list is offered to nobody and can't be called. Brain-only calls that show no popup send no `tool_call` event, so they give no foreground permission and take no always-on-top away; `save_memory` keeps its `tool_call`, because its approval popup needs the foreground permission (M24).
+*Why:* M42 adds three tools for Pseudo's window, not for the model. Before D29, a new tool reached the model unless the brain's code left it out by name (M24). With one reviewed list in git, as for providers (D16), a new tool reaches no model until it is added on purpose.
+*Would change if:* `pseudo_hands` is used by a brain that doesn't read `providers.toml`. That brain would need the same list.
+
 ## LEANING (revisit after Phase 1)
 
 L1 moved to LOCKED as D12 (2026-09-28).

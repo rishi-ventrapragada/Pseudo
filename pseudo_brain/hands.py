@@ -2,8 +2,8 @@
 
 What it demonstrates: the other side of M5. pseudo_hands is an MCP server; here
 the brain starts it over stdio (the way Hermes did in M6) and asks which tools it
-has. Nothing in pseudo_brain names a tool: whatever pseudo_hands publishes is what
-the model gets, converted to the OpenAI tool format from M2/M3.
+has. They are converted to the OpenAI tool format from M2/M3. (M42, D29) The model is
+offered only the ones providers.toml's model_tools names (model_tools.py).
 
 Privacy: pseudo_hands has already blocked, redacted and capped everything in its
 core (D6, D11) before it reaches this file. This file only relays. A tool result
@@ -11,9 +11,9 @@ goes back to the loop, which keeps it in memory; it is never printed or saved.
 The approval popup for actions is shown by the pseudo_hands process itself (D13).
 M18: Hands also knows that process's pid, so the face can let ONLY it bring the popup
 to the front (face/foreground.js).
-M24: the one exception to "nothing here names a tool". The two memory tools are BRAIN-ONLY: they
-are left out of what the model sees and can call, so neither the model nor text on the screen
-can make Pseudo search or write its memory. The brain calls them itself (chat.py), via memory().
+M24, M42: some tools are BRAIN-ONLY (model_tools.BRAIN_TOOLS): memory, the look-at chip and the
+memory browser. No model sees or can call them, so neither the model nor text on the screen can
+make Pseudo search or write its memory. The brain calls them itself, via brain_call().
 """
 
 import json
@@ -26,11 +26,12 @@ from typing import Any
 import psutil
 from mcp import Client, StdioServerParameters
 
+from pseudo_brain.model_tools import BRAIN_TOOLS, MEMORY_TOOLS, load_model_tools
+
 REPO_ROOT = Path(__file__).resolve().parent.parent
 MAX_RESULT_CHARS = 6000  # one tool result, as sent to the model (pseudo_hands already caps its own)
 NO_ARGUMENTS = {"type": "object", "properties": {}}
 HANDS_MODULE = "pseudo_hands.mcp_server"
-MEMORY_TOOLS = ("search_memories", "save_memory")  # (M24) brain-only: never offered to the model
 
 
 def pseudo_hands_process() -> StdioServerParameters:
@@ -87,12 +88,16 @@ def result_text(result: Any) -> str:
 class Hands:
     """An open connection to pseudo_hands: the tools it published, and a way to call them."""
 
-    def __init__(self, client: Client, tools: list, pid: int | None = None) -> None:
+    def __init__(self, client: Client, tools: list, pid: int | None = None, offered: tuple[str, ...] = ()) -> None:
         self._client = client
         self.pid = pid  # the pseudo_hands process (None for an in-memory server in tests)
-        self.names = [tool.name for tool in tools if tool.name not in MEMORY_TOOLS]  # what the model may call
-        self.schemas = [to_openai_tool(tool) for tool in tools if tool.name not in MEMORY_TOOLS]
-        self.has_memory = all(name in {tool.name for tool in tools} for name in MEMORY_TOOLS)
+        # (D29) a model may call only what model_tools offers, and never a brain-only tool (checked twice)
+        for_model = [tool for tool in tools if tool.name in offered and tool.name not in BRAIN_TOOLS]
+        self.names = [tool.name for tool in for_model]
+        self.schemas = [to_openai_tool(tool) for tool in for_model]
+        published = {tool.name for tool in tools}
+        self.brain_tools = published & set(BRAIN_TOOLS)  # what brain_call may call
+        self.has_memory = all(name in published for name in MEMORY_TOOLS)
         # (M40) the tools pseudo_hands marks as only reading; every other tool (memory ones too) may ask in a popup
         self.read_only = {tool.name for tool in tools if tool.annotations and tool.annotations.read_only_hint is True}
 
@@ -116,9 +121,11 @@ class Hands:
             return f"ERROR: the tool call failed ({type(error).__name__})", True
         return result_text(result), bool(result.is_error)
 
-    async def memory(self, name: str, arguments: dict) -> dict | None:
-        """(M24) The brain's own call to a memory tool. Its structured result, or None if anything failed."""
-        if name not in MEMORY_TOOLS or not self.has_memory:
+    async def brain_call(self, name: str, arguments: dict) -> dict | None:
+        """(M24, M42) The brain's own call to a brain-only tool. Its structured result, or None if anything failed.
+
+        Nothing is reported from here: only save_memory's caller sends a tool_call, for its popup (chat.py)."""
+        if name not in self.brain_tools:
             return None
         try:
             result = await self._client.call_tool(name, arguments)
@@ -146,8 +153,11 @@ class OfferedHands:
 
 
 @asynccontextmanager
-async def connect_hands(target: Any = None) -> AsyncIterator[Hands]:
-    """Start pseudo_hands over stdio (or use an in-memory server in tests) and discover its tools."""
+async def connect_hands(target: Any = None, offered: tuple[str, ...] | None = None) -> AsyncIterator[Hands]:
+    """Start pseudo_hands over stdio (or use an in-memory server in tests) and discover its tools.
+
+    (D29) A model is offered only `offered`: providers.toml's model_tools, unless a test gives its own."""
+    offered = load_model_tools() if offered is None else offered
     async with Client(target if target is not None else pseudo_hands_process()) as client:
         tools = (await client.list_tools()).tools
-        yield Hands(client, tools, find_hands_pid() if target is None else None)
+        yield Hands(client, tools, find_hands_pid() if target is None else None, offered)

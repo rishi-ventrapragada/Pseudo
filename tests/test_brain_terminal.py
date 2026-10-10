@@ -13,7 +13,7 @@ from pathlib import Path
 
 import pytest
 
-from brain_fakes import FAKE_CLOUD, FAKE_HANDS, FAKE_LOCAL, FakeModel, reply
+from brain_fakes import FAKE_CLOUD, FAKE_HANDS, FAKE_LOCAL, FAKE_MODEL_TOOLS, FakeModel, reply
 from pseudo_brain import chat as chat_module
 from pseudo_brain import session as session_module
 from pseudo_brain import terminal
@@ -41,7 +41,7 @@ def world(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> dict:
     monkeypatch.setattr(session_module, "SESSIONS_DIR", tmp_path / "sessions")
     monkeypatch.setattr(terminal, "load_allowlist", lambda: Allowlist({"groq": FAKE_CLOUD, "local": FAKE_LOCAL}, "groq"))
     monkeypatch.setattr(terminal, "load_routing", lambda: None)  # (M30) no routing unless a test sets one
-    monkeypatch.setattr(terminal, "connect_hands", lambda: connect_hands(FAKE_HANDS))
+    monkeypatch.setattr(terminal, "connect_hands", lambda: connect_hands(FAKE_HANDS, FAKE_MODEL_TOOLS))
 
     async def fake_connect(provider, servers, on_event):
         if provider.id in world["refuse"]:
