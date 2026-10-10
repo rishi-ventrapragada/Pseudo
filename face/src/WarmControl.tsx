@@ -3,6 +3,10 @@
 // The memory figure is the session's whole process tree, Claude Code plus its pseudo_hands, measured
 // by the brain every few seconds. It is shown only while a session is open.
 
+// M39: a row in Settings, with a switch instead of a checkbox.
+
+import { SettingRow } from './components/SettingRow';
+import { Switch } from './components/ui/Switch';
 import type { Warm } from './protocol';
 
 type Props = { warm: Warm | null; warmOn: boolean; setWarmOn(on: boolean): void };
@@ -22,12 +26,8 @@ export function warmLine(warm: Warm | null, warmOn: boolean): string {
 
 export function WarmControl({ warm, warmOn, setWarmOn }: Props) {
   return (
-    <div className={warm?.open ? 'warm open' : 'warm'} role="group" aria-label="Warm Claude Code session">
-      <label className="keep">
-        <input type="checkbox" checked={warmOn} onChange={(event) => setWarmOn(event.target.checked)} />
-        Keep Claude Code warm
-      </label>
-      <span className="warm-state">{warmLine(warm, warmOn)}</span>
-    </div>
+    <SettingRow label="Keep Claude Code warm" note={warmLine(warm, warmOn)} open={Boolean(warm?.open)}>
+      <Switch checked={warmOn} onChange={setWarmOn} label="Keep Claude Code warm" />
+    </SettingRow>
   );
 }

@@ -10,7 +10,6 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parent.parent
 LIMIT = 200
 SOURCES = ("*.py", "*.js", "*.mjs", "*.ts", "*.tsx", "*.css")
-NOT_YET = {"face/src/styles.css"}  # replaced by the new design later in M39; this line goes with it
 
 
 def tracked_sources() -> list[str]:
@@ -26,8 +25,6 @@ def test_found_the_sources() -> None:
 def test_every_source_file_is_at_most_200_lines() -> None:
     too_long = {}
     for name in tracked_sources():
-        if name in NOT_YET:
-            continue
         lines = len((REPO_ROOT / name).read_text(encoding="utf-8").splitlines())
         if lines > LIMIT:
             too_long[name] = lines

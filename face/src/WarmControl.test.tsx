@@ -37,14 +37,15 @@ describe('warmLine', () => {
 
 describe('WarmControl', () => {
   it('shows the switch as you left it, and marks an open session', () => {
+    // M39: a switch in a Settings row now; the checks are the same.
     const open = renderToStaticMarkup(<WarmControl warm={OPEN} warmOn={true} setWarmOn={() => {}} />);
-    expect(open).toContain('class="warm open"');
-    expect(open).toContain('checked=""');
+    expect(open).toContain('data-open="true"');
+    expect(open).toContain('aria-checked="true"');
     expect(open).toContain('Keep Claude Code warm');
     expect(open).toContain('356 MB');
     const off = renderToStaticMarkup(<WarmControl warm={{ ...NONE, on: false }} warmOn={false} setWarmOn={() => {}} />);
-    expect(off).toContain('class="warm"');
-    expect(off).not.toContain('checked');
+    expect(off).toContain('data-open="false"');
+    expect(off).toContain('aria-checked="false"');
     expect(off).not.toContain(' MB');
   });
 });

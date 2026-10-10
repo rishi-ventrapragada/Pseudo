@@ -1,7 +1,0 @@
-/* M18: the approval banner (ApprovalBanner.tsx). Its own file, because styles.css is at the 200-line limit.
-   Blue, the focus colour: amber and teal already mean "leaves this laptop" and "stays on it". */
-.approval-banner {
-  max-width: 760px; margin: 0 auto 8px; padding: 6px 12px;
-  border-left: 3px solid var(--focus); border-radius: 4px;
-  background: var(--bg); color: var(--ink); font-weight: 600; font-size: 13.5px;
-}

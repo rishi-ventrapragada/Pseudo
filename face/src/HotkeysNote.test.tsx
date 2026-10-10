@@ -28,10 +28,18 @@ describe('HotkeysNote', () => {
     expect(renderToStaticMarkup(<HotkeysNote keys={[]} />)).toBe('');
   });
 
-  it('is one labelled note, marked when a shortcut is off', () => {
+  it('is one labelled note, marked when a shortcut is off', () => { // M39: Settings' Shortcuts section now
     const fine = renderToStaticMarkup(<HotkeysNote keys={BOTH} />);
     expect(fine).toContain('aria-label="Shortcuts"');
-    expect(fine).toContain('class="hint hotkeys"');
-    expect(renderToStaticMarkup(<HotkeysNote keys={TALK_TAKEN} />)).toContain('class="hint hotkeys off"');
+    expect(fine).toContain('data-off="false"');
+    const taken = renderToStaticMarkup(<HotkeysNote keys={TALK_TAKEN} />);
+    expect(taken).toContain('data-off="true"');
+    expect(taken).toContain('Off here: another program holds it');
+  });
+
+  it('draws each shortcut as key caps, and says what it does', () => {
+    const fine = renderToStaticMarkup(<HotkeysNote keys={BOTH} />);
+    expect(fine).toContain('Shows or hides Pseudo from any app');
+    expect(fine.match(/<kbd/g)).toHaveLength(8); // Ctrl Alt Enter, Ctrl Alt T, Ctrl Space
   });
 });

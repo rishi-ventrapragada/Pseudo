@@ -2,12 +2,13 @@
    Tailwind turns each token into classes: --color-ground gives bg-ground, text-ground, border-ground.
    Its own palette is switched off (--color-*: initial), so the page can only use these colours.
    Rules from the mockup: dark only, monochrome; amber (wait) ONLY while an approval popup waits;
-   red (danger) ONLY for Delete and for recording. */
+   red (danger) ONLY for Delete and for recording.
+   "static" writes every token out as a CSS variable, so plain CSS files (answer.css) can use them too. */
 @import "tailwindcss";
 @import "@fontsource-variable/geist";
 @import "@fontsource-variable/geist-mono";
 
-@theme {
+@theme static {
   --font-sans: "Geist Variable", ui-sans-serif, system-ui, sans-serif;
   --font-mono: "Geist Mono Variable", ui-monospace, monospace;
 
@@ -45,7 +46,8 @@
 }
 
 @layer base {
-  :root { color-scheme: dark; }
+  /* --controls-width: room kept free at the top right for the window's own buttons (M39 step 5). */
+  :root { color-scheme: dark; --controls-width: 0px; }
   html, body, #root { height: 100%; margin: 0; }
   body { background: var(--color-ground); color: var(--color-ink); font-family: var(--font-sans); font-size: 14px; }
   :focus-visible { outline: 2px solid var(--color-ink-soft); outline-offset: 2px; }

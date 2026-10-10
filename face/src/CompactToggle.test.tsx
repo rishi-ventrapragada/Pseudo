@@ -25,13 +25,13 @@ describe('barGrows', () => {
 });
 
 describe('CompactToggle', () => {
-  it('offers the other mode, and says which one is on', () => {
+  it('offers the other mode, and says which one is on', () => { // M39: an icon button, named by its label
     const full = renderToStaticMarkup(<CompactToggle compact={mode({})} />);
     expect(full).toContain('aria-pressed="false"');
-    expect(full).toContain('>Compact</button>');
+    expect(full).toContain('aria-label="Compact bar"');
     const bar = renderToStaticMarkup(<CompactToggle compact={mode({ on: true })} />);
     expect(bar).toContain('aria-pressed="true"');
-    expect(bar).toContain('>Full window</button>');
+    expect(bar).toContain('aria-label="Full window"');
   });
 });
 

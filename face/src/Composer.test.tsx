@@ -22,16 +22,27 @@ describe('asksOnKey', () => {
   });
 });
 
+// M39: Ask is a round icon button now, named by its label; the checks are the same.
+const askButton = (page: string) => page.match(/<button type="submit"[^>]*>/)?.[0] ?? '';
+
 describe('Composer', () => {
   it('is the labelled question box and an Ask button', () => {
     const page = show('what is on my screen?', true);
     expect(page).toContain('aria-label="Your question"');
     expect(page).toContain('what is on my screen?');
-    expect(page).toContain('<button type="submit">Ask</button>');
+    expect(askButton(page)).toContain('aria-label="Ask"');
+    expect(askButton(page)).not.toContain('disabled=""'); // the attribute; Tailwind's class names say "disabled:" too
   });
 
   it('Ask is off while Pseudo is busy, and for an empty draft', () => {
-    expect(show('a question', false)).toContain('<button type="submit" disabled="">Ask</button>');
-    expect(show('   ', true)).toContain('<button type="submit" disabled="">Ask</button>');
+    expect(askButton(show('a question', false))).toContain('disabled=""');
+    expect(askButton(show('   ', true))).toContain('disabled=""');
+  });
+
+  it('the compact bar gets the same box and button on one line', () => {
+    const row = renderToStaticMarkup(<Composer draft="x" setDraft={() => {}} canAsk onAsk={() => {}} row
+                                               box={createRef<HTMLTextAreaElement>()} />);
+    expect(row).toContain('rows="1"');
+    expect(askButton(row)).toContain('aria-label="Ask"');
   });
 });

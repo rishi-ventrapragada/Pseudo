@@ -1,0 +1,30 @@
+/* M39: how an answer's Markdown looks (Markdown.tsx). Tailwind's reset removes every default margin and list
+   bullet, so answers get their spacing back here. Plain CSS with the design tokens from theme.css. */
+.answer p { margin: 0 0 12px; }
+.answer p:last-child { margin-bottom: 0; }
+.answer ul, .answer ol { margin: 0 0 12px; padding-left: 22px; }
+.answer ul { list-style: disc; }
+.answer ol { list-style: decimal; }
+.answer li { margin: 2px 0; }
+.answer strong { font-weight: 600; }
+.answer h1, .answer h2, .answer h3, .answer h4 { margin: 16px 0 8px; font-weight: 600; line-height: 1.35; }
+.answer h1 { font-size: 20px; }
+.answer h2 { font-size: 18px; }
+.answer h3, .answer h4 { font-size: 16px; }
+.answer code { padding: 1px 5px; border-radius: 5px; background: var(--color-bubble); font-family: var(--font-mono); font-size: 13px; }
+.answer pre { margin: 0 0 12px; padding: 10px 12px; overflow-x: auto; border-radius: 10px; background: var(--color-field); }
+.answer pre code { padding: 0; background: none; }
+.answer table { margin: 0 0 12px; border-collapse: collapse; }
+.answer th, .answer td { padding: 4px 10px; border: 1px solid var(--color-edge); text-align: left; }
+.answer blockquote { margin: 0 0 12px; padding-left: 12px; border-left: 2px solid var(--color-control); color: var(--color-muted); }
+
+/* What the redactor hid on this laptop ([PERSON], [restricted app]): a small chip, from the mockup. */
+.mask {
+  display: inline-flex; align-items: center; gap: 5px; margin: 0 1px; padding: 0 7px 0 5px;
+  border: 1px solid var(--color-control); border-radius: 5px; background: var(--color-bubble);
+  color: var(--color-ink-soft); font-family: var(--font-mono); font-size: 12px; line-height: 20px; vertical-align: 1px;
+}
+.mask::before { content: ""; width: 10px; height: 6px; border-radius: 1px; background: var(--color-faint); }
+
+/* A link in an answer is shown as text: nothing to click, nowhere to go (M18). */
+.link-text { text-decoration: underline; text-decoration-color: var(--color-control); text-underline-offset: 3px; }

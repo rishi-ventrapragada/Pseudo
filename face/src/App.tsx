@@ -3,66 +3,30 @@
 // message to the brain (protocol.ts), through window.pseudo (preload.js).
 // M26: voice (useVoice.ts). What you say comes back as text in the input box: you read it, fix it if
 // needed, and press Enter, exactly like typing (L8). Nothing you say is ever sent as a question by itself.
+// M39: the Phase 10 layout (components/): a sidebar, a top row, the conversation and the question box, with the
+// switches in Settings. This file wires state to them; the parts only draw. The logic here is unchanged.
 
 import { useEffect, useReducer, useRef, useState } from 'react';
-import { ApprovalBanner } from './ApprovalBanner';
-import { AutostartControl } from './AutostartControl';
-import { CompactToggle, HideAnswer } from './CompactToggle';
+import { BottomArea } from './components/BottomArea';
+import { CompactBar } from './components/CompactBar';
+import { Conversation } from './components/Conversation';
+import { ListeningChip, MicButton } from './components/MicButton';
+import { SettingsDialog } from './components/SettingsDialog';
+import { Sidebar } from './components/Sidebar';
+import { TopBar } from './components/TopBar';
 import { Composer } from './Composer';
-import { HotkeysNote } from './HotkeysNote';
-import { brainOf } from './events';
-import { Markdown } from './Markdown';
 import type { ToBrain } from './protocol';
-import { PrivacyNote, ProviderBar } from './ProviderBar';
-import { Sessions } from './Sessions';
-import { initial, reduce, type Turn } from './state';
+import { PrivacyNote } from './ProviderBar';
+import { initial, reduce } from './state';
 import { useCompact } from './useCompact';
 import { useVoice } from './useVoice';
 import { useWarm } from './useWarm';
-import { VoiceControls } from './VoiceControls';
-import { WarmControl } from './WarmControl';
-
-export function TurnView({ turn }: { turn: Turn }) {
-  return (
-    <section className="turn">
-      <div className="you">
-        <p className="who">You</p>
-        <p>{turn.question}</p>
-      </div>
-      {turn.steps.length > 0 && (
-        <details className="steps">
-          <summary>
-            {turn.steps.length} step{turn.steps.length === 1 ? '' : 's'}: what Pseudo did
-          </summary>
-          <ol>
-            {turn.steps.map((step, index) => (
-              <li key={index}>{step}</li>
-            ))}
-          </ol>
-        </details>
-      )}
-      {turn.answer !== undefined && (
-        <article className="answer" aria-label={`Answer from ${turn.label || 'Pseudo'}`}>
-          <p className="who">
-            Pseudo{turn.label ? ` · ${turn.label}` : ''}
-            {/* M30: which brain answered, at a glance */}
-            {turn.label && (
-              <span className={`brain ${brainOf(turn.label)}`}>
-                {brainOf(turn.label) === 'action' ? 'Claude Code · your subscription' : 'Chat provider'}
-              </span>
-            )}
-          </p>
-          <Markdown text={turn.answer} />
-        </article>
-      )}
-      {turn.failed && <p className="failed" role="alert">No answer: {turn.failed}</p>}
-    </section>
-  );
-}
 
 export function App() {
   const [state, dispatch] = useReducer(reduce, initial);
   const [draft, setDraft] = useState('');
+  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const end = useRef<HTMLDivElement>(null);
   const box = useRef<HTMLTextAreaElement>(null);
 
@@ -78,6 +42,10 @@ export function App() {
   const canTalk = idle && Boolean(current?.transcribe_model);
   const why = current && !current.transcribe_model
     ? 'Voice needs a provider with a speech model: your voice stays on this laptop' : 'Wait for Pseudo to finish';
+
+  useEffect(() => { // M39: the sidebar's chats, asked for only while Pseudo is free (a refusal mid-question would
+    if (idle) window.pseudo.send({ type: 'list_sessions' }); // clear the approval banner; M40 fixes that in state.ts)
+  }, [idle, state.session]);
 
   function send(message: ToBrain, what: string) {
     window.pseudo.send(message);
@@ -118,69 +86,35 @@ export function App() {
     : voice.listening ? 'Listening. Let go of Ctrl+Space, or click Stop talking, when you have finished.'
     : state.working ?? (voice.problem || state.notice || 'Ready. Pseudo reads the window you were on before this one.');
 
+  const composer = (row: boolean) => (
+    <Composer draft={draft} setDraft={setDraft} canAsk={idle} onAsk={ask} box={box} row={row}
+              mic={<MicButton voice={voice} canTalk={canTalk} why={why} />} chips={<ListeningChip voice={voice} />} />
+  );
+  const shared = { status, working: state.working !== null, waiting: state.toolWaiting, stopped: state.phase === 'stopped',
+                   onRestart: restart };
+
+  if (compact.on) {
+    return <CompactBar compact={compact} latest={state.turns.at(-1)} composer={composer(true)} {...shared} />;
+  }
   return (
-    // M38: compact.css hides what a bar has no room for (header, privacy note, switches, sessions).
-    <div className={`app${state.sessions ? ' with-sessions' : ''}${compact.on ? ' compact' : ''}${compact.grown ? ' grown' : ''}`}>
-      <header className="top">
-        <h1 className="wordmark">Pseudo</h1>
-        <ProviderBar providers={state.providers} current={state.provider} disabled={!idle}
-                     onSwitch={(id) => send({ type: 'provider', id }, `Switching to ${id}`)} />
-        <div className="actions">
-          <button type="button" disabled={!idle} onClick={() => send({ type: 'new_session' }, 'Starting a new session')}>
-            New session
-          </button>
-          <button type="button" disabled={state.phase !== 'ready'} onClick={() => window.pseudo.send({ type: 'list_sessions' })}>
-            Saved sessions
-          </button>
-          <CompactToggle compact={compact} />
-        </div>
-      </header>
-      <PrivacyNote provider={current} actionBrain={state.actionBrain} />
-
-      <main className="transcript" aria-label="Conversation">
-        {state.phase === 'starting' && (
-          <p className="empty">Starting Pseudo's brain. Loading pseudo_hands takes about ten seconds.</p>
-        )}
-        {state.phase === 'ready' && state.turns.length === 0 && (
-          <div className="empty">
-            <strong>Ask about the window you were on.</strong>
-            <p>Go to that window, then switch back here and ask.</p>
-          </div>
-        )}
-        <HideAnswer compact={compact} />
-        {(compact.on ? state.turns.slice(-1) : state.turns).map((turn, index) => ( // the bar shows the latest turn only
-          <TurnView key={`${state.session}-${compact.on ? 'latest' : index}`} turn={turn} />
-        ))}
-        <div ref={end} />
-      </main>
-
-      {state.sessions && (
-        <Sessions items={state.sessions} current={state.session} disabled={!idle}
-                  onOpen={(name) => send({ type: 'open_session', name }, 'Opening the session')}
-                  onClose={() => dispatch({ type: 'close_sessions' })} />
+    <div className="flex h-full bg-ground text-ink">
+      {sidebarOpen && (
+        <Sidebar onHide={() => setSidebarOpen(false)} idle={idle} sessions={state.sessions} current={state.session}
+                 onNewChat={() => send({ type: 'new_session' }, 'Starting a new chat')}
+                 onOpen={(name) => send({ type: 'open_session', name }, 'Opening the chat')}
+                 onSettings={() => setSettingsOpen(true)} />
       )}
-
-      <footer className="bottom">
-        <ApprovalBanner waiting={state.toolWaiting} />
-        <p className={state.working ? 'status working' : 'status'} aria-live="polite">{status}</p>
-        {state.phase === 'stopped' ? (
-          <div className="stopped" role="alert">
-            <p>Your finished questions are saved. Restarting starts a new session on the default provider.</p>
-            <button type="button" onClick={restart}>Restart the brain</button>
-          </div>
-        ) : (
-          <>
-          {state.actionBrain && current?.leaves_laptop && ( // M32: only where action requests go to Claude Code
-            <WarmControl warm={state.warm} warmOn={warm.warmOn} setWarmOn={warm.setWarmOn} />
-          )}
-          <AutostartControl autostart={state.autostart} />
-          <VoiceControls voice={voice} canTalk={canTalk} why={why} />
-          <Composer draft={draft} setDraft={setDraft} canAsk={idle} onAsk={ask} box={box} />
-          </>
-        )}
-        {compact.on && <CompactToggle compact={compact} />}
-        <HotkeysNote keys={state.hotkeys} />
-      </footer>
+      <main className="flex min-w-0 flex-1 flex-col">
+        <TopBar sidebarOpen={sidebarOpen} onShowSidebar={() => setSidebarOpen(true)} compact={compact}
+                title={state.turns[0]?.question ?? 'New chat'} />
+        <Conversation phase={state.phase} turns={state.turns} session={state.session} end={end} />
+        <BottomArea composer={composer(false)} {...shared}
+                    privacy={<PrivacyNote provider={current} actionBrain={state.actionBrain} />} />
+      </main>
+      <SettingsDialog open={settingsOpen} onClose={() => setSettingsOpen(false)} providers={state.providers}
+                      current={state.provider} idle={idle} onSwitch={(id) => send({ type: 'provider', id }, `Switching to ${id}`)}
+                      actionBrain={state.actionBrain} warm={state.warm} warmOn={warm.warmOn} setWarmOn={warm.setWarmOn}
+                      autostart={state.autostart} voice={voice} hotkeys={state.hotkeys} />
     </div>
   );
 }

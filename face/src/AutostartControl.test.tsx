@@ -28,22 +28,23 @@ describe('AutostartControl', () => {
     expect(renderToStaticMarkup(<AutostartControl autostart={null} />)).toBe('');
   });
 
-  it('the box follows what Windows says', () => {
-    expect(renderToStaticMarkup(<AutostartControl autostart={ON} />)).toMatch(/<input type="checkbox"[^>]*checked=""/);
-    expect(renderToStaticMarkup(<AutostartControl autostart={OFF} />)).not.toContain('checked');
+  // M39: a switch in a Settings row now; the checks are the same.
+  it('the switch follows what Windows says', () => {
+    expect(renderToStaticMarkup(<AutostartControl autostart={ON} />)).toMatch(/role="switch" aria-checked="true"/);
+    expect(renderToStaticMarkup(<AutostartControl autostart={OFF} />)).toMatch(/role="switch" aria-checked="false"/);
   });
 
-  it('under npm start the box is disabled, empty, and the reason is shown', () => {
+  it('under npm start the switch is disabled, off, and the reason is shown', () => {
     const html = renderToStaticMarkup(<AutostartControl autostart={NPM} />);
     expect(html).toContain('disabled=""');
-    expect(html).not.toContain('checked');
+    expect(html).toContain('aria-checked="false"');
     expect(html).toContain('not from npm start');
   });
 
   it('is labelled for assistive tools and for the checks that look for it', () => {
     const html = renderToStaticMarkup(<AutostartControl autostart={OFF} />);
-    expect(html).toContain('aria-label="Start with Windows"');
-    expect(html).toContain('Start with Windows</label>');
-    expect(html).not.toContain('disabled');
+    expect(html).toContain('role="group" aria-label="Start with Windows"');
+    expect(html).toMatch(/role="switch"[^>]*aria-label="Start with Windows"/);
+    expect(html).not.toContain('disabled=""'); // the attribute; Tailwind's class names say "disabled:" too
   });
 });

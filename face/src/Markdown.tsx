@@ -6,8 +6,11 @@
 // Masks from the redactor, like [PERSON] or [restricted app], are shown as small bars: what was
 // hidden on this laptop before anything left it.
 
+// M39: drawn by answer.css; the masks are small chips, from the Phase 10 mockup.
+
 import { Children, type ReactNode } from 'react';
 import ReactMarkdown, { type Components } from 'react-markdown';
+import './answer.css';
 
 const MASK = /(\[(?:[A-Z][A-Z_]+|restricted app|title withheld|content withheld|password field)\])/;
 
