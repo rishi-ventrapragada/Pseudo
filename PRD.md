@@ -2,8 +2,8 @@
 
 Owner: Sai Rishi Ventrapragada
 Repo: https://github.com/rishi-ventrapragada/Pseudo
-Status: Phase 1-4 complete (M11 evaluated OCR and skipped it). Phase 5 (Make it usable) in progress: M13 done (Hermes Desktop ruled out; own brain per D15), M14 done (`pseudo_brain`), M15 done (providers evaluated; D16), M16 done (providers: allowlist, same-provider fallback, private mode), M17 done (Claude desktop app ruled out; D17), M18 done (own face: Electron, over a child-process pipe; D18), M19 done (redactor precision; D19). M20 done (Indian names; D21), but recall on fresh held-out names was only 57%. M21 tried a rule for that gap and didn't ship it. M22 done (a 49,000-word names list from Wikidata; D22): held-out recall 99% (section 11). Phase 6 (Memory): M23 done (local keyword search with SQLite FTS5; D23), M24 done (Pseudo remembers answered tasks, with your approval). Phase 7 (Voice): M25 done (listen through Groq's `whisper-large-v3`, speak with Windows' own voices; D24), M26 done (push-to-talk in the face; answers spoken with Windows' Ravi voice). P7-fix done (the approval popup stays on top). Phase 8 (Click and type control): M27 done (UI Automation actions recommended; D25), M28 done (click and type, behind the approval popup). M29 done (only Claude through Claude Code passed; D26). M30 done: action requests go to Claude Code, one launch per request. M31 done (a warm session restarted every 6 requests passed all five criteria; a build would be its own milestone). M32 done: a warm Claude Code session answers action requests, restarted after 6 requests or at 3 times the first request's input. P8-fix done (`focus_window` refuses assistant apps, which get no window id). Phase 9 (Daily-use polish) complete: M33 to M38, section 15. M33 done (Pseudo.exe will be packaged by hand, using the repo's `.venv`, unsigned; D27). M34 done: `npm run package` builds `Pseudo.exe`, one at a time. M35 done (start hidden with only the face; the brain starts on first show; D27). M36 done: a Start with Windows switch; started that way, Pseudo opens hidden with a tray icon. M37 done: Ctrl+Alt+Enter shows or hides Pseudo from any app, Ctrl+Alt+T starts and stops talking. M38 done: a compact always-on-top bar on the same window, which gives up always-on-top while a tool waits; C1 missed at 9 of 10 and one of four idle CPU readings was over the limit (section 15). Open follow-ups are in section 16, Backlog.
-Last updated: 2026-10-07
+Status: Phase 1-4 complete (M11 evaluated OCR and skipped it). Phase 5 (Make it usable) in progress: M13 done (Hermes Desktop ruled out; own brain per D15), M14 done (`pseudo_brain`), M15 done (providers evaluated; D16), M16 done (providers: allowlist, same-provider fallback, private mode), M17 done (Claude desktop app ruled out; D17), M18 done (own face: Electron, over a child-process pipe; D18), M19 done (redactor precision; D19). M20 done (Indian names; D21), but recall on fresh held-out names was only 57%. M21 tried a rule for that gap and didn't ship it. M22 done (a 49,000-word names list from Wikidata; D22): held-out recall 99% (section 11). Phase 6 (Memory): M23 done (local keyword search with SQLite FTS5; D23), M24 done (Pseudo remembers answered tasks, with your approval). Phase 7 (Voice): M25 done (listen through Groq's `whisper-large-v3`, speak with Windows' own voices; D24), M26 done (push-to-talk in the face; answers spoken with Windows' Ravi voice). P7-fix done (the approval popup stays on top). Phase 8 (Click and type control): M27 done (UI Automation actions recommended; D25), M28 done (click and type, behind the approval popup). M29 done (only Claude through Claude Code passed; D26). M30 done: action requests go to Claude Code, one launch per request. M31 done (a warm session restarted every 6 requests passed all five criteria; a build would be its own milestone). M32 done: a warm Claude Code session answers action requests, restarted after 6 requests or at 3 times the first request's input. P8-fix done (`focus_window` refuses assistant apps, which get no window id). Phase 9 (Daily-use polish) complete: M33 to M38, section 15. M33 done (Pseudo.exe will be packaged by hand, using the repo's `.venv`, unsigned; D27). M34 done: `npm run package` builds `Pseudo.exe`, one at a time. M35 done (start hidden with only the face; the brain starts on first show; D27). M36 done: a Start with Windows switch; started that way, Pseudo opens hidden with a tray icon. M37 done: Ctrl+Alt+Enter shows or hides Pseudo from any app, Ctrl+Alt+T starts and stops talking. M38 done: a compact always-on-top bar on the same window, which gives up always-on-top while a tool waits; C1 missed at 9 of 10 and one of four idle CPU readings was over the limit (section 15). Phase 10 (Look and feel) planned: M39 to M45, section 16; the look comes from a fake-data mockup approved on 2026-10-10. Open follow-ups are in section 17, Backlog.
+Last updated: 2026-10-10
 
 ## 1. What Pseudo is
 
@@ -58,6 +58,7 @@ See ARCHITECTURE.md. These later phases may change once the owner understands th
 | 7 | Voice | Talk to Pseudo and hear it answer: push-to-talk first, through free voice services evaluated for privacy first (D20, L5). |
 | 8 | Click and type control | Pseudo acts on the window you're on (click, type, tick, choose), one approved action at a time, through UI Automation first (D13, D14). |
 | 9 | Daily-use polish | Pseudo is something you leave running: `Pseudo.exe`, optional start with Windows, global hotkeys and a compact overlay, with what it costs measured first. |
+| 10 | Look and feel | Pseudo looks like a calm, dark desktop assistant you use daily and can show on GitHub: a sidebar for sessions, memory and status, a cleaner conversation, a redesigned compact bar, its own icon and name, and a README for visitors. |
 
 ### Roadmap toward the vision (section 1)
 
@@ -742,7 +743,81 @@ Goal: Pseudo is something you leave running: a real `Pseudo.exe`, optionally sta
   - **Known limits:** opening the steps list in the bar pushes the answer below it (scroll to reach it); the bar shows only the latest turn; sessions, providers and the switches are in the full window only; a maximized window is taken out of maximize when it becomes the bar.
   - **Observed, unexplained:** in one idle run the bar had the keyboard after 10 idle minutes, though the fake window had it at the start (Backlog).
 
-## 16. Backlog
+## 16. Phase 10 scope: Look and feel
+
+Goal: Pseudo's window becomes a calm, dark, ChatGPT/Claude-style assistant for daily use and for GitHub screenshots, with Pseudo's own extras on display: what it is doing, what it is looking at, its memory, and usage and privacy stats. The look comes from a clickable mockup with fake data, approved on 2026-10-10. The criteria below were fixed on 2026-10-09, before any build.
+
+Rules that must survive every step (unchanged from Phase 9): Pseudo never reads or acts on its own window (`assistant_apps.txt`, P8-fix); the approval popup stays above the face, the bar included (D13, P7-fix, M38); no action touches the popup or `pseudo_hands`' own windows (D14). Two rules are new: an approval wait is always said in plain words, never with a playful word; and nothing new reaches a model (models get an allowlist of tools, D29, and the page still makes no network requests).
+
+Fake windows only while building and measuring. Screenshots show only Pseudo's own window, from a run whose `LOCALAPPDATA` and Electron profile point at scratch folders with fake sessions, memories and windows; they stay in the scratchpad and are never committed.
+
+**The look (from the mockup):**
+- Dark only: near-black with soft greys, white for the Ask button, the Geist font (sans and mono) bundled with the app.
+- Amber is used only for the approval wait. Red is used only for Delete and for recording.
+- Masked items in answers show as small chips that read "name", "phone" and so on instead of `[PERSON]`; hovering a chip shows the redactor's label.
+- The wordmark is the plain text "Pseudo" until the icon arrives (M44).
+
+### M39: Design system and app shell (build, with a step-0 probe)
+- **Step 0 probe**, on a scratch copy of the face, nothing in the repo changed:
+  - S1: Tailwind v4 builds with the face's current Vite and TypeScript, and the page loads under the current security policy with 0 violations reported.
+  - S2: each candidate component (Dialog, AlertDialog, DropdownMenu, Tooltip, Switch, Collapsible, Popover) opens, closes and works from the keyboard under the policy. Any that causes a violation is listed with what it breaks.
+  - S3, with the overlay title bar: Pseudo's window is listed with no id, and reading, focusing and acting on it are each refused before any popup; its extended window style is not an overlay's (`is_overlay_style`); a focus popup appears above it 3 of 3; drag, resize, minimize, maximize, close and snap all work at 125% scaling.
+  - S4: Geist renders from the bundle, and the page makes 0 network requests.
+  - Rules: a component that needs an injected `<style>` is replaced with plain Tailwind or left out. If S3 fails, Windows' own title bar stays. The security policy is not loosened without the owner's OK.
+- **Build:**
+  - Tailwind (`tailwindcss`, `@tailwindcss/vite`, with `assetsInlineLimit: 0`), lucide icons and Geist, each pinned exactly. shadcn components are copied by hand from a pinned version, only the ones used, trimmed, each under 200 lines.
+  - Design tokens (colours, spacing, type sizes) from the mockup. The window's own background is always dark.
+  - The overlay title bar, if S3 passed.
+  - The shell: a top row; a collapsible left sidebar with New chat, the sessions list and a settings button at the bottom; the conversation column; the composer.
+  - Today's features move in unchanged; the settings panel holds the provider, Keep Claude Code warm, Start with Windows, Speak answers and the shortcuts.
+  - `styles.css`, `compact.css` and `banner.css` are replaced. The compact mode keeps working until M43; C4's test becomes a render test of what the bar shows.
+  - Accessibility: every control reachable by keyboard with a visible focus ring; text contrast meets WCAG AA; `prefers-reduced-motion` turns animation off; screen readers hear state changes only.
+  - New tests: C3's scan covers every subfolder of the face's code; every source file (`.py`, `.js`, `.mjs`, `.ts`, `.tsx`, `.css`) is at most 200 lines.
+- **Done when:** tests pass and the new packages are counted and pinned. Live, with the packaged app and fake windows: a question reads the fake window 5 of 5, never Pseudo's own; focus, memory and action popups are above the face 6 of 6; push-to-talk with the fake microphone fills the box; quitting leaves 0 processes. Idle cost within I1 and I2 over four 10-minute periods, two visible and two hidden (a period over the limit is recorded with its numbers, as in M38). The owner approves the look from fake-data screenshots. The M15 battery scores 12/12.
+
+### M40: The conversation (build: face and brain)
+- **Messages:** your question in a bubble; the answer as plain text, still Markdown with no HTML, images or links, with proper typography and the masked-item chips. The privacy strip and the "who answered" labels are removed (D28).
+- **Working:** a playful word from Pseudo's own list, changing every few seconds, plus a timer; not animated with reduced motion, not announced to screen readers. Clicking it opens the steps, worded in plain language by the face: the provider, model or brain, any fallback, the memories used and the tokens.
+- **Approval waits:** the brain adds `asks` to each `tool_call` event, from the tool's own marking (`read_only_hint`); a tool with no marking counts as asking. It works for Groq and for Claude Code. While a tool that asks runs, the line says "Waiting for your approval in the popup" and screen readers announce it; no playful word shows.
+- **Side requests never wipe the approval line:** a refusal of anything but the question itself leaves the wait state alone.
+- **Empty chat:** a greeting and 3 or 4 suggestions; a click sends one. The suggestions live in `pseudo_brain` and are sent in `ready`. A test checks that none is an action request (`routing.is_action_request`) and none offers the switch tool (`routing.offers_focus`).
+- **Composer:** one rounded box, the mic inside it, Ask as an icon button; the shortcut hint moves to a tooltip; the Enter rules are unchanged (M37).
+- The terminal keeps its own wording. The tests that pinned the face's steps to the terminal's wording become "every event the brain sends has a face wording".
+- **Done when:** tests pass, including a core test that every tool using `approval` is marked as asking. Live, with fake windows: the plain approval line shows while each focus, memory and action popup waits, 6 of 6, with no playful word meanwhile; a read-only question never shows it; a suggestion is asked once and answered by Groq, never routed; answers show no provider label; the steps name who answered, for Groq and for Claude Code. The M15 battery scores 12/12.
+
+### M41: The sidebar (build: face and brain)
+- **Sessions:** grouped into Today, Yesterday, Previous 7 days and Older.
+  - Search: the brain searches the titles and your messages.
+  - Rename: `Session` keeps a title that `save()` writes back; the brain checks it (length, one line).
+  - Delete: a confirm every time. The brain deletes only a file whose name passes `SESSION_NAME`, directly inside the sessions folder, with no link on the way (its own check; the brain doesn't import core). Deleting the open session starts a new one and stops a warm session that served it, as a provider switch does.
+  - Rename and delete are refused while a question runs.
+- **Provider picker:** disabled providers are hidden (the brain sends `disabled`); switching starts a new session, as today.
+- New code goes in new files; new message types and fields go into all three message lists (`preload.js`, `to-brain.js`, `protocol.ts`).
+- **Done when:** tests pass, including the refusal cases for delete (path tricks, links and junctions, names Pseudo didn't make) on the M3 and M24 sandbox pattern. Live, on a temporary sessions folder: rename and delete each work 3 of 3; a refused name deletes nothing. The M15 battery scores 12/12.
+
+### M42: What Pseudo sees (build: face, brain and core)
+- **D29 first, one allowlist of model tools:** `providers.toml` gets a model tool list; `Hands` offers a model only those tools, and the action brain's tools must be a subset. A test checks that `ALL_TOOLS` in `mcp_server.py` equals every registered tool. Brain-only calls never send `tool_call` events, so they give no foreground permission and take no always-on-top away.
+- **The look-at chip,** inside the question box above where you type ("Looking at Brave"): the app name of the window `read_active_window` would pick. A blocked app shows as "a private app"; nothing shows when the list can't be read. Core gets a new function next to `pick_window`, published as a brain-only tool. It is asked when Pseudo gains focus and before each question, and only while no question is running.
+- **Memory:** the steps show which memories joined the question. The memory browser in the sidebar lists the saved notes and opens them read-only, redacted again, through brain-only tools in core that reuse the M24 sandbox. Editing and deleting stay in Obsidian (D23).
+- **Status panel,** at the bottom of the sidebar, open by default: tokens this session, Groq's budget left this minute, the warm session's RAM, and the items masked this session (the brain counts the redactor's own labels in tool results, counts only).
+- **Done when:** tests pass, including: no model, Groq or Claude Code, is ever offered a brain-only tool; a tool missing from the allowlist is offered to nobody. Live, with fake windows, each against the check script's own knowledge: with a known fake window in front, the chip names its app 10 of 10; a fake blocked app shows as "a private app"; the masked count equals the labels the check script counts in the same read, 3 of 3; the browser opens a fake memory, redacted. The M15 battery scores 12/12.
+
+### M43: The compact bar, redesigned (build)
+- A floating bar in the mockup's style that grows upward for the working word, the plain approval line and the answer. The overlay title bar is adapted to the bar, if M39 kept it.
+- `window-mode.js`'s rules stay: always-on-top is given up while a tool waits; the bar lets go before a hide; only the sizes you set are remembered.
+- **Done when:** M38's C1 to C6 hold again, C1 counted as in M38 and C6 over four 10-minute periods; tests pass; the M15 battery scores 12/12.
+
+### M44: Icon and name (build)
+- The owner's image (a square SVG, or a PNG of at least 512 px, transparent) becomes an `.ico` with every Windows size, made with the Electron already in the repo. The window, the taskbar and the tray use it; `tray.js`'s drawn "P" goes; the icon joins `package.mjs`'s file list.
+- The exe's own icon, product name and description become "Pseudo", written at build time by `package.mjs` with `resedit`. This changes D27's "Electron" limit.
+- **Done when:** tests pass, including the updated `tray.test.mjs`, and new packages are counted. The exe's file icon and its Task Manager name say Pseudo; the taskbar and tray icons are the owner's; the process is still `Pseudo.exe` and a question still reads the fake window, never Pseudo's own; the unsigned exe still starts with no warning 3 of 3; Start with Windows still adds exactly its one entry; the M15 battery scores 12/12.
+
+### M45: README for GitHub (docs)
+- The main README rewritten for a visitor: what Pseudo is and its privacy model; screenshots or a GIF made from fake data; setup, an architecture diagram and the safety rules; the learning story, linking the lessons.
+- Fixes: the broken `face\node_modules` line; the Ollama mention; `pseudo_hands/README.md` (stops at M24) and `pseudo_brain/README.md` (stops at M26) brought up to date.
+- **Done when:** the owner approves the README as GitHub renders it.
+
+## 17. Backlog
 
 Found while building; not scheduled. Each needs a plan and approval before work starts.
 
