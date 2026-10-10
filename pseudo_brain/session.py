@@ -24,18 +24,22 @@ Rules:
   - (M18) The face lists saved sessions and opens one by NAME. A name is accepted only
     if it looks like one Pseudo made (a date and time), so it can never be a path
     that points outside the sessions folder (the M3 sandbox idea).
+  - (M41) A chat can have a title you gave it; without one, the sidebar shows its first question.
+    Renaming, deleting and searching live in session_files.py.
 """
 
 import json
 import os
 import re
 import time
+from collections.abc import Iterator
 from dataclasses import dataclass, field
 from pathlib import Path
 
 M14_PROVIDER = "groq"  # sessions saved before M16 have no provider: they all used Groq
 SESSIONS_DIR = Path(os.environ.get("LOCALAPPDATA", str(Path.home()))) / "Pseudo" / "sessions"
-SESSION_NAME = re.compile(r"\d{8}-\d{6}(-\d{3})?")  # 20260930-231500-123 (M14's names have no milliseconds)
+SESSION_NAME = re.compile(r"[0-9]{8}-[0-9]{6}(-[0-9]{3})?")  # 20260930-231500-123 (M14's: no milliseconds)
+# (M41) [0-9], not \d: Python's \d also matches other scripts' digits, which Pseudo never writes in a name
 TITLE_CHARS = 60  # (M18) how much of a session's first question the face's list shows
 
 
@@ -72,6 +76,7 @@ class Session:
     started: str = field(default_factory=lambda: session_name())  # also the file name
     provider: str = ""  # the provider this session belongs to ("" = not bound yet: the first turn binds it)
     answered_by: dict[int, str] = field(default_factory=dict)  # turn number -> "groq · model (fallback)"
+    title: str = ""  # (M41) the name you gave this chat; "" = none, so the sidebar shows its first question
 
     def start_turn(self, text: str) -> None:
         self.turns.append([{"role": "user", "content": text}])
@@ -122,7 +127,7 @@ class Session:
         """Write your messages and the final answers (nothing from tools) to this session's file."""
         SESSIONS_DIR.mkdir(parents=True, exist_ok=True)
         path = SESSIONS_DIR / f"{self.started}.json"
-        data = {"started": self.started, "provider": self.provider, "messages": self.transcript()}
+        data = {"started": self.started, "provider": self.provider, "title": self.title, "messages": self.transcript()}
         path.write_text(json.dumps(data, ensure_ascii=False, indent=1), encoding="utf-8")
         return path
 
@@ -132,18 +137,30 @@ def saved_files() -> list[Path]:
     return sorted(SESSIONS_DIR.glob("*.json")) if SESSIONS_DIR.exists() else []
 
 
-def list_sessions() -> list[dict]:
-    """(M18) Every saved session, newest first: its name, provider, number of questions and first question."""
-    items = []
+def session_item(name: str, data: dict) -> tuple[dict, list[str]]:
+    """(M41) A saved chat's line in the sidebar (name, provider, questions, title), and your messages.
+
+    Raises KeyError or TypeError for a damaged file."""
+    asked = [m["content"] for m in data["messages"] if m["role"] == "user"]
+    title = data.get("title") if isinstance(data.get("title"), str) and data.get("title") else ""
+    item = {"name": name, "provider": data.get("provider") or M14_PROVIDER, "questions": len(asked),
+            "title": title or (asked[0][:TITLE_CHARS] if asked else "")}
+    return item, asked
+
+
+def saved_chats() -> Iterator[tuple[dict, list[str]]]:
+    """(M41) Every readable saved chat, newest first, as session_item() gives it."""
     for path in reversed(saved_files()):
         try:
-            data = json.loads(path.read_text(encoding="utf-8"))
-            asked = [m["content"] for m in data["messages"] if m["role"] == "user"]
+            chat = session_item(path.stem, json.loads(path.read_text(encoding="utf-8")))
         except (OSError, ValueError, KeyError, TypeError):  # a damaged file is left out, never guessed at
             continue
-        items.append({"name": path.stem, "provider": data.get("provider") or M14_PROVIDER,
-                      "questions": len(asked), "title": asked[0][:TITLE_CHARS] if asked else ""})
-    return items
+        yield chat
+
+
+def list_sessions() -> list[dict]:
+    """(M18) Every saved session, newest first: its name, provider, number of questions and title."""
+    return [item for item, _asked in saved_chats()]
 
 
 def load_session(name: str) -> Session:
@@ -166,7 +183,8 @@ def load_latest() -> Session | None:
 def read_session(path: Path) -> Session:
     """A saved file -> a Session with its provider and answer labels."""
     data = json.loads(path.read_text(encoding="utf-8"))
-    session = Session(started=data["started"], provider=data.get("provider") or M14_PROVIDER)
+    title = data.get("title") if isinstance(data.get("title"), str) else ""
+    session = Session(started=data["started"], provider=data.get("provider") or M14_PROVIDER, title=title)
     for message in data["messages"]:
         label = message.pop("answered_by", None)  # kept in the session, never sent to a model
         if message["role"] == "user":
