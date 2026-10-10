@@ -12,6 +12,7 @@ import pytest
 
 from pseudo_hands.core import memory, redactor
 from pseudo_hands.core.memory import NOT_SAVED, SAVED, save_memory
+from pseudo_hands.core.memory_browse import list_memories, open_memory
 from pseudo_hands.core.memory_search import search_memories
 
 QUESTION = "why did the vercel deploy fail"
@@ -70,6 +71,36 @@ def test_a_linked_vault_folder_is_refused(popup_yes, temp_vault: Path, outside: 
     assert save()["status"] == NOT_SAVED
     assert sorted(p.name for p in outside.iterdir()) == ["secret.md"]  # nothing written outside
     assert nothing_found()
+
+
+@pytest.mark.parametrize("kind", ["symlink", "junction"])
+def test_a_linked_pseudo_folder_is_refused_for_every_memory_tool(popup_yes, monkeypatch: pytest.MonkeyPatch,
+                                                                 tmp_path: Path, outside: Path, kind: str) -> None:
+    """(M42) A link at %LOCALAPPDATA%\\Pseudo itself: no save, no search, no list, no open, nothing written there."""
+    elsewhere = tmp_path / "elsewhere"
+    (elsewhere / "memory" / "tasks").mkdir(parents=True)
+    (elsewhere / "memory" / "tasks" / "2026-10-01-080000-000.md").write_bytes((outside / "secret.md").read_bytes())
+    door = tmp_path / "local" / "Pseudo"
+    door.parent.mkdir()
+    make_link(kind, door, elsewhere)
+    monkeypatch.setattr(memory, "TASKS_DIR", door / "memory" / "tasks")
+    before = {p: p.read_bytes() for p in elsewhere.rglob("*") if p.is_file()}
+    assert save()["status"] == NOT_SAVED and nothing_found()
+    listed, opened = list_memories(), open_memory("2026-10-01-080000-000.md")
+    assert listed["items"] == [] and "Pseudo is a link" in listed["note"] and "Pseudo is a link" in opened["note"]
+    assert {p: p.read_bytes() for p in elsewhere.rglob("*") if p.is_file()} == before
+
+
+def test_a_linked_pseudo_folder_gets_no_memory_folders_created_in_it(popup_yes, monkeypatch: pytest.MonkeyPatch,
+                                                                    tmp_path: Path) -> None:
+    """(M42) The check comes BEFORE anything is created: otherwise the first save would make folders elsewhere."""
+    elsewhere = tmp_path / "elsewhere"
+    elsewhere.mkdir()
+    door = tmp_path / "local" / "Pseudo"
+    door.parent.mkdir()
+    make_link("junction", door, elsewhere)
+    monkeypatch.setattr(memory, "TASKS_DIR", door / "memory" / "tasks")
+    assert save()["status"] == NOT_SAVED and list(elsewhere.iterdir()) == []
 
 
 @pytest.mark.parametrize("kind", ["symlink", "hard link"])

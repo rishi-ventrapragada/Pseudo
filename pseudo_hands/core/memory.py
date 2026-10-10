@@ -11,6 +11,7 @@ brain gets the same protection:
   3. Every save asks you first, in the approval popup (D13): default no, 20 s, then no.
   4. The file name is the date and time only, never words from the question.
   5. Links are refused (symlinks, junctions, hard links): a link could point outside the vault.
+     (M42) That includes %LOCALAPPDATA%\\Pseudo itself, as for saved chats (M41).
 Pseudo itself only creates and reads notes. It has no tool to edit or delete one: you do that.
 """
 
@@ -57,14 +58,23 @@ def is_link(path: Path) -> bool:
     return stat.S_ISLNK(info.st_mode) or bool(getattr(info, "st_file_attributes", 0) & stat.FILE_ATTRIBUTE_REPARSE_POINT)
 
 
-def tasks_folder(create: bool) -> Path:
-    """The vault's tasks folder, checked: no link anywhere from the memory folder down. Raises VaultRefused."""
-    root = TASKS_DIR
-    if create:
-        root.mkdir(parents=True, exist_ok=True)
-    for part in (root.parent, root):
+def refuse_links(folders: tuple[Path, ...]) -> None:
+    for part in folders:
         if is_link(part):
             raise VaultRefused(f"{part.name} is a link; Pseudo only uses a real folder")
+
+
+def tasks_folder(create: bool) -> Path:
+    """The vault's tasks folder, checked: no link anywhere from the Pseudo folder down. Raises VaultRefused.
+
+    (M42) The Pseudo folder itself is checked too, and BEFORE anything is created: otherwise a link
+    there would make Pseudo create the memory folders somewhere else first."""
+    root = TASKS_DIR
+    folders = (root.parent.parent, root.parent, root)  # Pseudo, memory, tasks
+    refuse_links(folders)
+    if create:
+        root.mkdir(parents=True, exist_ok=True)
+        refuse_links(folders)  # what now exists must be real folders too
     if not root.is_dir():
         raise VaultRefused("there is no memory folder yet")
     return root

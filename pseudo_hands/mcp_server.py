@@ -16,7 +16,7 @@ Run it (normally the brain does this for you):
     python -m pseudo_hands.mcp_server
     python -m pseudo_hands.mcp_server --tools list_open_windows,read_active_window,act_on_control
 (M30) --tools publishes only the named tools. Claude Code gets its own pseudo_hands for action
-requests (D26), without the window-switching tool and without the two brain-only memory tools.
+requests (D26), without the window-switching tool and without the brain-only tools (D29).
 It is still no logic: the tools are the same core functions; this only leaves some unpublished.
 """
 
@@ -28,7 +28,9 @@ from mcp.types import ToolAnnotations
 from pseudo_hands.core.act import act_on_control
 from pseudo_hands.core.active_window import read_active_window
 from pseudo_hands.core.focus import focus_window
+from pseudo_hands.core.looking_at import looking_at
 from pseudo_hands.core.memory import save_memory
+from pseudo_hands.core.memory_browse import list_memories, open_memory
 from pseudo_hands.core.memory_search import search_memories
 from pseudo_hands.core.windows import list_open_windows
 
@@ -76,6 +78,18 @@ SAVE_MEMORY_DESCRIPTION = (
     "If the status is 'not approved', nothing was saved. Pseudo's own brain calls this after each "
     "answer; its model never sees it."
 )
+LOOKING_AT_DESCRIPTION = (
+    "Which app read_active_window would read right now: its own name, or private for a blocked app. Nothing "
+    "is read from the window. Pseudo's own brain calls this for its window; its model never sees it."
+)
+LIST_MEMORIES_DESCRIPTION = (
+    "List the user's saved memories, newest first: each one's name, date and title, redacted again. Pseudo's "
+    "own brain calls this for its window; its model never sees it."
+)
+OPEN_MEMORY_DESCRIPTION = (
+    "Open one saved memory by its name, read-only: its date, title, question and answer, redacted again. "
+    "Pseudo's own brain calls this for its window; its model never sees it."
+)
 
 server = MCPServer("pseudo_hands", log_level="WARNING")  # (P5-tune) no INFO chatter on stderr; warnings and errors still show
 server.add_tool(
@@ -118,8 +132,27 @@ server.add_tool(
                                 idempotent_hint=False, open_world_hint=False),
 )
 
+server.add_tool(
+    looking_at,  # M42: brain-only (D29). Picks the window read_active_window would read, and reads nothing from it.
+    name="looking_at",
+    description=LOOKING_AT_DESCRIPTION,
+    annotations=ToolAnnotations(read_only_hint=True, open_world_hint=False),
+)
+server.add_tool(
+    list_memories,  # M42: brain-only (D29). The vault's checks, then each title redacted again, in core.
+    name="list_memories",
+    description=LIST_MEMORIES_DESCRIPTION,
+    annotations=ToolAnnotations(read_only_hint=True, open_world_hint=False),
+)
+server.add_tool(
+    open_memory,  # M42: brain-only (D29). A name, never a path; read-only; redacted again, in core.
+    name="open_memory",
+    description=OPEN_MEMORY_DESCRIPTION,
+    annotations=ToolAnnotations(read_only_hint=True, open_world_hint=False),
+)
+
 ALL_TOOLS = ("list_open_windows", "read_active_window", "focus_window", "act_on_control",
-             "search_memories", "save_memory")
+             "search_memories", "save_memory", "looking_at", "list_memories", "open_memory")
 
 if __name__ == "__main__":
     if "--tools" in sys.argv:  # (M30) publish only these; an unknown name stops the server before it starts

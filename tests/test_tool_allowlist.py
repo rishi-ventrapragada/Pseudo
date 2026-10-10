@@ -61,7 +61,7 @@ async def test_all_tools_is_exactly_what_the_server_registers_with_no_name_twice
 
 def test_every_published_tool_is_on_exactly_one_list() -> None:
     model_tools = load_model_tools()
-    assert set(model_tools) <= set(ALL_TOOLS)  # the list names no tool that doesn't exist
+    assert set(model_tools) <= set(ALL_TOOLS) and set(BRAIN_TOOLS) <= set(ALL_TOOLS)  # no list names a missing tool
     assert all((name in model_tools) != (name in BRAIN_TOOLS) for name in ALL_TOOLS)
 
 

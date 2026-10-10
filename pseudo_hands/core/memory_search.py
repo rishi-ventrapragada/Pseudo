@@ -102,16 +102,25 @@ class Index:
         return [name for name, score in rows if score >= CUTOFF and name in self.texts]
 
 
-def as_memory(text: str) -> str:
-    """One note -> one short memory: its date, then its question and answer redacted again, then cut.
+def note_parts(text: str) -> tuple[str, str, str, str]:
+    """(M42) A note -> its date, title, question and answer, NOT redacted (the search and the browser redact).
 
-    The date comes from the note's properties and must look exactly like 2026-10-02 (written by
-    save_memory), so it can skip redaction, which would mask it as a date."""
-    date = re.search(r"^date: (\d{4}-\d{2}-\d{2})", text, re.MULTILINE)
+    The date comes from the note's properties and must look exactly like 2026-10-02, in ASCII digits
+    (written by save_memory), so it can skip redaction, which would mask it as a date."""
+    date = re.search(r"^date: ([0-9]{4}-[0-9]{2}-[0-9]{2})", text, re.MULTILINE)
     body = body_of(text)
     question = body.split("## Question\n", 1)[-1].split("\n## Answer\n", 1)[0].strip()
     answer = body.split("\n## Answer\n", 1)[1].strip() if "\n## Answer\n" in body else ""
-    entry = f"- {date.group(1) if date else 'undated'}: " + redact(f"{question}\n  Answer: {answer}")
+    title = re.search(r"^# (.+)$", body, re.MULTILINE)
+    first = question.splitlines()[0] if question else "(no question)"
+    title_text = (title.group(1) if title else first).strip()[:memory.TITLE_CHARS]
+    return date.group(1) if date else "undated", title_text, question, answer
+
+
+def as_memory(text: str) -> str:
+    """One note -> one short memory: its date, then its question and answer redacted again, then cut."""
+    date, _title, question, answer = note_parts(text)
+    entry = f"- {date}: " + redact(f"{question}\n  Answer: {answer}")
     return entry if len(entry) <= MAX_MEMORY_CHARS else entry[:MAX_MEMORY_CHARS] + " … (cut)"
 
 

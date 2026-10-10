@@ -27,7 +27,8 @@ from pseudo_hands.mcp_server import ACT_ON_CONTROL_DESCRIPTION, LIST_OPEN_WINDOW
 SECRET_TITLE = "Vault: bank PIN 4321"
 ALL_TOOLS = ["list_open_windows", "read_active_window", "focus_window",  # M9 and M10 added one each
              "act_on_control",  # M28
-             "search_memories", "save_memory"]  # M24: brain-only (pseudo_brain hides them from the model)
+             "search_memories", "save_memory",  # M24: brain-only (pseudo_brain hides them from the model)
+             "looking_at", "list_memories", "open_memory"]  # M42: brain-only too (D29)
 HANDLES = itertools.count(101)  # (M10) every fake window gets its own handle, so its own id
 
 
