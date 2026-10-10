@@ -45,8 +45,18 @@ describe('cleanForBrain', () => {
     expect(cleanForBrain({ type: 'ask', text: 'hi', audio: 'AAAA' })).toEqual({ type: 'ask', text: 'hi' });
   });
 
-  it('the list holds the eight messages the brain knows', () => {
-    expect([...TO_BRAIN].sort()).toEqual(['ask', 'list_sessions', 'new_session', 'open_session', 'provider',
-                                          'speak_answers', 'transcribe', 'warm_sessions']);
+  it('the list holds the eleven messages the brain knows', () => {
+    expect([...TO_BRAIN].sort()).toEqual(['ask', 'delete_session', 'list_sessions', 'new_session', 'open_session',
+                                          'provider', 'rename_session', 'search_sessions', 'speak_answers',
+                                          'transcribe', 'warm_sessions']);
+  });
+
+  it('M41: a rename carries its name and title as text, and nothing else', () => {
+    expect(cleanForBrain({ type: 'rename_session', name: '20261010-091500-123', title: 'Booking form', path: 'C:\\x' }))
+      .toEqual({ type: 'rename_session', name: '20261010-091500-123', title: 'Booking form' });
+    expect(cleanForBrain({ type: 'rename_session', name: '20261010-091500-123', title: ['x'] }))
+      .toEqual({ type: 'rename_session', name: '20261010-091500-123' }); // the brain refuses a missing title
+    expect(cleanForBrain({ type: 'delete_session', name: '20261010-091500-123', title: 'x' }))
+      .toEqual({ type: 'delete_session', name: '20261010-091500-123', title: 'x' }); // the brain reads only the name
   });
 });

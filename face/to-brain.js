@@ -12,9 +12,10 @@
  */
 
 const TO_BRAIN = new Set(['ask', 'provider', 'new_session', 'list_sessions', 'open_session', 'transcribe',
-                          'speak_answers', 'warm_sessions']);
+                          'speak_answers', 'warm_sessions',
+                          'search_sessions', 'rename_session', 'delete_session']); // M41: the sidebar's chats
 const SWITCHES = new Set(['speak_answers', 'warm_sessions']); // M26, M32: each carries one true/false, `on`
-const FIELDS = ['text', 'id', 'name']; // the only text fields a message to the brain may carry
+const FIELDS = ['text', 'id', 'name', 'title']; // the only text fields a message to the brain may carry (M41: title)
 // M26: a push-to-talk recording, base64. 30.5 s of 16 kHz 16-bit mono is about 1.3 million characters;
 // anything bigger is dropped here, and the brain checks the length again (voice_in.py).
 const MAX_AUDIO_CHARS = 1400000;

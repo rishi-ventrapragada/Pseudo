@@ -3,6 +3,7 @@
 // about providers or sessions lives here; the brain decides, and this only records what it said.
 // M40: steps are plain-language objects (steps.ts); `waiting` says whether the running tool can show the approval
 // popup (the brain's `asks`); a running question keeps when it was asked, for the working line's timer.
+// M41: the open chat's title, the last search's reply, and `renamed`/`deleted`, which end those jobs.
 
 import { answerLabel, describeStep, type Step, who } from './steps';
 import type { ActionBrain, Autostart, FromBrain, Hotkey, Provider, SavedMessage, SessionItem, Warm } from './protocol';
@@ -26,11 +27,13 @@ export type State = {
   provider: string; // the id in use
   actionBrain: ActionBrain | null; // M30: who answers action requests (D26); null = nobody
   session: string; // the session's name (when it started)
+  title: string; // M41: the name you gave the open chat; '' = none (the top row shows its first question)
   turns: Turn[];
   working: string | null; // what Pseudo is doing right now; null = waiting for you
   waiting: Waiting | null; // M40: a tool that is running, and whether its popup may be open; null = none
   notice: string; // the last switch or refusal, in plain words
   sessions: SessionItem[] | null; // the saved chats; null = not listed yet
+  found: { text: string; items: SessionItem[] } | null; // M41: the last search's reply, with the words it was for
   suggestions: string[]; // M40: the empty chat's one-click questions, from the brain
   heard: { text: string; n: number } | null; // M26: the latest transcript; n counts them, so each one lands once
   speech: { audio: string; n: number } | null; // M26: the latest spoken answer, for the player
@@ -52,9 +55,9 @@ export type Action =
   | { type: 'restarting' };
 
 export const initial: State = {
-  phase: 'starting', providers: [], provider: '', actionBrain: null, session: '', turns: [], working: null, waiting: null,
-  notice: '', sessions: null, suggestions: [], heard: null, speech: null, warm: null, autostart: null, hotkeys: null, talk: 0,
-  compact: false,
+  phase: 'starting', providers: [], provider: '', actionBrain: null, session: '', title: '', turns: [], working: null,
+  waiting: null, notice: '', sessions: null, found: null, suggestions: [], heard: null, speech: null, warm: null,
+  autostart: null, hotkeys: null, talk: 0, compact: false,
 };
 
 /** A saved session's messages -> turns: each question with the answer that followed it. Who answered is kept
@@ -90,7 +93,8 @@ function fromBrain(state: State, message: FromBrain): State {
       return { ...initial, ...fromMain(state), phase: 'ready', // M36: what the main process said is kept
                providers: message.providers, provider: message.provider,
                actionBrain: message.action_brain ?? null, suggestions: message.suggestions ?? [],
-               session: message.session.name, turns: turnsFrom(message.session.messages) };
+               session: message.session.name, title: message.session.title ?? '',
+               turns: turnsFrom(message.session.messages) };
     case 'event': {
       const { kind, data } = message;
       if (kind === 'hands_pid') return state; // M30: for the main process only (foreground.js)
@@ -108,15 +112,22 @@ function fromBrain(state: State, message: FromBrain): State {
       return { ...state, working: null, waiting: null,
                turns: updateRunning(state.turns, () => ({ running: false, askedAt: undefined })) };
     case 'switched':
-      return { ...state, provider: message.provider, session: message.session.name, turns: [], working: null,
+      return { ...state, provider: message.provider, session: message.session.name, title: '', turns: [], working: null,
                waiting: null, notice: `Switched to ${message.provider}. This is a new session: a session keeps one provider.` };
     case 'session':
-      return { ...state, provider: message.provider, session: message.name, turns: turnsFrom(message.messages),
+      return { ...state, provider: message.provider, session: message.name, title: message.title ?? '',
+               turns: turnsFrom(message.messages),
                working: null, waiting: null, sessions: null,
                notice: message.messages.length ? `Continuing a saved session on ${message.provider}.`
                                                : `New session on ${message.provider}.` };
     case 'sessions':
       return { ...state, sessions: message.items };
+    case 'found': // M41: kept with its words; the sidebar shows it only while the search box still says them
+      return { ...state, found: { text: message.text, items: message.items } };
+    case 'renamed': // M41: the rename is done (the new list came just before)
+      return { ...state, working: null, title: message.name === state.session ? message.title : state.title };
+    case 'deleted': // M41: the delete is done; if it was the open chat, a new one came just before
+      return { ...state, working: null, notice: `Deleted “${message.title || 'a chat with no questions'}”.` };
     case 'transcript': // M26: words go to the input box; no words -> the brain's note says why
       return { ...state, working: null, notice: message.text ? '' : message.note,
                heard: message.text ? { text: message.text, n: (state.heard?.n ?? 0) + 1 } : state.heard };

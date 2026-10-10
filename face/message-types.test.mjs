@@ -34,4 +34,10 @@ describe('the message types the page may send', () => {
   it('M32: the warm-session switch is on all three', () => {
     for (const list of [preload, toBrain, pageTypes]) expect(list).toContain('warm_sessions');
   });
+
+  it("M41: the sidebar's search, rename and delete are on all three", () => {
+    for (const type of ['search_sessions', 'rename_session', 'delete_session']) {
+      for (const list of [preload, toBrain, pageTypes]) expect(list).toContain(type);
+    }
+  });
 });
