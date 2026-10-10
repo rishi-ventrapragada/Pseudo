@@ -1,0 +1,57 @@
+/* M39: Pseudo's design tokens, taken from the Phase 10 mockup (approved 2026-10-10).
+   Tailwind turns each token into classes: --color-ground gives bg-ground, text-ground, border-ground.
+   Its own palette is switched off (--color-*: initial), so the page can only use these colours.
+   Rules from the mockup: dark only, monochrome; amber (wait) ONLY while an approval popup waits;
+   red (danger) ONLY for Delete and for recording. */
+@import "tailwindcss";
+@import "@fontsource-variable/geist";
+@import "@fontsource-variable/geist-mono";
+
+@theme {
+  --font-sans: "Geist Variable", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "Geist Mono Variable", ui-monospace, monospace;
+
+  --color-*: initial;
+  --color-white: #ffffff;
+  --color-black: #000000;
+
+  /* grounds, darkest first */
+  --color-sidebar: #111113;
+  --color-ground: #171719; /* the conversation */
+  --color-field: #18181b; /* search box, status card */
+  --color-raised: #1a1a1d; /* New chat */
+  --color-dialog: #1c1c1f;
+  --color-popover: #1f1f23; /* menus, pickers, the selected chat */
+  --color-composer: #202024;
+  --color-bubble: #26262b; /* your question, chips */
+
+  /* lines */
+  --color-divider: #222226;
+  --color-edge: #2a2a2f;
+  --color-edge-strong: #2e2e34;
+  --color-control: #3a3a42; /* chip borders, a switch that is off */
+
+  /* text, strongest first */
+  --color-ink: #ececee;
+  --color-ink-soft: #c9c9d1;
+  --color-muted: #a1a1a9;
+  --color-faint: #8a8a93;
+  --color-disabled: #6b6b74;
+
+  /* the only two colours */
+  --color-wait: #f5c26b; /* amber: an approval popup is waiting */
+  --color-danger: #f87171; /* red text: Delete, recording */
+  --color-danger-strong: #dc2626; /* red fill: the Delete button in a confirm */
+}
+
+@layer base {
+  :root { color-scheme: dark; }
+  html, body, #root { height: 100%; margin: 0; }
+  body { background: var(--color-ground); color: var(--color-ink); font-family: var(--font-sans); font-size: 14px; }
+  :focus-visible { outline: 2px solid var(--color-ink-soft); outline-offset: 2px; }
+}
+
+/* Movement is decoration: with "reduce motion" on in Windows, nothing moves. */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
+}
