@@ -206,6 +206,9 @@ pseudo_brain/           Pseudo's own agent loop (D15, M14), grown from playgroun
                         (M32) with warm sessions (the face gives them), action requests go through their rules
   routing.py            the two word rules, no model: is it an action request? is the switch tool
                         offered? (M29, M30)
+  asks.py               (M40) adds asks to every tool_call event, from pseudo_hands' own marks (read_only_hint);
+                        a tool with no mark counts as asking. The popup itself stays in core (D13)
+  suggestions.py        (M40) the empty chat's 4 suggestions, sent in ready; each one only reads
   action_brain.py       the action brain's settings from providers.toml: program, model, its tools,
                         the NAME of the .env variable holding your account (M30, D26)
   claude_billing.py     before every launch: nothing outranks the subscription login, and the login
@@ -270,8 +273,8 @@ face/                   Pseudo's own window (M18): Electron + React, display onl
                         the pseudo_hands Claude Code started instead (M30)
   permissions.js        the one permission the page may get: the microphone, audio only, our page only (M26)
   taskbar-flash.js      flashes the taskbar button while a tool runs and you're in another window
-  src/                  the React page: chat, live steps, Markdown answers, provider bar, sessions,
-                        the approval banner; (M26) recorder.ts, speaker.ts, useVoice.ts, the mic and Speak answers (M39: MicButton.tsx, Settings):
+  src/                  the React page: chat, live steps, Markdown answers, provider bar, sessions;
+                        (M26) recorder.ts, speaker.ts, useVoice.ts, the mic and Speak answers (M39: MicButton.tsx, Settings):
                         the mic button, Ctrl+Space, the Speak answers switch; (M32) useWarm.ts, WarmControl.tsx:
                         the warm-session switch (remembered) and the open session's memory; (M36)
                         AutostartControl.tsx: the Start with Windows switch, showing what Windows says; (M37)
@@ -281,7 +284,9 @@ face/                   Pseudo's own window (M18): Electron + React, display onl
                         Geist fonts, the design tokens, drag rows), answer.css (Markdown and the masked-item chips),
                         lib/cn.ts, components/ui/ (Button, Tip, Switch, Disclosure, Dialog on the native <dialog>),
                         components/ (Sidebar, SessionList, TopBar, Conversation, TurnView, BottomArea, MicButton,
-                        SettingsDialog, SettingRow, Stopped, CompactBar)
+                        SettingsDialog, SettingRow, Stopped, CompactBar); (M40) steps.ts: each brain event as one
+                        step in plain words (replaces events.ts); components/Activity.tsx: the working word, the
+                        amber approval line and the compact bar's top row
 ```
 
 ```

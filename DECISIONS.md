@@ -75,7 +75,7 @@ Pseudo's brain is its own agent loop in `pseudo_brain/`, grown from the M3 loop 
 ### D16. Allowed providers, each with a privacy note (M15)
 `pseudo_brain` uses only the providers on a committed allowlist; anything else is refused.
 - **Groq (main):** `openai/gpt-oss-120b`. Redacted screen text leaves the laptop. Groq doesn't train on inputs or outputs (services agreement §4.2).
-- **Groq fallback:** `openai/gpt-oss-20b`, used only when the main model returns a 429, and announced before it's used. Groq's limits are per model (measured in M15). Never a fallback to another provider.
+- **Groq fallback:** `openai/gpt-oss-20b`, used only when the main model returns a 429, and announced before it's used (since Phase 10, in that answer's steps, D28). Groq's limits are per model (measured in M15). Never a fallback to another provider.
 - **Private mode (local):** Ollama on this laptop only (`127.0.0.1`), cloud off, model `granite4.1:3b`. Nothing leaves the laptop. Any model name containing "cloud" is refused. If it fails, it says so; it never falls back to the cloud. **Disabled since 2026-10-01 (P5-perf, D20):** Ollama was removed to free laptop resources. `providers.toml` keeps the entry with `disabled = "<reason>"`, so `/provider local` is refused with that reason. The code stays; re-enabling needs D20 changed first, Ollama reinstalled, and the `disabled` line deleted.
 - **Claude Code** is not in the allowlist: it's a separate brain that reaches `pseudo_hands` over MCP (D11), launched with only Pseudo's tools (`--strict-mcp-config`, `--tools ""`) on the owner's subscription login, never an API key. Redacted screen text goes to Anthropic under the consumer terms. The owner turned "Help improve Claude" off on 2026-09-30, so Anthropic doesn't train on these chats and keeps them up to 30 days. If that setting is turned back on, Claude Code goes back to fake windows only. (M30) `pseudo_brain` launches it for action requests (D26); its settings are in `providers.toml` under `[action_brain]`, and the account it must be logged into is named in `.env`.
 *Why (M15):* `gpt-oss-20b` scored 12/12 and has its own rate-limit budget. `granite4.1:3b` scored 18/18 at about 5 s per read and 31 tokens/s, with no connections outside the laptop. `llama3.2:3b` (10/18), `lfm2.5:8b` (13/18) and two Qwen 4B models (too slow) failed. `qwen3.8-27b` passed (11/12) but is a Preview model that Groq may drop at short notice. Claude Code passed T1, T2 and T4 (6/6) and saw exactly Pseudo's 3 tools.
@@ -147,6 +147,11 @@ For requests that ask Pseudo to act on a window, `pseudo_brain` may hand the que
 *Why (M35):* starting the brain at a hidden start used 9.6 CPU-seconds in the first minute against a limit of 5; starting it on first show used 2.8, cost one wait of 7.6 s, and passed every criterion. Idle, Pseudo used under 2 CPU-seconds per 10 minutes and peaked at 248 MB in RAM.
 *Limits:* with the brain running Pseudo commits about 590 MB, of which about 250 is in RAM at most; stopping an idle brain would bring that to about 80 MB but needs a new page state (measured as A2, not built).
 *Would change if:* real use shows the laptop short of memory with Pseudo idle (then A2).
+
+### D28. The window shows no provider or brain by default (Phase 10)
+Pseudo's window shows no privacy strip and no "who answered" label. While it works it shows a playful word and a timer; while an approval popup waits it says so in plain words. Which provider, model or brain answered, and any fallback, is in that answer's steps, one click away, and every saved session still records it. Where each provider and the action brain send data is in Settings (and, from M41, the sidebar's provider picker); nothing is shown under the question box (owner, 2026-10-10).
+*Why:* the owner wants a calm window for daily use and screenshots (2026-10-09). The information is moved off the main view, not removed.
+*Would change if:* a request goes to a brain the owner didn't expect and the hidden label is why he missed it.
 
 ## LEANING (revisit after Phase 1)
 
