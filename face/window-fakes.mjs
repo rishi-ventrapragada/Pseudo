@@ -15,6 +15,7 @@ export const BAR = defaultBounds('compact', AREA);
 export function fakeWindow({ visible = true, drift = 1 } = {}) {
   const win = {
     bounds: null, top: false, min: null, maximized: false, visible, handlers: {}, tops: [],
+    maximizable: true, overlay: null, // (M43) the title bar's buttons
     isDestroyed: () => false,
     isVisible: () => win.visible,
     isMaximized: () => win.maximized,
@@ -24,6 +25,8 @@ export function fakeWindow({ visible = true, drift = 1 } = {}) {
     setBounds: (rect) => { win.bounds = { ...rect, width: rect.width + drift, height: rect.height + drift }; },
     getBounds: () => ({ ...win.bounds }),
     setAlwaysOnTop: (on) => { win.top = on; win.tops.push(on); },
+    setMaximizable: (on) => { win.maximizable = on; },
+    setTitleBarOverlay: (options) => { win.overlay = options; },
     on: (name, handler) => { win.handlers[name] = handler; },
     byUser: (rect) => { win.bounds = rect; win.handlers.resized(); }, // you dragged an edge, then let go
   };

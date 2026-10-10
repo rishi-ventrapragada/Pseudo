@@ -4,7 +4,7 @@ import { readFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { describe, expect, it } from 'vitest';
 
-const { GROUND, SYMBOLS, WINDOW_LOOK } = createRequire(import.meta.url)('./window-look.js');
+const { GROUND, SYMBOLS, TOP_ROW, WINDOW_LOOK, lookFor, overlayFor } = createRequire(import.meta.url)('./window-look.js');
 const theme = readFileSync(new URL('./src/theme.css', import.meta.url), 'utf8');
 const token = (name) => theme.match(new RegExp(`--color-${name}:\\s*(#[0-9a-f]{6})`))?.[1];
 
@@ -17,6 +17,17 @@ describe('the window look', () => {
   it('is dark always, and the buttons sit on the same ground as the page', () => {
     expect(WINDOW_LOOK.backgroundColor).toBe(GROUND);
     expect(WINDOW_LOOK.titleBarOverlay).toEqual({ color: GROUND, symbolColor: SYMBOLS, height: 44 });
+  });
+
+  it("M43: the buttons are as tall as each mode's top row: 44 px in the full window, 30 px in the bar", () => {
+    expect(TOP_ROW).toEqual({ full: 44, compact: 30 });
+    expect(overlayFor('compact')).toEqual({ color: GROUND, symbolColor: SYMBOLS, height: 30 });
+    expect(overlayFor('full')).toEqual(WINDOW_LOOK.titleBarOverlay);
+    expect(overlayFor('anything else').height).toBe(44);
+    expect(lookFor('compact')).toEqual({ ...WINDOW_LOOK, titleBarOverlay: overlayFor('compact') });
+    const page = (file) => readFileSync(new URL(file, import.meta.url), 'utf8');
+    expect(page('./src/components/TopBar.tsx')).toContain('h-11'); // 44 px
+    expect(page('./src/components/CompactBar.tsx')).toContain('h-[30px]');
   });
 
   it("keeps the page's top-right corner free for the three buttons", () => {

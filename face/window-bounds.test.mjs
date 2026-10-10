@@ -2,7 +2,7 @@
 import { createRequire } from 'node:module';
 import { describe, expect, it } from 'vitest';
 
-const { GROWN, MARGIN, SIZES, barFrom, defaultBounds, fit, grownFrom } = createRequire(import.meta.url)('./window-bounds.js');
+const { GROWN, MARGIN, SIZES, barFrom, defaultBounds, fit, fittedHeight, grownFrom } = createRequire(import.meta.url)('./window-bounds.js');
 
 const MAIN = { x: 0, y: 0, width: 1536, height: 816 }; // a 1536 x 864 screen minus its taskbar
 const SECOND = { x: 1536, y: 0, width: 1536, height: 816 }; // a second screen to its right
@@ -16,7 +16,7 @@ describe('defaultBounds', () => {
 
   it('the bar opens at the bottom right, a margin away from the corner', () => {
     const bar = defaultBounds('compact', MAIN);
-    expect(bar).toEqual({ x: 1536 - 480 - MARGIN, y: 816 - 132 - MARGIN, width: 480, height: 132 });
+    expect(bar).toEqual({ x: 1536 - 480 - MARGIN, y: 816 - 84 - MARGIN, width: 480, height: 84 });
     expect(inside(bar, MAIN)).toBe(true);
   });
 });
@@ -46,7 +46,7 @@ describe('fit', () => {
 
   it('C5: there is a minimum size, and a window is never bigger than its screen', () => {
     expect(fit({ x: 10, y: 10, width: 5, height: 5 }, 'full', [MAIN])).toMatchObject({ width: 520, height: 420 });
-    expect(fit({ x: 10, y: 10, width: 5, height: 5 }, 'compact', [MAIN])).toMatchObject({ width: 360, height: 120 });
+    expect(fit({ x: 10, y: 10, width: 5, height: 5 }, 'compact', [MAIN])).toMatchObject({ width: 360, height: 84 });
     expect(fit({ x: 0, y: 0, width: 9000, height: 9000 }, 'full', [MAIN])).toEqual(MAIN);
   });
 
@@ -91,7 +91,16 @@ describe('the bar growing and shrinking', () => {
 
   it('the sizes the plan fixed', () => {
     expect(SIZES).toEqual({ full: { width: 980, height: 740, minWidth: 520, minHeight: 420 },
-                            compact: { width: 480, height: 132, minWidth: 360, minHeight: 120 } });
-    expect(GROWN).toEqual({ height: 440, minHeight: 260 });
+                            compact: { width: 480, height: 84, minWidth: 360, minHeight: 84 } }); // M43: the mockup's bar
+    expect(GROWN).toEqual({ height: 440, minHeight: 160 });
+  });
+
+  it('M43: the grown bar is as tall as its content asks, never more than the cap', () => {
+    expect(fittedHeight(210, undefined)).toBe(210);
+    expect(fittedHeight(600, undefined)).toBe(GROWN.height); // no height of yours yet: the default cap
+    expect(fittedHeight(600, 380)).toBe(380); // the height you last gave the grown bar
+    expect(fittedHeight(null, 380)).toBe(380); // nothing measured: the cap, as before M43
+    for (const bad of ['300', NaN, Infinity, {}]) expect(fittedHeight(bad, 'tall'), String(bad)).toBe(GROWN.height);
+    expect(grownFrom(bar, fittedHeight(50, undefined), [MAIN]).height).toBe(GROWN.minHeight); // grownFrom holds the minimum
   });
 });

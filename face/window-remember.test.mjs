@@ -35,9 +35,24 @@ describe('WindowMode: what is remembered', () => {
     mode.setGrown(true);
     win.byUser({ x: 900, y: 200, width: 520, height: 500 });
     expect(written.at(-1).grownHeight).toBe(500);
-    expect(written.at(-1).compact).toEqual({ x: 900, y: 200 + 500 - 132, width: 520, height: 132 });
+    expect(written.at(-1).compact).toEqual({ x: 900, y: 200 + 500 - 84, width: 520, height: 84 });
     mode.setGrown(false);
-    expect(win.getBounds()).toEqual({ x: 900, y: 568, width: 520, height: 132 });
+    expect(win.getBounds()).toEqual({ x: 900, y: 616, width: 520, height: 84 });
+  });
+
+  it('M43: a height fitted to the content is never saved; moving the grown bar keeps your cap', () => {
+    const { mode, win, written } = setup({ mode: 'compact' });
+    mode.setGrown(true, 220);
+    mode.setGrown(true, 260);
+    expect(written).toEqual([]); // our own fitting: nothing written
+    const now = win.getBounds();
+    win.byUser({ ...now, x: now.x - 100, y: now.y - 50 }); // dragged by its top row: moved, same height
+    expect(written.at(-1).grownHeight).toBeUndefined();
+    expect(written.at(-1).compact.height).toBe(84);
+    win.byUser({ ...win.getBounds(), y: now.y - 150, height: now.height + 100 }); // its top edge dragged up
+    expect(written.at(-1).grownHeight).toBe(now.height + 100);
+    mode.setGrown(true, 9000); // a long answer now stops at your height
+    expect(win.getBounds().height).toBe(now.height + 100);
   });
 
   it('a maximized size is not remembered as the window\'s size', () => {

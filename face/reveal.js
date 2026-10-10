@@ -20,7 +20,7 @@
  * from had the keyboard back 10 of 10.
  * Before the window disappears, `beforeHide` runs: main.js uses it to make sure a tray icon
  * exists, so a hidden Pseudo can always be reached, even if a shortcut couldn't be registered.
- * (M38) It also makes the compact bar stop being always-on-top first (window-mode.js, letGo): from an
+ * (M38) It also makes the compact bar stop being always-on-top first (window-top.js, letGo): from an
  * always-on-top window, blur() hands the keyboard to the taskbar instead of the window underneath
  * (step 0: 5 of 5). The bar is on top again as soon as it is shown.
  */

@@ -6,11 +6,7 @@
  * recreated on a switch: the page, its state and the brain's pipe all stay as they are.
  *
  * The rules that live here, in the main process, not in the page:
- *   - While a tool waits (its approval popup may be open), the bar gives up always-on-top and
- *     takes it back when the tool's result arrives. Decided from the brain's own messages.
- *   - A hidden window is never always-on-top. Measured in step 0: hiding a bar that still is
- *     hands the keyboard to the taskbar, 5 of 5; letting go first (letGo, called by reveal.js
- *     before every hide) gave it back to the window you came from, 5 of 5.
+ *   - When the bar is always on top, and when it gives that up: `this.top` (window-top.js, moved out in M43).
  *   - Sizes and places are remembered in a small file (window-store.js), and every one read back goes through
  *     fit() (window-bounds.js), so a place that is off-screen today is corrected.
  *   - Only YOUR resizing and moving is remembered, never what the window reports after we set
@@ -21,9 +17,16 @@
  * The bar is an ordinary window: it takes clicks and the keyboard like any other. It is never
  * made click-through or unfocusable, and window-mode.test.mjs fails if that is ever added:
  * pseudo_hands tells user windows from overlays by exactly those properties (M12).
+ *
+ * (M43) The bar's own title bar: Windows' buttons shrink to its 30 px top row, and the bar can't be maximized.
+ * Grown, it is as tall as the turn it shows: the page measures that and says so (`height`), up to the cap
+ * you set by resizing the grown bar. Those fitted heights come from the page, are never saved, and are
+ * applied exactly, so they can't drift.
  */
 
-const { GROWN, SIZES, barFrom, fit, grownFrom } = require('./window-bounds');
+const { GROWN, SIZES, barFrom, fit, fittedHeight, grownFrom } = require('./window-bounds');
+const { overlayFor } = require('./window-look');
+const { OnTop } = require('./window-top');
 
 const DRIFT = 4; // pixels: a difference this small after setBounds is the screen's scaling, not you
 
@@ -43,7 +46,8 @@ class WindowMode {
     this.bar = saved.compact;
     this.grownHeight = saved.grownHeight;
     this.grown = false; // the bar is showing an answer
-    this.waiting = false; // a tool is running: its approval popup may be open
+    this.fitted = null; // (M43) how tall the page says the grown bar's content is; never saved
+    this.top = new OnTop(() => this.usable(), () => this.mode === 'compact'); // main.js passes it the brain's messages
     this.asked = null; // the bounds we last set, to tell our own changes from yours
   }
 
@@ -58,7 +62,7 @@ class WindowMode {
     const areas = this.areas();
     if (this.mode === 'full') return fit(this.full, 'full', areas);
     const bar = fit(this.bar, 'compact', areas);
-    return this.grown ? grownFrom(bar, this.grownHeight, areas) : bar;
+    return this.grown ? grownFrom(bar, fittedHeight(this.fitted, this.grownHeight), areas) : bar;
   }
 
   minimum() {
@@ -81,8 +85,17 @@ class WindowMode {
   attach(win) {
     win.on('resized', () => this.remember()); // Windows: once, when you let go of the edge
     win.on('moved', () => this.remember());
-    win.on('show', () => this.applyTop()); // a hidden window is never on top; shown again, the bar is
+    win.on('show', () => this.top.apply()); // a hidden window is never on top; shown again, the bar is
     this.place();
+    this.shape();
+  }
+
+  /** (M43) The title bar fits the mode: the bar's buttons are as tall as its 30 px row, and it can't be maximized. */
+  shape() {
+    const win = this.usable();
+    if (!win) return;
+    win.setTitleBarOverlay(overlayFor(this.mode));
+    win.setMaximizable(this.mode !== 'compact');
   }
 
   /** Put the window where this mode wants it. */
@@ -94,7 +107,7 @@ class WindowMode {
     win.setMinimumSize(...this.minimum());
     this.setExact(win, want);
     this.asked = want;
-    this.applyTop();
+    this.top.apply();
   }
 
   /** Ask for `want`; if the window comes out a few pixels off (screen scaling), ask again with that taken off. */
@@ -116,9 +129,9 @@ class WindowMode {
       && Math.abs(got.width - this.asked.width) <= DRIFT && Math.abs(got.height - this.asked.height) <= DRIFT;
     if (ours) return;
     if (this.mode === 'full') this.full = got;
-    else if (this.grown) { // the grown bar: its height is the answer area's; the bar itself keeps its bottom edge
+    else if (this.grown) { // the grown bar: a new height is your cap for it (M43); the bar itself keeps its bottom edge
       const areas = this.areas();
-      this.grownHeight = got.height;
+      if (!this.asked || Math.abs(got.height - this.asked.height) > DRIFT) this.grownHeight = got.height; // moved only: cap kept
       this.bar = barFrom(got, fit(this.bar, 'compact', areas).height, areas);
     } else this.bar = got;
     this.asked = got;
@@ -133,46 +146,28 @@ class WindowMode {
     if (mode === this.mode) return;
     this.mode = mode;
     this.grown = false;
+    this.fitted = null;
     this.place();
+    this.shape();
     this.save();
   }
 
-  /** The page says whether the bar is showing an answer (display state); the size is decided here. */
-  setGrown(on) {
-    if (this.mode !== 'compact' || on === this.grown) return;
+  /** The page says whether the bar is showing an answer (display state) and, (M43) when it is, how tall its
+   *  content is. The size is decided here: fittedHeight() and grownFrom() keep it under your cap and on screen. */
+  setGrown(on, height = null) {
+    const fitted = on && Number.isFinite(height) ? Math.round(height) : null;
+    if (this.mode !== 'compact' || (on === this.grown && fitted === this.fitted)) return;
     this.grown = on;
+    this.fitted = fitted;
     this.place();
   }
 
-  /** The page's `window_mode` message: only real true/false values are acted on. Returns what the page shows. */
+  /** The page's `window_mode` message: only real true/false values (and a real number) are acted on.
+   *  Returns what the page shows. */
   fromPage(message) {
     if (typeof message.compact === 'boolean') this.setMode(message.compact ? 'compact' : 'full');
-    if (typeof message.grown === 'boolean') this.setGrown(message.grown);
+    if (typeof message.grown === 'boolean') this.setGrown(message.grown, message.height);
     return this.state();
-  }
-
-  /** Every message from the brain passes here: a running tool takes the bar out of always-on-top. */
-  fromBrain(message) {
-    if (message.type === 'event' && message.kind === 'tool_call') this.waiting = true;
-    else if ((message.type === 'event' && message.kind === 'tool_result') || message.type === 'turn_done') this.waiting = false;
-    else return;
-    this.applyTop();
-  }
-
-  brainStopped() {
-    this.waiting = false;
-    this.applyTop();
-  }
-
-  /** Before the window is hidden: stop being always on top, or the keyboard goes to the taskbar (step 0). */
-  letGo() {
-    const win = this.usable();
-    if (win) win.setAlwaysOnTop(false);
-  }
-
-  applyTop() {
-    const win = this.usable();
-    if (win) win.setAlwaysOnTop(this.mode === 'compact' && !this.waiting && win.isVisible());
   }
 
   state() {

@@ -27,7 +27,7 @@ type Props = {
 export function CompactBar({ compact, notice, waiting, stopped, latest, onRestart, composer }: Props) {
   return (
     <div className="flex h-full flex-col bg-ground text-ink">
-      <div className="drag flex h-11 shrink-0 items-center pr-[var(--controls-width)] pl-3">
+      <div className="drag flex h-[30px] shrink-0 items-center pr-[var(--controls-width)] pl-3">
         <BarActivity turn={latest} waiting={waiting} notice={notice} />
       </div>
       {compact.grown && (

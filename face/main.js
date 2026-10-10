@@ -33,6 +33,7 @@
  * (M38) The window has two modes, full and a compact always-on-top bar (window-mode.js). The bar gives up
  * always-on-top while a tool waits, so an approval popup can't end up under it.
  * (M39) The window is always dark, with its title bar blended into the page (window-look.js).
+ * (M43) The bar has its own shorter title bar and can't be maximized; grown, it fits what it shows (window-mode.js).
  */
 
 const fs = require('node:fs');
@@ -50,7 +51,7 @@ const { onlyOne } = require('./single-instance');
 const { TaskbarFlash } = require('./taskbar-flash');
 const { cleanForBrain } = require('./to-brain');
 const { createTray } = require('./tray');
-const { WINDOW_LOOK } = require('./window-look');
+const { lookFor } = require('./window-look');
 const { WindowMode } = require('./window-mode');
 const { fileStore } = require('./window-store');
 
@@ -69,7 +70,7 @@ const startHidden = startedHidden(app); // M36: started by the Start with Window
 // M38: full, or a compact always-on-top bar, on the same window; sizes are remembered in the profile folder.
 const mode = new WindowMode(() => win, screen, fileStore(path.join(app.getPath('userData'), 'window-mode.json'), fs));
 // M36: every way of showing the window. Before a hide: a tray icon exists (M37) and the bar lets go of always-on-top (M38).
-const reveal = new Reveal(() => win, () => brain.start(), () => { ensureTray(); mode.letGo(); });
+const reveal = new Reveal(() => win, () => brain.start(), () => { ensureTray(); mode.top.letGo(); });
 const first = onlyOne(app, () => reveal.show()); // M34: a second launch shows the first Pseudo's window
 if (!first) app.quit(); // and then quits, before it opens a window or starts a brain
 // M37: Ctrl+Alt+Enter shows or hides; Ctrl+Alt+T shows and presses the page's mic button (start, or stop).
@@ -86,13 +87,13 @@ const brain = new BrainProcess(
   (message) => {
     grant.fromBrain(message); // `ready` names pseudo_hands' process; `tool_call` grants
     flash.fromBrain(message); // `tool_call` flashes if you're elsewhere; its result stops it
-    mode.fromBrain(message); // M38: `tool_call` takes the bar out of always-on-top; its result puts it back
+    mode.top.fromBrain(message); // M38: `tool_call` takes the bar out of always-on-top; its result puts it back (window-top.js)
     toPage(message);
   },
   (code) => {
     grant.brainStopped();
     flash.brainStopped();
-    mode.brainStopped();
+    mode.top.brainStopped();
     if (!quitting) toPage({ type: 'brain_stopped', code }); // the page offers a Restart button
   },
   brainHome(app.isPackaged, process.resourcesPath, __dirname), // M34: Pseudo.exe reads where the repo is
@@ -133,7 +134,7 @@ function createWindow() {
     ...mode.options(), // M38: the remembered mode's size, place and minimum
     title: 'Pseudo',
     show: !startHidden,
-    ...WINDOW_LOOK, // M39: always dark, with the title bar blended into the page (window-look.js)
+    ...lookFor(mode.mode), // M39: always dark, the title bar blended into the page; (M43) sized for the mode
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,

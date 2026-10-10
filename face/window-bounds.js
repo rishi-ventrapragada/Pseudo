@@ -12,6 +12,8 @@
  *   full     the window as before M38
  *   compact  a small bar, which GROWS upward to show the steps and the answer. Its bottom edge
  *            stays where it is, so the question box doesn't move under your cursor.
+ *            (M43) The bar is the mockup's: a 30 px top row and the question row, 84 px in all. Grown, it
+ *            is as tall as what it shows (fittedHeight), up to a cap: the height you last gave it.
  *
  * A rectangle is { x, y, width, height }. An "area" is a screen's work area: the screen
  * minus the taskbar. All numbers are Electron's (device-independent pixels).
@@ -19,9 +21,9 @@
 
 const SIZES = {
   full: { width: 980, height: 740, minWidth: 520, minHeight: 420 },
-  compact: { width: 480, height: 132, minWidth: 360, minHeight: 120 },
+  compact: { width: 480, height: 84, minWidth: 360, minHeight: 84 },
 };
-const GROWN = { height: 440, minHeight: 260 }; // the bar while it shows an answer
+const GROWN = { height: 440, minHeight: 160 }; // the bar while it shows a turn: the default cap, and the least
 const MARGIN = 24; // the bar's default gap from the screen's corner
 
 const isNumber = (value) => typeof value === 'number' && Number.isFinite(value);
@@ -67,9 +69,11 @@ function fit(saved, mode, areas, minHeight = SIZES[mode].minHeight) {
   };
 }
 
-/** The bar grown to `height`: same place and width, bottom edge kept, then held on its screen. */
+/** The bar grown to `height`: same place and width, bottom edge kept, then held on its screen.
+ *  (M43) A height under the minimum is raised BEFORE the top edge is worked out: raised afterwards, by fit(),
+ *  the extra height went downward and the bottom edge moved (found by window-mode.test.mjs). */
 function grownFrom(bar, height, areas) {
-  const tall = isNumber(height) ? height : GROWN.height;
+  const tall = Math.max(isNumber(height) ? height : GROWN.height, GROWN.minHeight);
   return fit({ x: bar.x, y: bar.y + bar.height - tall, width: bar.width, height: tall }, 'compact', areas, GROWN.minHeight);
 }
 
@@ -78,4 +82,14 @@ function barFrom(grown, barHeight, areas) {
   return fit({ x: grown.x, y: grown.y + grown.height - barHeight, width: grown.width, height: barHeight }, 'compact', areas);
 }
 
-module.exports = { GROWN, MARGIN, SIZES, barFrom, defaultBounds, fit, grownFrom };
+/**
+ * (M43) How tall the grown bar should be: the height its content asks for, but never more than the cap (the
+ * height you last dragged the grown bar to, else GROWN.height). Beyond the cap the bar's answer area scrolls.
+ * grownFrom() then holds the result between GROWN.minHeight and the screen.
+ */
+function fittedHeight(asked, cap) {
+  const most = isNumber(cap) ? cap : GROWN.height;
+  return isNumber(asked) ? Math.min(asked, most) : most;
+}
+
+module.exports = { GROWN, MARGIN, SIZES, barFrom, defaultBounds, fit, fittedHeight, grownFrom };
