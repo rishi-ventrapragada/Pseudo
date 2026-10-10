@@ -4,6 +4,7 @@
 // playful word, because then it is waiting for YOU. Amber is used for nothing else (theme.css).
 // Screen readers hear "Pseudo is working" once (a label) and the approval line once (role="status"); never the
 // words or the ticking seconds. With "reduce motion" on in Windows the word stays put and nothing pulses.
+// M43: BarNote, the compact bar's top-row note (it was BarActivity), and the approval line's note for the bar.
 
 import { ChevronDown, ShieldAlert } from 'lucide-react';
 import { useEffect, useState } from 'react';
@@ -51,14 +52,15 @@ export function WorkingLine({ askedAt, open, onToggle }: Toggle & { askedAt?: nu
   );
 }
 
-export function ApprovalLine({ open, onToggle }: Toggle) {
+/** `note` (M43): the compact bar says why it is no longer on top instead of the full window's line. */
+export function ApprovalLine({ open, onToggle, note }: Toggle & { note?: string }) {
   return (
     <div role="status" className="flex max-w-[560px] items-start gap-3 self-start rounded-xl border border-wait/35 bg-wait/[0.07] px-3.5 py-3">
       <ShieldAlert aria-hidden="true" className="mt-px size-[18px] shrink-0 text-wait" />
       <div>
         <p className="text-[15px] font-semibold text-wait">{APPROVAL}</p>
         <p className="mt-[3px] text-[13px] leading-normal text-muted">
-          Pseudo asks before every action. Cancel, or no answer within 20 seconds, means no.
+          {note ?? 'Pseudo asks before every action. Cancel, or no answer within 20 seconds, means no.'}
         </p>
         <button type="button" onClick={onToggle} aria-expanded={open}
                 className="mt-1.5 cursor-pointer text-[12.5px] text-muted underline underline-offset-[3px] hover:text-ink">
@@ -69,19 +71,28 @@ export function ApprovalLine({ open, onToggle }: Toggle) {
   );
 }
 
-/** The compact bar's top row: the same three states in one line. */
-export function BarActivity({ turn, waiting, notice }: { turn: Turn | undefined; waiting: Waiting | null; notice: string }) {
+export const BAR_NOTE = { onTop: 'Stays on top', steppedDown: 'Not on top while the popup waits' };
+const NOTE_LINE = 'min-w-0 flex-1 truncate text-right text-xs';
+
+/**
+ * M43 (was M40's BarActivity): the note in the compact bar's top row, strongest first. Each is true when it shows:
+ *   a popup may be waiting  the amber approval line, or (grown, where the amber box is below) why the bar stepped down;
+ *   Pseudo is working       the playful word (when grown, the word is in the turn below instead);
+ *   otherwise               the notice, or that the bar stays on top (it is, whenever no tool is running).
+ */
+export function BarNote({ turn, waiting, notice, grown }: { turn: Turn | undefined; waiting: Waiting | null; notice: string; grown: boolean }) {
   const running = Boolean(turn?.running);
   const { word, seconds } = usePlayfulWord(turn?.askedAt);
   if (running && waiting?.asks) {
-    return <p role="status" className="min-w-0 flex-auto truncate text-[12.5px] font-semibold text-wait">{APPROVAL}</p>;
+    return grown ? <p className={cn(NOTE_LINE, 'text-faint')}>{BAR_NOTE.steppedDown}</p>
+                 : <p role="status" className={cn(NOTE_LINE, 'font-semibold text-wait')}>{APPROVAL}</p>;
   }
-  if (running) {
+  if (running && !grown) {
     return (
-      <p className="min-w-0 flex-auto truncate text-[12.5px] text-ink-soft" aria-label="Pseudo is working">
+      <p className={cn(NOTE_LINE, 'text-ink-soft')} aria-label="Pseudo is working">
         <span aria-hidden="true">{word}… <span className="font-mono text-faint">{seconds}s</span></span>
       </p>
     );
   }
-  return <p aria-live="polite" className="min-w-0 flex-auto truncate text-[12.5px] text-faint">{notice || 'Ready'}</p>;
+  return <p aria-live="polite" className={cn(NOTE_LINE, 'text-faint')} title={notice || undefined}>{running ? notice : notice || BAR_NOTE.onTop}</p>;
 }

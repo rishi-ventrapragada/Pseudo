@@ -62,6 +62,11 @@ describe('every button has a name', () => {
     'question box': composer,
     'compact bar': <CompactBar compact={{ ...compact, on: true }} notice="" waiting={null} stopped={false}
                                latest={undefined} onRestart={() => {}} composer={composer} />,
+    'compact bar, grown with an answer (M43)': (
+      <CompactBar compact={{ ...compact, on: true, grown: true }} notice="" waiting={null} stopped={false} onRestart={() => {}}
+                  latest={{ question: 'A fake question?', steps: [{ label: 'Read the window you were on' }], answer: 'Fake.',
+                            running: false }} composer={composer} />
+    ),
     'empty chat': <Conversation phase="ready" turns={[]} session="s" end={createRef<HTMLDivElement>()} waiting={null}
                                 suggestions={['A fake suggestion?', 'Another one?']} canAsk onAsk={() => {}} />,
   };

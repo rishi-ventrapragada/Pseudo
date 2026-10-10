@@ -24,7 +24,7 @@ export function StepsList({ steps }: { steps: Step[] }) {
   );
 }
 
-function StepsToggle({ count, open, onToggle }: { count: number; open: boolean; onToggle(): void }) {
+export function StepsToggle({ count, open, onToggle }: { count: number; open: boolean; onToggle(): void }) { // M43: the bar's too
   return (
     <button type="button" onClick={onToggle} aria-expanded={open}
             className="-ml-2 inline-flex h-[30px] cursor-pointer items-center gap-1 self-start rounded-lg px-2 text-[12.5px] text-faint hover:text-ink">

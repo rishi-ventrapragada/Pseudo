@@ -65,8 +65,8 @@ export type ToBrain =
   | { type: 'warm_sessions'; on: boolean } // M32: the warm-session switch
   | { type: 'autostart'; on?: boolean } // M36: answered by the main process; without `on`, it only asks
   // M38: answered by the main process (face/window-mode.js). `compact` switches the mode; `grown` says the bar is
-  // showing an answer, so it needs its taller size.
-  | { type: 'window_mode'; compact?: boolean; grown?: boolean };
+  // showing an answer, so it needs its taller size; (M43) `height` with it: how tall the grown bar's content is.
+  | { type: 'window_mode'; compact?: boolean; grown?: boolean; height?: number };
 
 declare global {
   interface Window {

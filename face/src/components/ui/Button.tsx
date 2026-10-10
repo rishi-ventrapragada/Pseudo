@@ -16,6 +16,8 @@ const SIZES = {
   sm: 'h-[30px] rounded-lg px-2 text-[12.5px]',
   icon: 'size-8 rounded-lg', // a square icon button
   round: 'size-[34px] rounded-full', // the mic and Ask, inside the question box
+  xs: 'h-[26px] rounded-lg px-2.5 text-xs', // (M43) Hide answer, in the compact bar
+  bar: 'h-[26px] w-[30px] rounded-md', // (M43) Full window, in the compact bar's 30 px top row
 };
 
 type Props = ButtonHTMLAttributes<HTMLButtonElement> & { variant?: keyof typeof VARIANTS; size?: keyof typeof SIZES };
