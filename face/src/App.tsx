@@ -113,7 +113,8 @@ export function App() {
   const composer = (row: boolean) => (
     <Composer draft={draft} setDraft={setDraft} canAsk={idle} onAsk={() => ask()} box={box} row={row}
               mic={<MicButton voice={voice} canTalk={canTalk} why={why} />}
-              chips={<><LookingAtChip looking={state.seen.lookingAt} /><ListeningChip voice={voice} /></>} />
+              chips={row ? <LookingAtChip looking={state.seen.lookingAt} short /> // M43: the bar's row has room for the name only
+                         : <><LookingAtChip looking={state.seen.lookingAt} /><ListeningChip voice={voice} /></>} />
   );
   const stopped = state.phase === 'stopped';
 

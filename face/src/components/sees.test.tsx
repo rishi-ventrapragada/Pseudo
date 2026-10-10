@@ -40,6 +40,25 @@ describe('the look-at chip (M42)', () => {
     expect(box.indexOf('Looking at')).toBeGreaterThan(-1);
     expect(box.indexOf('Looking at')).toBeLessThan(box.indexOf('<textarea'));
   });
+
+  it('M43: the short form shows the name only, and screen readers still hear "Looking at"', () => {
+    const chip = html(<LookingAtChip looking={{ app: 'Brave Browser', private: false }} short />);
+    expect(chip).toContain('<span class="sr-only">Looking at </span><span class="text-ink">Brave Browser</span>');
+    expect(chip).toContain('title="Looking at Brave Browser: the window Pseudo will read when you ask"');
+    expect(chip).toContain('truncate'); // a long name is cut short
+    expect(html(<LookingAtChip looking={{ app: '', private: true }} short />)).toContain('>a private app</span>');
+    expect(html(<LookingAtChip looking={null} short />)).toBe('');
+  });
+
+  it("M43: in the compact bar's row it sits between the mic and where you type", () => {
+    const row = html(<Composer draft="" setDraft={() => {}} canAsk onAsk={() => {}} box={createRef<HTMLTextAreaElement>()} row
+                               mic={<button type="button" aria-label="Start talking" />}
+                               chips={<LookingAtChip looking={{ app: 'Fake Notes', private: false }} short />} />);
+    const [mic, chip, text] = ['Start talking', 'Fake Notes', '<textarea'].map((part) => row.indexOf(part));
+    expect(mic).toBeGreaterThan(-1);
+    expect(mic < chip && chip < text).toBe(true);
+    expect(row).toContain('placeholder="Ask about this window"');
+  });
 });
 
 describe('Chats or Memory (M42)', () => {

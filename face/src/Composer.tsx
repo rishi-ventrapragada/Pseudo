@@ -2,6 +2,7 @@
 // Display only: App owns the draft and decides what asking means; this only reports the keys and the click.
 // M39: one rounded box with the mic inside it and Ask as a round icon button (from the mockup). In the compact
 // bar it is one row instead. The keys are unchanged.
+// M43: the bar's row is the mockup's: mic, the look-at chip, the box ("Ask about this window") and Ask.
 
 import { ArrowUp } from 'lucide-react';
 import type { ReactNode, RefObject } from 'react';
@@ -15,7 +16,7 @@ type Props = {
   onAsk(): void;
   box: RefObject<HTMLTextAreaElement | null>; // App puts the cursor here when a transcript lands (M26)
   mic?: ReactNode; // the mic button (and Stop speaking), drawn inside the box
-  chips?: ReactNode; // small lines above the text, e.g. "Listening"
+  chips?: ReactNode; // small lines above the text, e.g. "Listening"; (M43) in the bar's row, between the mic and the text
   row?: boolean; // the compact bar: everything on one line
 };
 
@@ -33,7 +34,7 @@ export function Composer({ draft, setDraft, canAsk, onAsk, box, mic, chips, row 
       rows={row ? 1 : 2}
       autoFocus
       value={draft}
-      placeholder="Ask about the window you were on"
+      placeholder={row ? 'Ask about this window' : 'Ask about the window you were on'}
       onChange={(event) => setDraft(event.target.value)}
       onKeyDown={(event) => {
         if (asksOnKey(event)) {
@@ -42,7 +43,7 @@ export function Composer({ draft, setDraft, canAsk, onAsk, box, mic, chips, row 
         }
       }}
       className={cn('block w-full resize-none bg-transparent text-ink outline-none placeholder:text-faint',
-                    row ? 'h-9 min-w-0 flex-1 px-1 py-[7px] text-sm' : 'px-0.5 pt-2 pb-1 text-[15px] leading-normal')}
+                    row ? 'h-[34px] min-w-0 flex-1 px-1 py-[7px] text-sm' : 'px-0.5 pt-2 pb-1 text-[15px] leading-normal')}
     />
   );
   const ask = (
@@ -54,9 +55,9 @@ export function Composer({ draft, setDraft, canAsk, onAsk, box, mic, chips, row 
     <form
       onSubmit={(event) => { event.preventDefault(); onAsk(); }}
       className={cn('border border-edge-strong bg-composer focus-within:border-muted',
-                    row ? 'flex min-w-0 flex-1 items-center gap-1.5 rounded-2xl px-1.5 py-1' : 'rounded-[20px] px-3 pt-2.5 pb-2')}
+                    row ? 'flex min-w-0 flex-1 items-center gap-1.5 rounded-xl py-[5px] pr-[5px] pl-1.5' : 'rounded-[20px] px-3 pt-2.5 pb-2')}
     >
-      {row ? <>{mic}{text}{ask}</> : (
+      {row ? <>{mic}{chips}{text}{ask}</> : (
         <>
           {chips && <div className="flex flex-wrap items-center gap-2">{chips}</div>}
           {text}
