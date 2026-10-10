@@ -11,14 +11,12 @@ plugin comes with the mcp package). An event loop is what `await` needs,
 like the one Node always runs for you.
 """
 
-import ast
 import itertools
 import json
-import sys
 from pathlib import Path
 
 import pytest
-from mcp import Client, StdioServerParameters
+from mcp import Client
 from test_act_on_control import world  # noqa: F401 - world is a pytest fixture (M28)
 
 from pseudo_hands.core import blocked_apps, focus
@@ -26,8 +24,6 @@ from pseudo_hands.core.blocked_apps import RESTRICTED
 from pseudo_hands.core.windows import RawWindow, list_open_windows
 from pseudo_hands.mcp_server import ACT_ON_CONTROL_DESCRIPTION, LIST_OPEN_WINDOWS_DESCRIPTION, server
 
-REPO_ROOT = Path(__file__).resolve().parent.parent
-PSEUDO_HANDS = REPO_ROOT / "pseudo_hands"
 SECRET_TITLE = "Vault: bank PIN 4321"
 ALL_TOOLS = ["list_open_windows", "read_active_window", "focus_window",  # M9 and M10 added one each
              "act_on_control",  # M28
@@ -146,69 +142,5 @@ async def test_a_missing_list_fails_closed_through_mcp(desktop, monkeypatch: pyt
     assert "4321" not in sent and "missing.txt" not in sent  # no window data, no file path
 
 
-# ---------- D11: the wrapper stays thin ----------
 
-def imported_modules(path: Path) -> set[str]:
-    names = set()
-    for node in ast.walk(ast.parse(path.read_text(encoding="utf-8"))):
-        if isinstance(node, ast.Import):
-            names |= {alias.name for alias in node.names}
-        elif isinstance(node, ast.ImportFrom) and node.module:
-            names.add(node.module)
-    return names
-
-
-def test_core_never_imports_mcp() -> None:
-    for path in (PSEUDO_HANDS / "core").glob("*.py"):
-        modules = imported_modules(path)
-        assert not any(m == "mcp" or m.startswith("mcp.") for m in modules), path.name
-
-
-def test_the_server_file_defines_no_logic_of_its_own() -> None:
-    tree = ast.parse((PSEUDO_HANDS / "mcp_server.py").read_text(encoding="utf-8"))
-    logic = (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef, ast.Lambda)
-    assert [type(node).__name__ for node in ast.walk(tree) if isinstance(node, logic)] == []
-
-
-# ---------- the real thing: a subprocess over stdio, like Hermes ----------
-
-@pytest.mark.skipif(sys.platform != "win32", reason="needs Windows")
-@pytest.mark.anyio
-async def test_real_server_over_stdio_smoke() -> None:
-    # Only counts, key sets and types in the asserts: a failure can't print window titles.
-    params = StdioServerParameters(command=sys.executable, args=["-m", "pseudo_hands.mcp_server"],
-                                   cwd=str(REPO_ROOT))
-    async with Client(params) as client:
-        names = [tool.name for tool in (await client.list_tools()).tools]
-        result = await client.call_tool("list_open_windows", {})
-    assert names == ALL_TOOLS
-    assert result.is_error is False
-    windows = result.structured_content["result"]
-    assert all(set(w) == {"id", "title", "app", "focused"} for w in windows)
-    assert all(isinstance(w["focused"], bool) for w in windows)
-    focused_count = sum(w["focused"] for w in windows)
-    assert focused_count <= 1
-
-
-@pytest.mark.skipif(sys.platform != "win32", reason="needs Windows")
-@pytest.mark.anyio
-async def test_tools_option_publishes_only_the_named_tools() -> None:  # (M30) what Claude Code's copy gets
-    chosen = ["list_open_windows", "read_active_window", "act_on_control"]
-    params = StdioServerParameters(command=sys.executable,
-                                   args=["-m", "pseudo_hands.mcp_server", "--tools", ",".join(chosen)],
-                                   cwd=str(REPO_ROOT))
-    async with Client(params) as client:
-        names = [tool.name for tool in (await client.list_tools()).tools]
-    assert names == chosen
-
-
-def test_tools_option_refuses_an_unknown_name() -> None:  # (M30)
-    import subprocess
-    done = subprocess.run([sys.executable, "-m", "pseudo_hands.mcp_server", "--tools", "list_open_windows,delete_files"],
-                          cwd=str(REPO_ROOT), capture_output=True, text=True, timeout=120, stdin=subprocess.DEVNULL)
-    assert done.returncode != 0 and "unknown tool" in done.stderr and done.stdout == ""
-
-
-def test_the_wrapper_knows_every_tool_it_publishes() -> None:  # (M30) --tools removes by this list
-    from pseudo_hands.mcp_server import ALL_TOOLS as published
-    assert list(published) == ALL_TOOLS
+# The D11 checks and the real-subprocess checks are in test_mcp_server_process.py (moved in M39).
