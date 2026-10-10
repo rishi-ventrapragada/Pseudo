@@ -31,6 +31,8 @@ describe('describeStep', () => {
                                                                                         detail: 'asks your approval in a popup' });
     expect(describeStep('tool_result', { name: 'read_active_window', chars: 1180, is_error: false }))
       .toEqual({ label: 'Got the result', detail: '1,180 characters, sent to the model, kept in memory only' });
+    expect(describeStep('tool_result', { name: 'read_active_window', chars: 1180, is_error: false, masked: 3 })?.detail)
+      .toBe('1,180 characters, 3 item(s) masked, sent to the model, kept in memory only'); // M42: a count only
   });
 
   it('who answered is in the "Answered" step, with a fallback said', () => {
@@ -54,6 +56,8 @@ describe('describeStep', () => {
   it('memory: what joined the question, and the save', () => {
     expect(describeStep('memories', { count: 0, chars: 0, note: '' })).toEqual({ label: 'Searched your memory', detail: 'nothing relevant' });
     expect(describeStep('memories', { count: 2, chars: 500, note: '' })?.detail).toBe('2 past task(s) added, 500 characters, redacted');
+    expect(describeStep('memories', { count: 2, chars: 500, note: '', titles: ['Read the booking form', 'Call [PERSON]'] })
+      ?.detail).toBe('2 past task(s) added: “Read the booking form”, “Call [PERSON]”'); // M42: which ones, by title
     expect(describeStep('tool_call', { name: 'save_memory', by: 'pseudo', asks: true })?.label).toBe('Offered this task to memory');
     expect(describeStep('tool_result', { name: 'save_memory', by: 'pseudo' })).toBeNull();
     expect(describeStep('memory_saved', { note: '2026-10-02-120000-001.md' })?.detail).toBe('redacted, as 2026-10-02-120000-001.md');

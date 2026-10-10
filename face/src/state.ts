@@ -4,7 +4,9 @@
 // M40: steps are plain-language objects (steps.ts); `waiting` says whether the running tool can show the approval
 // popup (the brain's `asks`); a running question keeps when it was asked, for the working line's timer.
 // M41: the open chat's title, the last search's reply, and `renamed`/`deleted`, which end those jobs.
+// M42: what the window sees (the chip, the memory browser, the Status numbers) changes alongside, in sees.ts.
 
+import { memoryAction, nothingSeen, type Seen, seeMessage } from './sees';
 import { answerLabel, describeStep, type Step, who } from './steps';
 import type { ActionBrain, Autostart, FromBrain, Hotkey, Provider, SavedMessage, SessionItem, Warm } from './protocol';
 
@@ -42,6 +44,7 @@ export type State = {
   hotkeys: Hotkey[] | null; // M37: the global shortcuts and whether each is ours; null = not told yet
   talk: number; // M37: how often Ctrl+Alt+T was pressed; each press lands once on the mic button
   compact: boolean; // M38: the window is the compact bar (the main process says so; the page only lays itself out)
+  seen: Seen; // M42: the look-at chip, the memory browser and the Status panel's numbers (sees.ts)
 };
 
 /** What the MAIN process told the page. The brain starting, restarting or stopping never clears it. */
@@ -49,7 +52,8 @@ const fromMain = (state: State) => ({ autostart: state.autostart, hotkeys: state
                                       compact: state.compact });
 
 export type Action =
-  | { type: 'from_brain'; message: FromBrain }
+  | { type: 'from_brain'; message: FromBrain; at?: number } // M42: at = when it arrived (ms), for Groq's budget
+  | { type: 'memory'; change: 'asked' | 'closed' } // M42: the page asked for the memory list, or closed a note
   | { type: 'asked'; text: string; at: number }
   | { type: 'working'; what: string }
   | { type: 'restarting' };
@@ -57,7 +61,7 @@ export type Action =
 export const initial: State = {
   phase: 'starting', providers: [], provider: '', actionBrain: null, session: '', title: '', turns: [], working: null,
   waiting: null, notice: '', sessions: null, found: null, suggestions: [], heard: null, speech: null, warm: null,
-  autostart: null, hotkeys: null, talk: 0, compact: false,
+  autostart: null, hotkeys: null, talk: 0, compact: false, seen: nothingSeen,
 };
 
 /** A saved session's messages -> turns: each question with the answer that followed it. Who answered is kept
@@ -164,8 +168,13 @@ function fromBrain(state: State, message: FromBrain): State {
 
 export function reduce(state: State, action: Action): State {
   switch (action.type) {
-    case 'from_brain':
-      return fromBrain(state, action.message);
+    case 'from_brain': {
+      const next = fromBrain(state, action.message);
+      const seen = seeMessage(next.seen, action.message, action.at ?? 0);
+      return seen === next.seen ? next : { ...next, seen }; // unchanged stays the same object (an unknown message)
+    }
+    case 'memory':
+      return { ...state, seen: memoryAction(state.seen, action.change) };
     case 'asked':
       return { ...state, notice: '', working: 'Sending your question',
                turns: [...state.turns, { question: action.text, steps: [], running: true, askedAt: action.at }] };

@@ -16,7 +16,8 @@ const TYPES = ['ask', 'provider', 'new_session', 'list_sessions', 'open_session'
                'warm_sessions', // M32: the warm-session switch
                'autostart', // M36: the Start with Windows switch (answered by the main process)
                'window_mode', // M38: full or compact, and whether the bar shows an answer (answered by the main process)
-               'search_sessions', 'rename_session', 'delete_session']; // M41: the sidebar's chats
+               'search_sessions', 'rename_session', 'delete_session', // M41: the sidebar's chats
+               'look', 'list_memories', 'open_memory']; // M42: the look-at chip and the memory browser
 let listener = null;
 const early = []; // messages that arrived before the page started listening
 

@@ -54,9 +54,11 @@ function toolStep(data: EventData): Step {
 
 export function describeStep(kind: string, data: EventData): Step | null {
   switch (kind) {
-    case 'memories':
-      return { label: 'Searched your memory',
-               detail: data.count ? `${data.count} past task(s) added, ${n(data.chars)} characters, redacted` : data.note || 'nothing relevant' };
+    case 'memories': { // M42: which ones joined, by their (redacted) titles
+      const which = Array.isArray(data.titles) && data.titles.length
+        ? `: ${data.titles.map((title: unknown) => `“${String(title)}”`).join(', ')}` : `, ${n(data.chars)} characters, redacted`;
+      return { label: 'Searched your memory', detail: data.count ? `${data.count} past task(s) added${which}` : data.note || 'nothing relevant' };
+    }
     case 'sending': {
       const extra = (data.memories ? `, with ${data.memories} memory(ies)` : '')
         + (data.dropped_turns ? `, ${data.dropped_turns} old turn(s) left out to fit` : '');
@@ -92,7 +94,8 @@ export function describeStep(kind: string, data: EventData): Step | null {
     case 'tool_result':
       if (data.by === 'pseudo') return null; // memory_saved / memory_not_saved says how it went
       return { label: data.is_error ? 'The tool reported an error' : 'Got the result',
-               detail: `${n(data.chars)} characters, sent to the model, kept in memory only` };
+               detail: `${n(data.chars)} characters` + (data.masked ? `, ${n(data.masked)} item(s) masked` : '') // M42
+                 + ', sent to the model, kept in memory only' };
     case 'answer':
       return { label: 'Answered', detail: `${who(answerLabel(data))}, ${data.calls} call(s), ${n(data.tokens_in)} tokens in, ${n(data.tokens_out)} out` };
     case 'failed':

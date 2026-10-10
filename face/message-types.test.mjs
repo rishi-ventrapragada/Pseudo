@@ -40,4 +40,10 @@ describe('the message types the page may send', () => {
       for (const list of [preload, toBrain, pageTypes]) expect(list).toContain(type);
     }
   });
+
+  it('M42: the look-at chip and the memory browser are on all three', () => {
+    for (const type of ['look', 'list_memories', 'open_memory']) {
+      for (const list of [preload, toBrain, pageTypes]) expect(list).toContain(type);
+    }
+  });
 });

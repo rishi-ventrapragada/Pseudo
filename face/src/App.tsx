@@ -33,7 +33,7 @@ export function App() {
   const box = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
-    window.pseudo.onMessage((message) => dispatch({ type: 'from_brain', message }));
+    window.pseudo.onMessage((message) => dispatch({ type: 'from_brain', message, at: Date.now() }));
   }, []);
   useEffect(() => {
     end.current?.scrollIntoView({ block: 'end' });

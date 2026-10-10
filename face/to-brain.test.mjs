@@ -45,10 +45,17 @@ describe('cleanForBrain', () => {
     expect(cleanForBrain({ type: 'ask', text: 'hi', audio: 'AAAA' })).toEqual({ type: 'ask', text: 'hi' });
   });
 
-  it('the list holds the eleven messages the brain knows', () => {
-    expect([...TO_BRAIN].sort()).toEqual(['ask', 'delete_session', 'list_sessions', 'new_session', 'open_session',
-                                          'provider', 'rename_session', 'search_sessions', 'speak_answers',
-                                          'transcribe', 'warm_sessions']);
+  it('the list holds the fourteen messages the brain knows', () => {
+    expect([...TO_BRAIN].sort()).toEqual(['ask', 'delete_session', 'list_memories', 'list_sessions', 'look',
+                                          'new_session', 'open_memory', 'open_session', 'provider', 'rename_session',
+                                          'search_sessions', 'speak_answers', 'transcribe', 'warm_sessions']);
+  });
+
+  it('M42: opening a memory carries its name as text, and nothing else; look and the list carry nothing', () => {
+    expect(cleanForBrain({ type: 'open_memory', name: '2026-10-07-101500-123.md', path: 'C:\\x', title: 7 }))
+      .toEqual({ type: 'open_memory', name: '2026-10-07-101500-123.md' });
+    expect(cleanForBrain({ type: 'look', name: { not: 'text' } })).toEqual({ type: 'look' });
+    expect(cleanForBrain({ type: 'list_memories', folder: '..' })).toEqual({ type: 'list_memories' });
   });
 
   it('M41: a rename carries its name and title as text, and nothing else', () => {

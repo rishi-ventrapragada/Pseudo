@@ -16,6 +16,10 @@ export type SavedMessage = { role: 'user' | 'assistant'; content: string; answer
 export type SessionInfo = { name: string; provider: string; messages: SavedMessage[];
                             title?: string }; // M41: the name you gave the chat; '' or missing = none
 export type SessionItem = { name: string; provider: string; questions: number; title: string };
+// M42: a saved memory, as the brain lists and opens it (pseudo_hands' memory_browse.py): redacted again.
+export type MemoryItem = { name: string; date: string; title: string };
+export type MemoryNote = { name: string; date: string; title: string; question: string; answer: string;
+                           note: string }; // note: why it can't be opened, or ''
 export type EventData = Record<string, any>; // each event kind has its own fields (see events.ts)
 
 export type FromBrain =
@@ -29,6 +33,9 @@ export type FromBrain =
   | { type: 'found'; text: string; items: SessionItem[] } // M41: a search's reply, with the words it was for
   | { type: 'renamed'; name: string; title: string } // M41: a rename's last message (bridge_sessions.py)
   | { type: 'deleted'; name: string; title: string } // M41: a delete's last message
+  | { type: 'looking_at'; app: string; private: boolean; note: string } // M42: the app a question would read now
+  | { type: 'memory_list'; items: MemoryItem[]; note: string } // M42: your saved memories, newest first
+  | ({ type: 'memory_note' } & MemoryNote) // M42: one memory, read-only
   | { type: 'refused'; reason: string }
   | { type: 'turn_done'; ok: boolean }
   | { type: 'transcript'; text: string; note: string; seconds: number } // M26: goes into the input box, never sent by itself
@@ -49,6 +56,9 @@ export type ToBrain =
   | { type: 'search_sessions'; text: string } // M41: the chats whose title or your messages hold `text`
   | { type: 'rename_session'; name: string; title: string } // M41: refused while Pseudo is busy
   | { type: 'delete_session'; name: string } // M41: only after the confirm; refused while Pseudo is busy
+  | { type: 'look' } // M42: which app a question would read now (the chip); answered only while Pseudo is idle
+  | { type: 'list_memories' } // M42: the memory browser's list; refused while Pseudo is busy
+  | { type: 'open_memory'; name: string } // M42: one memory, by its name, never a path
   | { type: 'restart' } // handled by the main process: start the brain again
   | { type: 'transcribe'; audio: string } // M26: one push-to-talk recording, base64 PCM (16 kHz mono 16-bit)
   | { type: 'speak_answers'; on: boolean } // M26: the Speak answers switch
