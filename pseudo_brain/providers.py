@@ -85,7 +85,8 @@ def provider_info(provider: Provider) -> dict:
     """What an interface shows about a provider (the face's provider bar and privacy note)."""
     return {"id": provider.id, "name": provider.name, "models": list(provider.models),
             "leaves_laptop": provider.leaves_laptop, "privacy": provider.privacy,
-            "transcribe_model": provider.transcribe_model}  # M26: "" = no voice input on this provider
+            "transcribe_model": provider.transcribe_model,  # M26: "" = no voice input on this provider
+            "disabled": provider.disabled}  # M41: why it's switched off, or ""; the face hides it from the pickers
 
 
 def load_allowlist(path: Path = PROVIDERS_FILE) -> Allowlist:

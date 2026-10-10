@@ -9,10 +9,12 @@ web page can reach the brain (D18: the M5 and M17 lesson, "anything reachable ge
 Face -> brain:  ask {text} | provider {id} | new_session | list_sessions | open_session {name} | quit
                 | transcribe {audio} | speak_answers {on}    (M26: voice, in bridge_voice.py)
                 | warm_sessions {on}                         (M32: the warm session's switch, in bridge_warm.py)
+                | search_sessions, rename_session, delete_session    (M41: saved chats, in bridge_sessions.py)
 Brain -> face:  ready {providers, provider, session, tools, hands_pid, action_brain} | event {kind, data} | refused {reason}
-                | switched {provider, session} | session {name, provider, messages}
+                | switched {provider, session} | session {name, provider, title, messages}
                 | sessions {items} | turn_done {ok} | transcript {text, note, seconds} | speech {audio, reason}
                 | warm {on, open, ram_mb, asked, of, idle_minutes, note}    (M32: the warm session's state)
+                | found, renamed, deleted                                   (M41: in bridge_sessions.py)
 `event` carries every event the loop, the model and the private server report (loop.py).
 
 Rules:
@@ -20,7 +22,7 @@ Rules:
     anywhere lands in the log, never in the protocol.
   - Every line has every key in use replaced by <hidden> before it is written (as the terminal does).
   - One job at a time. While a question, a switch or opening a session is running, another one
-    is refused as busy. list_sessions and quit always work; quit stops a running question.
+    is refused as busy. Listing and searching chats, and quit, always work; quit stops a running question.
   - A byte-order mark is stripped (PowerShell adds one; M16), and a question starting with "/"
     is never sent to the model (M16): the face has buttons, not commands.
   - hands_pid names the pseudo_hands process, so the face can let only it bring the approval
@@ -35,17 +37,17 @@ from collections.abc import Awaitable, Callable
 import anyio
 from anyio.abc import TaskGroup
 
-from pseudo_brain import bridge_voice, bridge_warm
+from pseudo_brain import bridge_sessions, bridge_voice, bridge_warm
 from pseudo_brain.action_brain import action_brain_info, load_routing
+from pseudo_brain.bridge_sessions import SESSION_REFUSALS
 from pseudo_brain.bridge_voice import VOICE_REFUSALS
 from pseudo_brain.chat import REFUSALS, Chat
 from pseudo_brain.hands import Hands, connect_hands
 from pseudo_brain.providers import load_allowlist, provider_info
-from pseudo_brain.session import list_sessions
 from pseudo_brain.suggestions import SUGGESTIONS
 
 BOM = "﻿"
-JOBS = ("ask", "provider", "new_session", "open_session", "transcribe")  # one at a time
+JOBS = ("ask", "provider", "new_session", "open_session", "transcribe") + bridge_sessions.JOBS  # one at a time
 BUSY = "busy: Pseudo is still working on the last request; wait for it to finish"
 
 Receive = Callable[[], Awaitable[bytes]]  # the next line from the face; b"" = the face closed the pipe
@@ -89,7 +91,8 @@ class Bridge:
 
     def session_info(self) -> dict:
         session = self.chat.session
-        return {"name": session.started, "provider": session.provider, "messages": session.transcript()}
+        return {"name": session.started, "provider": session.provider, "title": session.title,
+                "messages": session.transcript()}
 
     async def handle(self, raw: bytes, tasks: TaskGroup) -> bool:
         """One line from the face. Returns False when it's time to quit."""
@@ -101,8 +104,8 @@ class Bridge:
         kind = message["type"] if message else None
         if kind == "quit":
             return False
-        if kind == "list_sessions":
-            self.send("sessions", items=list_sessions())
+        if kind in bridge_sessions.READS:
+            bridge_sessions.read(self, message)
         elif kind == "speak_answers":
             bridge_voice.set_speaking(self, message)
         elif kind == "warm_sessions":
@@ -117,7 +120,7 @@ class Bridge:
         return True
 
     async def job(self, kind: str, message: dict) -> None:
-        """Run one job. It ends with turn_done, switched, session or refused, and then busy is cleared."""
+        """Run one job. It ends with turn_done, switched, session, renamed, deleted or refused; then busy is cleared."""
         try:
             if kind == "ask":
                 await self.ask(message.get("text"))
@@ -131,10 +134,12 @@ class Bridge:
             elif kind == "open_session":
                 await self.chat.open_session(message.get("name"))
                 self.send("session", **self.session_info())
+            elif kind in bridge_sessions.JOBS:
+                await bridge_sessions.job(self, kind, message)
             else:
                 self.chat.new_session()
                 self.send("session", **self.session_info())
-        except REFUSALS + VOICE_REFUSALS as refusal:  # nothing changed; the reason says why
+        except REFUSALS + VOICE_REFUSALS + SESSION_REFUSALS as refusal:  # nothing changed; the reason says why
             self.send("refused", reason=str(refusal))
         finally:
             self.busy = False
