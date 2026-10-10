@@ -7,20 +7,26 @@
 // switches in Settings. This file wires state to them; the parts only draw. The logic here is unchanged.
 // M40: suggestions ask like Enter does; a question's progress is said in the conversation; nothing under the box.
 // M41: the sidebar searches, renames and deletes chats, and holds the provider picker; the top row shows a title.
+// M42: the look-at chip in the question box, Chats or Memory (the memory browser), and the Status panel.
 
 import { useEffect, useReducer, useRef, useState } from 'react';
 import { BottomArea } from './components/BottomArea';
 import { CompactBar } from './components/CompactBar';
 import { Conversation } from './components/Conversation';
+import { LookingAtChip } from './components/LookingAtChip';
+import { MemoryView } from './components/MemoryView';
+import type { Panel } from './components/PanelSwitch';
 import { ListeningChip, MicButton } from './components/MicButton';
 import { ProviderPicker } from './components/ProviderPicker';
 import { SettingsDialog } from './components/SettingsDialog';
 import { Sidebar } from './components/Sidebar';
+import { StatusPanel } from './components/StatusPanel';
 import { TopBar } from './components/TopBar';
 import { Composer } from './Composer';
 import type { ToBrain } from './protocol';
 import { initial, reduce } from './state';
 import { useCompact } from './useCompact';
+import { useLookingAt } from './useLookingAt';
 import { useVoice } from './useVoice';
 import { useWarm } from './useWarm';
 
@@ -29,6 +35,7 @@ export function App() {
   const [draft, setDraft] = useState('');
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [panel, setPanel] = useState<Panel>('chats'); // M42: the chat, or your memory
   const end = useRef<HTMLDivElement>(null);
   const box = useRef<HTMLTextAreaElement>(null);
 
@@ -48,6 +55,12 @@ export function App() {
   useEffect(() => { // M39: the sidebar's chats, asked for only while Pseudo is free (a refusal mid-question would
     if (idle) window.pseudo.send({ type: 'list_sessions' }); // clear the approval banner; M40 fixes that in state.ts)
   }, [idle, state.session]);
+  useLookingAt(idle); // M42: the chip, when Pseudo is free and whenever its window gains focus
+  useEffect(() => { // M42: the memory list, once, and again after a memory is saved; only while Pseudo is free
+    if (!idle || !state.seen.memory.stale) return;
+    window.pseudo.send({ type: 'list_memories' });
+    dispatch({ type: 'memory', change: 'asked' });
+  }, [idle, state.seen.memory.stale]);
 
   function send(message: ToBrain, what: string) {
     window.pseudo.send(message);
@@ -80,6 +93,10 @@ export function App() {
   }
 
   const switchTo = (id: string) => send({ type: 'provider', id }, `Switching to ${id}`);
+  function showPanel(next: Panel) { // M42: Memory lists your notes afresh: you may have edited them in Obsidian
+    setPanel(next);
+    if (next === 'memory' && idle) window.pseudo.send({ type: 'list_memories' });
+  }
 
   function restart() {
     dispatch({ type: 'restarting' });
@@ -95,7 +112,8 @@ export function App() {
 
   const composer = (row: boolean) => (
     <Composer draft={draft} setDraft={setDraft} canAsk={idle} onAsk={() => ask()} box={box} row={row}
-              mic={<MicButton voice={voice} canTalk={canTalk} why={why} />} chips={<ListeningChip voice={voice} />} />
+              mic={<MicButton voice={voice} canTalk={canTalk} why={why} />}
+              chips={<><LookingAtChip looking={state.seen.lookingAt} /><ListeningChip voice={voice} /></>} />
   );
   const stopped = state.phase === 'stopped';
 
@@ -108,8 +126,10 @@ export function App() {
       {sidebarOpen && (
         <Sidebar onHide={() => setSidebarOpen(false)} idle={idle} sessions={state.sessions} found={state.found}
                  current={state.session}
-                 onNewChat={() => send({ type: 'new_session' }, 'Starting a new chat')}
-                 onOpen={(name) => send({ type: 'open_session', name }, 'Opening the chat')}
+                 onNewChat={() => { setPanel('chats'); send({ type: 'new_session' }, 'Starting a new chat'); }}
+                 onOpen={(name) => { setPanel('chats'); send({ type: 'open_session', name }, 'Opening the chat'); }}
+                 panel={panel} onPanel={showPanel} memoryCount={state.seen.memory.items?.length ?? null}
+                 status={<StatusPanel totals={state.seen.totals} warm={state.warm} />}
                  onSearch={(text) => window.pseudo.send({ type: 'search_sessions', text })} // a read: never busy
                  onRename={(name, title) => send({ type: 'rename_session', name, title }, 'Renaming the chat')}
                  onDelete={(name) => send({ type: 'delete_session', name }, 'Deleting the chat')}
@@ -119,10 +139,18 @@ export function App() {
       )}
       <main className="flex min-w-0 flex-1 flex-col">
         <TopBar sidebarOpen={sidebarOpen} onShowSidebar={() => setSidebarOpen(true)} compact={compact}
-                title={state.title || state.turns[0]?.question || 'New chat'} />
-        <Conversation phase={state.phase} turns={state.turns} session={state.session} end={end} waiting={state.waiting}
-                      suggestions={state.suggestions} canAsk={idle} onAsk={ask} />
-        <BottomArea composer={composer(false)} notice={notice} stopped={stopped} onRestart={restart} />
+                title={panel === 'memory' ? 'Memory' : state.title || state.turns[0]?.question || 'New chat'} />
+        {panel === 'memory' ? (
+          <MemoryView memory={state.seen.memory} disabled={!idle} notice={notice}
+                      onOpen={(name) => window.pseudo.send({ type: 'open_memory', name })}
+                      onClose={() => dispatch({ type: 'memory', change: 'closed' })} />
+        ) : (
+          <>
+            <Conversation phase={state.phase} turns={state.turns} session={state.session} end={end} waiting={state.waiting}
+                          suggestions={state.suggestions} canAsk={idle} onAsk={ask} />
+            <BottomArea composer={composer(false)} notice={notice} stopped={stopped} onRestart={restart} />
+          </>
+        )}
       </main>
       <SettingsDialog open={settingsOpen} onClose={() => setSettingsOpen(false)} providers={state.providers}
                       current={state.provider} idle={idle} onSwitch={switchTo}

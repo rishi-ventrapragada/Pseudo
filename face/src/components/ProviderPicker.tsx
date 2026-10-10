@@ -24,8 +24,8 @@ export function ProviderPicker({ providers, current, idle, onSwitch, actionBrain
   const provider = providers.find((each) => each.id === current);
   const model = provider?.models[0].split('/').pop() ?? ''; // "openai/gpt-oss-120b" -> "gpt-oss-120b": the row is short
   const name = provider ? `${provider.name} · ${model}` : 'Starting';
-  return (
-    <div className="flex items-center gap-1.5 border-t border-divider p-2.5">
+  return ( // M42: the line above it belongs to the sidebar's bottom block (Sidebar.tsx)
+    <div className="flex items-center gap-1.5 p-2.5">
       <Popover open={open} onOpenChange={setOpen} label="Choose a model"
                trigger={
                  <button type="button" aria-label={`Questions go to ${name}. Choose a model`} disabled={!provider}

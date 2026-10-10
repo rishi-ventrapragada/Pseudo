@@ -3,11 +3,13 @@
 // message to the brain, or opens Settings.
 // M41: Search chats; the chats grouped by day, each with Rename and Delete (a delete always asks first); and, at
 // the bottom, the provider picker beside the Settings button (ProviderPicker.tsx, which App builds).
+// M42: Chats or Memory under the search (PanelSwitch.tsx), and the Status panel above the picker (App builds it).
 
 import { PanelLeft, SquarePen } from 'lucide-react';
 import { useEffect, useState, type ReactNode } from 'react';
 import type { SessionItem } from '../protocol';
 import { DeleteChat } from './DeleteChat';
+import { type Panel, PanelSwitch } from './PanelSwitch';
 import { SearchChats } from './SearchChats';
 import { SessionList } from './SessionList';
 import { Button } from './ui/Button';
@@ -36,10 +38,15 @@ type Props = {
   onRename(name: string, title: string): void;
   onDelete(name: string): void;
   picker: ReactNode; // the bottom row: the provider picker and Settings
+  panel: Panel; // M42: what the main area shows: the chat, or your memory
+  onPanel(panel: Panel): void;
+  memoryCount: number | null; // M42: how many memories you saved; null = not listed yet
+  status: ReactNode; // M42: the Status panel, above the picker
 };
 
 export function Sidebar(props: Props) {
   const { onHide, onNewChat, idle, sessions, found, current, onOpen, onSearch, onRename, onDelete, picker } = props;
+  const { panel, onPanel, memoryCount, status } = props;
   const [search, setSearch] = useState('');
   const [confirm, setConfirm] = useState<SessionItem | null>(null);
   useEffect(() => { // after a pause in typing; and again when the chats change, so a rename or delete shows
@@ -64,10 +71,11 @@ export function Sidebar(props: Props) {
           <SquarePen aria-hidden="true" className="size-4" /> New chat
         </Button>
         <SearchChats text={search} onChange={setSearch} />
+        <PanelSwitch panel={panel} count={memoryCount} onChange={onPanel} />
       </div>
       <SessionList items={items} current={current} disabled={!idle} noMatch={noMatch} onOpen={onOpen}
                    onRename={onRename} onAskDelete={setConfirm} />
-      {picker}
+      <div className="border-t border-divider">{status}{picker}</div>
       <DeleteChat item={confirm} onCancel={() => setConfirm(null)}
                   onDelete={(name) => { setConfirm(null); onDelete(name); }} />
     </nav>
