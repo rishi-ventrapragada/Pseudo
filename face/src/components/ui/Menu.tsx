@@ -3,8 +3,10 @@
 // Radix gives it the keyboard: arrows move between items, Enter picks, Esc closes and returns to the button.
 // Drawn in place, not in a portal: `position: fixed` already lifts it above the sidebar, and then a test's
 // render (on the server, with no browser) can see the items too.
+// One addition: Radix opens it on a mouse press or a key, never on a bare click. A screen reader's "activate"
+// and Windows' UI Automation send exactly that, a click with no press before it, so such a click opens it too.
 import * as RadixMenu from '@radix-ui/react-dropdown-menu';
-import type { ReactElement, ReactNode } from 'react';
+import { useRef, type ReactElement, type ReactNode } from 'react';
 import { cn } from '../../lib/cn';
 
 export type MenuItem = { label: string; icon: ReactNode; onSelect(): void; danger?: boolean };
@@ -19,9 +21,13 @@ type Props = {
 };
 
 export function Menu({ open, onOpenChange, label, trigger, items, keepFocus }: Props) {
+  const pressed = useRef(false); // a mouse press came first: Radix has already opened or closed it
   return (
     <RadixMenu.Root open={open} onOpenChange={onOpenChange} modal={false}>
-      <RadixMenu.Trigger asChild>{trigger}</RadixMenu.Trigger>
+      <RadixMenu.Trigger asChild onPointerDown={() => { pressed.current = true; }}
+                         onClick={() => { if (!pressed.current) onOpenChange(!open); pressed.current = false; }}>
+        {trigger}
+      </RadixMenu.Trigger>
       <RadixMenu.Content aria-label={label} align="start" sideOffset={4}
                          onCloseAutoFocus={(event) => { if (keepFocus?.()) event.preventDefault(); }}
                          className="z-50 min-w-40 rounded-xl border border-edge-strong bg-popover p-1 shadow-[0_12px_32px_rgba(0,0,0,0.5)]">

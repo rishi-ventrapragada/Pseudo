@@ -1,5 +1,5 @@
 // M41: one saved chat in the sidebar (from the mockup): its title opens it, and "…" opens Rename and Delete.
-// Renaming swaps the title for a box: Enter or ✓ saves, Esc or clicking away keeps the old name. Display only
+// Renaming swaps the title for a box: Enter or ✓ saves; Esc, or the focus leaving both, keeps the old name. Display only
 // (D11): the brain checks the new name and refuses a bad one. Which row is renaming, and which menu is open,
 // is the list's to say (SessionList.tsx), so one menu is open at a time and a test can draw each state.
 
@@ -43,16 +43,16 @@ function RenameBox({ title, onDone }: { title: string; onDone(title: string | nu
     const typed = box.current?.value.trim() ?? '';
     onDone(typed && typed !== title ? typed : null); // empty or unchanged: nothing to send
   };
-  return (
-    <div className="flex items-center gap-1 px-1 py-0.5">
+  return ( // the focus moving from the box to ✓ (Tab, or a click) stays inside: only leaving both cancels
+    <div className="flex items-center gap-1 px-1 py-0.5"
+         onBlur={(event) => { if (!event.currentTarget.contains(event.relatedTarget)) onDone(null); }}>
       <input ref={box} aria-label="New name for this chat" defaultValue={title} maxLength={TITLE_CHARS}
              onKeyDown={(event) => {
                if (event.key === 'Enter') save();
                if (event.key === 'Escape') onDone(null);
              }}
-             onBlur={() => onDone(null)}
              className="h-[30px] min-w-0 flex-1 rounded-lg border border-edge-strong bg-field px-2 text-[13.5px] text-ink" />
-      <Button size="icon" aria-label="Save the new name" onMouseDown={(event) => event.preventDefault()} onClick={save}>
+      <Button size="icon" aria-label="Save the new name" onClick={save}>
         <Check aria-hidden="true" className="size-4" />
       </Button>
     </div>
