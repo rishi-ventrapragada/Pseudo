@@ -93,6 +93,12 @@ class Hands:
         self.names = [tool.name for tool in tools if tool.name not in MEMORY_TOOLS]  # what the model may call
         self.schemas = [to_openai_tool(tool) for tool in tools if tool.name not in MEMORY_TOOLS]
         self.has_memory = all(name in {tool.name for tool in tools} for name in MEMORY_TOOLS)
+        # (M40) the tools pseudo_hands marks as only reading; every other tool (memory ones too) may ask in a popup
+        self.read_only = {tool.name for tool in tools if tool.annotations and tool.annotations.read_only_hint is True}
+
+    def asks(self, name: str) -> bool:
+        """(M40) Can this tool open an approval popup? Yes unless it is marked read-only; an unknown name, yes."""
+        return name not in self.read_only
 
     async def call(self, name: str, arguments: str) -> tuple[str, bool]:
         """Run one tool the model asked for. Returns (text for the model, is_error)."""

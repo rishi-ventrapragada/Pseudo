@@ -35,6 +35,7 @@ The rules (M16, D16, and one from M18):
 """
 
 from pseudo_brain.action_brain import ActionBrain, Routing
+from pseudo_brain.asks import WithAsks
 from pseudo_brain.claude_code import ask_claude
 from pseudo_brain.hands import Hands, OfferedHands
 from pseudo_brain.local_server import LocalServer, ServerFailure
@@ -53,7 +54,8 @@ class Chat:
 
     def __init__(self, allowlist: Allowlist, on_event: EventSink, secrets: list[str],
                  routing: Routing | None = None) -> None:
-        self.allowlist, self.on_event, self.secrets = allowlist, on_event, secrets
+        self.allowlist, self.secrets = allowlist, secrets
+        self.on_event = WithAsks(on_event)  # (M40) every tool_call says whether that tool asks for approval
         self.routing = routing  # (M30) None: no routing at all, as before M30
         self.warm: WarmSessions | None = None  # (M32) set by the face's bridge; None: a launch per request
         self.servers: dict[str, LocalServer] = {}
@@ -120,6 +122,7 @@ class Chat:
         """One question through the loop, with memories before and a save after (M24).
 
         The session is saved after every turn, so nothing is lost."""
+        self.on_event.hands = hands  # (M40) the tools' marks, for `asks`
         intro, memories = await self.recall(text, hands)
         brain = self.action_brain_for(text)
         if brain:

@@ -80,7 +80,8 @@ async def test_the_save_comes_after_the_answer_as_pseudos_own_tool_call(world, p
         await world["chat"].ask(TASK, hands)
     order = kinds(world)
     assert order[order.index("answer"):] == ["answer", "tool_call", "tool_result", "memory_saved"]
-    assert world["events"][order.index("tool_call")][1] == {"name": "save_memory", "arguments": "{}", "by": "pseudo"}
+    assert world["events"][order.index("tool_call")][1] == {"name": "save_memory", "arguments": "{}", "by": "pseudo",
+                                                            "asks": True}  # (M40) its popup asks you
     assert len(popup_yes.previews) == 1
 
 
