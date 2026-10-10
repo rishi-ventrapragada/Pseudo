@@ -68,7 +68,8 @@ def assistant_to_dict(message: ChatCompletionMessage) -> dict:
 
 def fail(result: TurnResult, reason: str, on_event: EventSink) -> TurnResult:
     result.ok, result.answer, result.reason = False, None, reason
-    on_event("failed", {"reason": reason})
+    # (M42) what the turn used before it failed, so the Status panel counts a failed turn's tokens too
+    on_event("failed", {"reason": reason, "tokens_in": result.tokens_in, "tokens_out": result.tokens_out})
     return result
 
 

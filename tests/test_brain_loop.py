@@ -74,7 +74,8 @@ async def test_a_model_that_never_answers_stops_at_the_cap_without_an_answer() -
     fake = FakeModel(reply(tools=[("read_active_window", "{}")]))
     result, events, _ = await ask(fake)
     assert not result.ok and result.answer is None and len(fake.requests) == MAX_ITERATIONS
-    assert events[-1] == ("failed", {"reason": f"stopped after {MAX_ITERATIONS} model calls without an answer"})
+    assert events[-1] == ("failed", {"reason": f"stopped after {MAX_ITERATIONS} model calls without an answer",
+                                     "tokens_in": 100 * MAX_ITERATIONS, "tokens_out": 10 * MAX_ITERATIONS})  # (M42)
 
 
 @pytest.mark.anyio

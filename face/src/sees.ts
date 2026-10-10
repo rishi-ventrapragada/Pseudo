@@ -24,9 +24,12 @@ function num(value: unknown): number {
   return typeof value === 'number' || (typeof value === 'string' && value.trim() !== '') ? Number(value) : NaN;
 }
 
-/** One event's share of the totals: tokens from `answer`, Groq's budget from `tokens`, masked items from `tool_result`. */
+/** One event's share of the totals: tokens from the turn's end (`answer`, or `failed`: a failed turn used tokens
+ *  too), Groq's budget from `tokens`, masked items from `tool_result`. */
 export function addEvent(totals: Totals, kind: string, data: EventData, at: number): Totals {
-  if (kind === 'answer') return { ...totals, tokens: totals.tokens + (num(data.tokens_in) || 0) + (num(data.tokens_out) || 0) };
+  if (kind === 'answer' || kind === 'failed') {
+    return { ...totals, tokens: totals.tokens + (num(data.tokens_in) || 0) + (num(data.tokens_out) || 0) };
+  }
   if (kind === 'tool_result') return { ...totals, masked: totals.masked + (num(data.masked) || 0) };
   const left = num(data.budget_left), limit = num(data.budget);
   if (kind === 'tokens' && left >= 0 && limit > 0) return { ...totals, budget: { left, limit, at } };

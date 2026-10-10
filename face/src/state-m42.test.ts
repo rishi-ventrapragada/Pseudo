@@ -55,6 +55,8 @@ describe('the Status numbers (M42)', () => {
                       event('answer', { tokens_in: 1200, tokens_out: 80 }), event('tool_result', { masked: 2 }),
                       event('answer', { tokens_in: 1500, tokens_out: 20 }));
     expect([state.seen.totals.tokens, state.seen.totals.masked]).toEqual([2800, 5]);
+    const failed = run(brain(READY), event('failed', { reason: 'stopped after 6 model calls', tokens_in: 6000, tokens_out: 300 }));
+    expect(failed.seen.totals.tokens).toBe(6300); // a failed turn used tokens too
     const fresh = run(brain(READY), event('answer', { tokens_in: 10, tokens_out: 5 }),
                       brain({ type: 'session', name: 'x', provider: 'groq', messages: [] }));
     expect(fresh.seen.totals).toEqual({ tokens: 0, masked: 0, budget: null }); // a new or opened chat starts at 0
