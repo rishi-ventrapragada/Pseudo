@@ -31,7 +31,7 @@ export function ProviderBar({ providers, current, disabled, onSwitch }: Props) {
   return (
     <div role="group" aria-label="Provider" className="flex flex-col gap-1 border-b border-bubble py-3.5">
       <div className="mb-1 text-sm font-medium">Questions go to</div>
-      {providers.map((provider) => {
+      {providers.filter((provider) => !provider.disabled).map((provider) => { // M41: a switched-off one can't be chosen
         const chosen = provider.id === current;
         return (
           <button key={provider.id} type="button" aria-pressed={chosen} disabled={disabled || chosen}

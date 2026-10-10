@@ -6,12 +6,14 @@
 // M39: the Phase 10 layout (components/): a sidebar, a top row, the conversation and the question box, with the
 // switches in Settings. This file wires state to them; the parts only draw. The logic here is unchanged.
 // M40: suggestions ask like Enter does; a question's progress is said in the conversation; nothing under the box.
+// M41: the sidebar searches, renames and deletes chats, and holds the provider picker; the top row shows a title.
 
 import { useEffect, useReducer, useRef, useState } from 'react';
 import { BottomArea } from './components/BottomArea';
 import { CompactBar } from './components/CompactBar';
 import { Conversation } from './components/Conversation';
 import { ListeningChip, MicButton } from './components/MicButton';
+import { ProviderPicker } from './components/ProviderPicker';
 import { SettingsDialog } from './components/SettingsDialog';
 import { Sidebar } from './components/Sidebar';
 import { TopBar } from './components/TopBar';
@@ -77,6 +79,8 @@ export function App() {
     if (suggestion === undefined) setDraft('');
   }
 
+  const switchTo = (id: string) => send({ type: 'provider', id }, `Switching to ${id}`);
+
   function restart() {
     dispatch({ type: 'restarting' });
     window.pseudo.send({ type: 'restart' });
@@ -102,20 +106,26 @@ export function App() {
   return (
     <div className="flex h-full bg-ground text-ink">
       {sidebarOpen && (
-        <Sidebar onHide={() => setSidebarOpen(false)} idle={idle} sessions={state.sessions} current={state.session}
+        <Sidebar onHide={() => setSidebarOpen(false)} idle={idle} sessions={state.sessions} found={state.found}
+                 current={state.session}
                  onNewChat={() => send({ type: 'new_session' }, 'Starting a new chat')}
                  onOpen={(name) => send({ type: 'open_session', name }, 'Opening the chat')}
-                 onSettings={() => setSettingsOpen(true)} />
+                 onSearch={(text) => window.pseudo.send({ type: 'search_sessions', text })} // a read: never busy
+                 onRename={(name, title) => send({ type: 'rename_session', name, title }, 'Renaming the chat')}
+                 onDelete={(name) => send({ type: 'delete_session', name }, 'Deleting the chat')}
+                 picker={<ProviderPicker providers={state.providers} current={state.provider} idle={idle}
+                                         onSwitch={switchTo} actionBrain={state.actionBrain}
+                                         onSettings={() => setSettingsOpen(true)} />} />
       )}
       <main className="flex min-w-0 flex-1 flex-col">
         <TopBar sidebarOpen={sidebarOpen} onShowSidebar={() => setSidebarOpen(true)} compact={compact}
-                title={state.turns[0]?.question ?? 'New chat'} />
+                title={state.title || state.turns[0]?.question || 'New chat'} />
         <Conversation phase={state.phase} turns={state.turns} session={state.session} end={end} waiting={state.waiting}
                       suggestions={state.suggestions} canAsk={idle} onAsk={ask} />
         <BottomArea composer={composer(false)} notice={notice} stopped={stopped} onRestart={restart} />
       </main>
       <SettingsDialog open={settingsOpen} onClose={() => setSettingsOpen(false)} providers={state.providers}
-                      current={state.provider} idle={idle} onSwitch={(id) => send({ type: 'provider', id }, `Switching to ${id}`)}
+                      current={state.provider} idle={idle} onSwitch={switchTo}
                       actionBrain={state.actionBrain} warm={state.warm} warmOn={warm.warmOn} setWarmOn={warm.setWarmOn}
                       autostart={state.autostart} voice={voice} hotkeys={state.hotkeys} />
     </div>
