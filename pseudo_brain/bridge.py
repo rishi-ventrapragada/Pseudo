@@ -7,14 +7,11 @@ link from pseudo_brain to pseudo_hands (M14). No port is opened, so no other pro
 web page can reach the brain (D18: the M5 and M17 lesson, "anything reachable gets reached").
 
 Face -> brain:  ask {text} | provider {id} | new_session | list_sessions | open_session {name} | quit
-                | transcribe {audio} | speak_answers {on}    (M26: voice, in bridge_voice.py)
-                | warm_sessions {on}                         (M32: the warm session's switch, in bridge_warm.py)
-                | search_sessions, rename_session, delete_session    (M41: saved chats, in bridge_sessions.py)
-Brain -> face:  ready {providers, provider, session, tools, hands_pid, action_brain} | event {kind, data} | refused {reason}
-                | switched {provider, session} | session {name, provider, title, messages}
-                | sessions {items} | turn_done {ok} | transcript {text, note, seconds} | speech {audio, reason}
-                | warm {on, open, ram_mb, asked, of, idle_minutes, note}    (M32: the warm session's state)
-                | found, renamed, deleted                                   (M41: in bridge_sessions.py)
+Brain -> face:  ready {providers, provider, session, tools, hands_pid, action_brain, suggestions} | event {kind, data}
+                | refused {reason} | switched {provider, session} | session {name, provider, title, messages}
+                | sessions {items} | turn_done {ok}
+More messages, each listed in its own file: voice (bridge_voice.py, M26), the warm session (bridge_warm.py,
+M32), saved chats (bridge_sessions.py, M41), the look-at chip and the memory browser (bridge_sees.py, M42).
 `event` carries every event the loop, the model and the private server report (loop.py).
 
 Rules:
@@ -23,6 +20,7 @@ Rules:
   - Every line has every key in use replaced by <hidden> before it is written (as the terminal does).
   - One job at a time. While a question, a switch or opening a session is running, another one
     is refused as busy. Listing and searching chats, and quit, always work; quit stops a running question.
+    (M42) The chip and the memory browser are answered only while no job runs (bridge_sees.py).
   - A byte-order mark is stripped (PowerShell adds one; M16), and a question starting with "/"
     is never sent to the model (M16): the face has buttons, not commands.
   - hands_pid names the pseudo_hands process, so the face can let only it bring the approval
@@ -37,7 +35,7 @@ from collections.abc import Awaitable, Callable
 import anyio
 from anyio.abc import TaskGroup
 
-from pseudo_brain import bridge_sessions, bridge_voice, bridge_warm
+from pseudo_brain import bridge_sees, bridge_sessions, bridge_voice, bridge_warm
 from pseudo_brain.action_brain import action_brain_info, load_routing
 from pseudo_brain.bridge_sessions import SESSION_REFUSALS
 from pseudo_brain.bridge_voice import VOICE_REFUSALS
@@ -106,6 +104,8 @@ class Bridge:
             return False
         if kind in bridge_sessions.READS:
             bridge_sessions.read(self, message)
+        elif kind in bridge_sees.IDLE_READS:  # (M42) awaited here, so a job sent right after waits for it
+            await bridge_sees.read(self, message, BUSY)
         elif kind == "speak_answers":
             bridge_voice.set_speaking(self, message)
         elif kind == "warm_sessions":
@@ -151,6 +151,7 @@ class Bridge:
         elif text.startswith("/"):
             self.send("refused", reason="that looks like a command, so nothing was sent; the face uses buttons")
         else:
+            await bridge_sees.look(self)  # (M42) the chip shows what this question will read
             result = await self.chat.ask(text, self.hands)
             self.send("turn_done", ok=result.ok)
 

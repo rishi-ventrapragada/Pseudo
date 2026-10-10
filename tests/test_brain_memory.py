@@ -68,7 +68,9 @@ async def test_an_approved_answer_is_saved_and_found_again_in_a_new_session(worl
     assert memories["role"] == "system" and memories["content"].startswith(memory_search.INTRO)
     assert "NEXT_PUBLIC_API_URL" in memories["content"] and "98765" not in memories["content"]
     one_memory = memories["content"].split("\n", 1)[1]  # the intro, a line break, then the memory
-    assert ("memories", {"count": 1, "chars": len(one_memory), "note": ""}) in world["events"]
+    title = one_memory.split("\n", 1)[0].split(": ", 1)[1]  # (M42) for the steps: the memory's question, redacted
+    assert title.startswith("My Vercel build broke") and "Rahul" not in title and "98765" not in title
+    assert ("memories", {"count": 1, "chars": len(one_memory), "note": "", "titles": [title]}) in world["events"]
     saved = (Path(session_module.SESSIONS_DIR) / f"{chat.session.started}.json").read_text(encoding="utf-8")
     assert memory_search.INTRO not in saved and not any(memory_search.INTRO in str(t) for t in chat.session.turns)
 

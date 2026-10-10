@@ -22,6 +22,7 @@ import openai
 from openai.types.chat import ChatCompletionMessage
 
 from pseudo_brain.hands import Hands
+from pseudo_brain.masks import count_masks
 from pseudo_brain.model import ModelFailure, call_model
 from pseudo_brain.session import Session, TooLarge
 
@@ -127,6 +128,7 @@ async def run_turn(session: Session, text: str, model, hands: Hands, on_event: E
             # Runs in the pseudo_hands process. An action's approval popup appears from THERE (D13).
             text, is_error = await hands.call(name, arguments)
             session.add({"role": "tool", "tool_call_id": tool_call.id, "content": text})  # memory only
-            on_event("tool_result", {"name": name, "chars": len(text), "is_error": is_error})
+            on_event("tool_result", {"name": name, "chars": len(text), "is_error": is_error,
+                                     "masked": count_masks(text)})  # (M42) a count only
 
     return fail(result, f"stopped after {MAX_ITERATIONS} model calls without an answer", on_event)

@@ -34,7 +34,7 @@ def use(number: int, tool: str) -> None:
     say({"type": "assistant", "message": {"content": [
         {"type": "tool_use", "id": f"t{number}", "name": PREFIX + tool, "input": {"n": number}}]}})
     say({"type": "user", "message": {"content": [
-        {"type": "tool_result", "tool_use_id": f"t{number}", "content": [{"type": "text", "text": "fake result"}]}]}})
+        {"type": "tool_result", "tool_use_id": f"t{number}", "content": [{"type": "text", "text": "fake result about [PERSON]"}]}]}})
 
 
 def record(args: list[str], questions: list[str]) -> None:

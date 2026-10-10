@@ -36,6 +36,7 @@ from pseudo_brain.action_brain import ActionBrain
 from pseudo_brain.claude_process import hands_pid, stop_tree  # (M32) the process tree, moved to its own file
 from pseudo_brain.hands import HANDS_MODULE, REPO_ROOT
 from pseudo_brain.loop import MAX_ITERATIONS, SYSTEM_PROMPT, EventSink, TurnResult, fail
+from pseudo_brain.masks import count_masks
 
 SERVER_NAME = "pseudo_hands"
 PREFIX = f"mcp__{SERVER_NAME}__"  # how Claude Code names an MCP server's tools
@@ -169,9 +170,9 @@ async def follow(lines: BufferedByteReceiveStream, pid: int, brain: ActionBrain,
             names[block.get("id")] = name
             on_event("tool_call", {"name": name, "arguments": json.dumps(block.get("input") or {})})
         for block in blocks(event, "tool_result"):
-            on_event("tool_result", {"name": names.get(block.get("tool_use_id"), ""),
-                                     "chars": len(json.dumps(block.get("content") or "")),
-                                     "is_error": bool(block.get("is_error"))})
+            text = json.dumps(block.get("content") or "")
+            on_event("tool_result", {"name": names.get(block.get("tool_use_id"), ""), "chars": len(text),
+                                     "is_error": bool(block.get("is_error")), "masked": count_masks(text)})
         if event.get("type") == "result":
             return finish(event, brain, result, on_event)
 

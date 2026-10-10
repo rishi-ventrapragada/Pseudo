@@ -164,7 +164,9 @@ class Chat:
         found = await hands.brain_call("search_memories", {"question": text})
         memories = [m for m in (found or {}).get("memories", []) if isinstance(m, str)]
         note = "the memory search failed" if found is None else str(found.get("note", ""))
-        self.on_event("memories", {"count": len(memories), "chars": sum(len(m) for m in memories), "note": note})
+        titles = [m.split("\n", 1)[0].removeprefix("- ").split(": ", 1)[-1][:80] for m in memories]  # (M42) redacted
+        self.on_event("memories", {"count": len(memories), "chars": sum(len(m) for m in memories), "note": note,
+                                   "titles": titles})
         return str((found or {}).get("intro", "")), memories
 
     async def remember(self, text: str, result: TurnResult, hands: Hands, provider_id: str) -> None:

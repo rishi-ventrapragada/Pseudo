@@ -55,6 +55,7 @@ async def test_an_action_request_is_answered_and_reported_like_the_loop_does(wor
     answer = world["events"][-1][1]
     assert (answer["provider"], answer["model"], answer["fallback"]) == ("claude-code", "claude-sonnet-fake", False)
     assert "fake result" not in json.dumps([data for kind, data in world["events"] if kind != "answer"])
+    assert [data["masked"] for kind, data in world["events"] if kind == "tool_result"] == [1, 1]  # (M42) counted, not kept
 
 
 @pytest.mark.anyio
