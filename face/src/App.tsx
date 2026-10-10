@@ -5,6 +5,7 @@
 // needed, and press Enter, exactly like typing (L8). Nothing you say is ever sent as a question by itself.
 // M39: the Phase 10 layout (components/): a sidebar, a top row, the conversation and the question box, with the
 // switches in Settings. This file wires state to them; the parts only draw. The logic here is unchanged.
+// M40: suggestions ask like Enter does; a question's progress is said in the conversation; nothing under the box.
 
 import { useEffect, useReducer, useRef, useState } from 'react';
 import { BottomArea } from './components/BottomArea';
@@ -16,7 +17,6 @@ import { Sidebar } from './components/Sidebar';
 import { TopBar } from './components/TopBar';
 import { Composer } from './Composer';
 import type { ToBrain } from './protocol';
-import { PrivacyNote } from './ProviderBar';
 import { initial, reduce } from './state';
 import { useCompact } from './useCompact';
 import { useVoice } from './useVoice';
@@ -67,13 +67,14 @@ export function App() {
     if (state.talk) voice.toggle(); // it does nothing while Pseudo can't listen: starting, busy, or no speech model
   }, [state.talk]);
 
-  function ask() {
-    const text = draft.trim();
+  /** Ask the draft, or (M40) a suggestion: the same message either way; a suggestion leaves the draft alone. */
+  function ask(suggestion?: string) {
+    const text = (suggestion ?? draft).trim();
     if (!text || !idle) return;
     window.pseudo.send({ type: 'ask', text });
     dispatch({ type: 'asked', text, at: Date.now() });
-    compact.open(); // M38: the bar grows to show this turn's steps, banner and answer
-    setDraft('');
+    compact.open(); // M38: the bar grows to show this turn's steps, approval line and answer
+    if (suggestion === undefined) setDraft('');
   }
 
   function restart() {
@@ -81,20 +82,22 @@ export function App() {
     window.pseudo.send({ type: 'restart' });
   }
 
-  const status = state.phase === 'stopped' ? "Pseudo's brain stopped."
+  // M40: a question's progress is said in the conversation (Activity.tsx); this line is for everything else.
+  const questionRunning = Boolean(state.turns.at(-1)?.running);
+  const notice = state.phase === 'stopped' ? "Pseudo's brain stopped."
     : state.phase === 'starting' ? 'Starting the brain'
-    : voice.listening ? 'Listening. Let go of Ctrl+Space, or click Stop talking, when you have finished.'
-    : state.working ?? (voice.problem || state.notice || 'Ready. Pseudo reads the window you were on before this one.');
+    : voice.listening ? 'Listening. Let go of Ctrl+Space, or click the mic, when you have finished.'
+    : (!questionRunning && state.working) || voice.problem || state.notice;
 
   const composer = (row: boolean) => (
-    <Composer draft={draft} setDraft={setDraft} canAsk={idle} onAsk={ask} box={box} row={row}
+    <Composer draft={draft} setDraft={setDraft} canAsk={idle} onAsk={() => ask()} box={box} row={row}
               mic={<MicButton voice={voice} canTalk={canTalk} why={why} />} chips={<ListeningChip voice={voice} />} />
   );
-  const shared = { status, working: state.working !== null, waiting: state.waiting?.name ?? null, stopped: state.phase === 'stopped',
-                   onRestart: restart };
+  const stopped = state.phase === 'stopped';
 
   if (compact.on) {
-    return <CompactBar compact={compact} latest={state.turns.at(-1)} composer={composer(true)} {...shared} />;
+    return <CompactBar compact={compact} latest={state.turns.at(-1)} composer={composer(true)} notice={notice}
+                       waiting={state.waiting} stopped={stopped} onRestart={restart} />;
   }
   return (
     <div className="flex h-full bg-ground text-ink">
@@ -107,9 +110,9 @@ export function App() {
       <main className="flex min-w-0 flex-1 flex-col">
         <TopBar sidebarOpen={sidebarOpen} onShowSidebar={() => setSidebarOpen(true)} compact={compact}
                 title={state.turns[0]?.question ?? 'New chat'} />
-        <Conversation phase={state.phase} turns={state.turns} session={state.session} end={end} />
-        <BottomArea composer={composer(false)} {...shared}
-                    privacy={<PrivacyNote provider={current} actionBrain={state.actionBrain} />} />
+        <Conversation phase={state.phase} turns={state.turns} session={state.session} end={end} waiting={state.waiting}
+                      suggestions={state.suggestions} canAsk={idle} onAsk={ask} />
+        <BottomArea composer={composer(false)} notice={notice} stopped={stopped} onRestart={restart} />
       </main>
       <SettingsDialog open={settingsOpen} onClose={() => setSettingsOpen(false)} providers={state.providers}
                       current={state.provider} idle={idle} onSwitch={(id) => send({ type: 'provider', id }, `Switching to ${id}`)}

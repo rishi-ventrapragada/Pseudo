@@ -7,6 +7,7 @@
 // hidden on this laptop before anything left it.
 
 // M39: drawn by answer.css; the masks are small chips, from the Phase 10 mockup.
+// M40: a chip reads as a plain word ("name", "phone"); the redactor's own label is in its tooltip.
 
 import { Children, type ReactNode } from 'react';
 import ReactMarkdown, { type Components } from 'react-markdown';
@@ -14,14 +15,27 @@ import './answer.css';
 
 const MASK = /(\[(?:[A-Z][A-Z_]+|restricted app|title withheld|content withheld|password field)\])/;
 
-/** Split the text parts of `children` so every mask label becomes its own bar. */
+/** What a chip says for each of the redactor's labels; a label not listed is shown in lower case. */
+const WORDS: Record<string, string> = {
+  PERSON: 'name', IN_PHONE: 'phone', PHONE_NUMBER: 'phone', LOCATION: 'place', EMAIL_ADDRESS: 'email', DATE_TIME: 'date',
+  DATE: 'date', TIME: 'time', IN_AADHAAR: 'Aadhaar', IN_PAN: 'PAN', IN_UPI: 'UPI ID', IN_VEHICLE_REGISTRATION: 'vehicle number',
+  LONG_NUMBER: 'number', ORGANIZATION: 'organisation', NRP: 'group', URL: 'link', AGE: 'age', CREDIT_CARD: 'card number',
+  IP_ADDRESS: 'IP address', 'restricted app': 'private app', 'title withheld': 'hidden title',
+  'content withheld': 'hidden content', 'password field': 'password',
+};
+
+export function maskWord(label: string): string {
+  return WORDS[label] ?? label.toLowerCase().replaceAll('_', ' ');
+}
+
+/** Split the text parts of `children` so every mask label becomes its own chip. */
 export function withMasks(children: ReactNode): ReactNode {
   return Children.map(children, (child) => {
     if (typeof child !== 'string') return child;
     return child.split(MASK).map((part, index) =>
       index % 2 ? (
         <span className="mask" key={index} title={`Masked on this laptop: ${part}`}>
-          {part.slice(1, -1)}
+          {maskWord(part.slice(1, -1))}
         </span>
       ) : (
         part

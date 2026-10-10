@@ -33,7 +33,9 @@ describe('Markdown', () => {
   it('draws masks as bars, and leaves other brackets alone', () => {
     const out = html('Meeting with [PERSON], call [IN_PHONE]; app: [restricted app]; see note [1].');
     expect(out.match(/<span class="mask"/g)).toHaveLength(3);
-    expect(out).toContain('>PERSON</span>');
+    expect(out).toContain('title="Masked on this laptop: [PERSON]">name</span>'); // M40: a plain word, the label on hover
+    expect(out).toContain('>phone</span>');
+    expect(out).toContain('>private app</span>');
     expect(out).toContain('[1]');
   });
 });

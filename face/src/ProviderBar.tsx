@@ -1,11 +1,11 @@
 // M18: which provider answers, and whether your words leave this laptop. One button per provider
 // in the allowlist (D16); the brain does the switching (chat.py) and says if it refused.
-// M39: the choice is a list in Settings, each provider with its privacy note in plain sight; the strip
-// (PrivacyNote) is a quiet line under the question box until M40 moves it into the steps (D28).
+// M39: the choice is a list in Settings, each provider with its privacy note in plain sight.
+// M40: the privacy strip under the question box is gone (D28); where each provider sends your words is here.
 
 import { Check } from 'lucide-react';
 import { cn } from './lib/cn';
-import type { ActionBrain, Provider } from './protocol';
+import type { Provider } from './protocol';
 
 type Props = { providers: Provider[]; current: string; disabled: boolean; onSwitch: (id: string) => void };
 
@@ -35,26 +35,5 @@ export function ProviderBar({ providers, current, disabled, onSwitch }: Props) {
         );
       })}
     </div>
-  );
-}
-
-/** Under the question box: the provider in use, its models, and its privacy note. */
-type NoteProps = { provider: Provider | undefined; actionBrain?: ActionBrain | null };
-
-export function PrivacyNote({ provider, actionBrain }: NoteProps) {
-  if (!provider) return null;
-  const fallback = provider.models.length > 1 ? ` (on a 429: ${provider.models.slice(1).join(', ')})` : '';
-  return (
-    <p className="text-center text-xs leading-normal text-faint">
-      <strong className="font-medium text-muted">{where(provider)}.</strong> {provider.name} · {provider.models[0]}
-      {fallback}. {provider.privacy}
-      {/* M30: a second brain answers action requests, but never in private mode (chat.py) */}
-      {actionBrain && provider.leaves_laptop && (
-        <span className="block">
-          <strong className="font-medium text-muted">Actions (click, type, tick, choose):</strong> {actionBrain.name} ·{' '}
-          {actionBrain.model}, after a billing check. {actionBrain.privacy}
-        </span>
-      )}
-    </p>
   );
 }
