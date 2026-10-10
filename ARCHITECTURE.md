@@ -165,12 +165,18 @@ pseudo_hands/
                         fail closed (M30)
     act.py              act_on_control(): refusals, popup, re-check, act, read back (M28, D25)
     memory.py           save_memory(): redact the task, ask in the popup, write a NEW note to
-                        %LOCALAPPDATA%\Pseudo\memory\tasks (links refused) (M24, D23)
+                        %LOCALAPPDATA%\Pseudo\memory\tasks (no link from the Pseudo folder down, M42) (M24, D23)
     memory_search.py    search_memories(): FTS5 in memory, refreshed by modification time; re-redacts,
                         at most 3 memories / 1,400 chars; any failure -> none (M24, D23)
     memory_background.txt  150 FAKE notes for word statistics only, never returned (M24)
+    memory_browse.py    (M42) list_memories(), open_memory(name): your notes, read-only, redacted again,
+                        through memory.py's and memory_search.py's checks; a name, never a path
+    looking_at.py       (M42) looking_at(): the app read_active_window would read now, by its own name, or
+                        private for a blocked app; reads nothing from the window, leaves the control ids alone
+    app_names.py        (M42) an app's own name: its exe's FileDescription, as Task Manager shows it
   show_windows.py       thin CLI demo (M4)
   mcp_server.py         thin MCP wrapper (M5); --tools publishes only the named tools (M30)
+                        (M42) also publishes looking_at, list_memories and open_memory, for the brain only (D29)
   build_names_list.py   maintenance tool, run by hand: rebuilds indian_names_large.txt from Wikidata (M22)
 ```
 
@@ -190,14 +196,17 @@ pseudo_brain/           Pseudo's own agent loop (D15, M14), grown from playgroun
   providers.toml        the D16 allowlist: each provider's URL, key VARIABLE name, models, privacy note (M16)
   providers.py          loads and checks it; refuses the rest (private = 127.0.0.1 only, no "cloud" names)
                         and any provider marked disabled = "<reason>", with that reason (P5-perf)
+  model_tools.py        (M42, D29) loads model_tools, the only tools a model may be offered, and names the
+                        brain-only tools (memory, the chip, the memory browser); the two lists never overlap
+  masks.py              (M42) counts the redactor's labels in a tool result, for the Status panel; counts only
   model.py              one provider through AsyncOpenAI (D10), max_retries=0; a 429 moves to the SAME
                         provider's next model, then waits visibly; other failures -> ModelFailure
   local_server.py       private mode's own server (Ollama): started on /provider local after checking
                         cloud is off, 127.0.0.1 only, stopped when pseudo_brain exits (M16).
                         Unused since P5-perf: Ollama removed and `local` disabled (D16, D20)
   hands.py              MCP CLIENT of pseudo_hands over stdio; tools discovered at startup, none named;
-                        knows pseudo_hands' pid, for the face's popup permission (M18); hides the two
-                        memory tools from the model and calls them for the brain (M24)
+                        knows pseudo_hands' pid, for the face's popup permission (M18); offers a model only
+                        model_tools (D29); the brain calls the brain-only tools itself, brain_call (M24, M42)
   chat.py               one conversation, shared by every interface: start, switch provider (closing
                         the old one's connections), new/open session, ask, stop servers (M18);
                         searches memory before a question, offers answered tasks to it after (M24);
@@ -240,6 +249,8 @@ pseudo_brain/           Pseudo's own agent loop (D15, M14), grown from playgroun
   bridge_voice.py       the bridge's voice messages: transcribe in, transcript and speech out (M26)
   bridge_sessions.py    (M41) the bridge's chat messages: list and search answer at once; rename and delete
                         are jobs, refused while a question runs
+  bridge_sees.py        (M42) the chip and the memory browser: answered only while no job runs, with no
+                        tool_call event; each question sends the chip first
   bridge_warm.py        the bridge's warm-session messages: the face's switch in, the session's state and
                         memory out, a tick every 5 s (M32)
   voice_in.py           push-to-talk recording -> words: 30 s cap, silence gate (-45 dBFS), the provider's
@@ -296,7 +307,9 @@ face/                   Pseudo's own window (M18): Electron + React, display onl
                         step in plain words (replaces events.ts); components/Activity.tsx: the working word, the
                         amber approval line and the compact bar's top row; (M41) groups.ts: a chat's day group
                         from its name; components/SearchChats, ChatRow (the "…" menu and the rename box),
-                        DeleteChat, ProviderPicker; ui/Menu and ui/Popover (Radix, not modal)
+                        DeleteChat, ProviderPicker; ui/Menu and ui/Popover (Radix, not modal); (M42) sees.ts:
+                        the chip, the memory browser and the Status numbers; useLookingAt.ts;
+                        components/LookingAtChip, PanelSwitch, MemoryView, StatusPanel
 ```
 
 ```
