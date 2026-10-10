@@ -2,11 +2,12 @@
 // What it holds moved in unchanged: the provider, Keep Claude Code warm (only where action requests go to
 // Claude Code), Start with Windows, Speak answers and the shortcuts. Each control still only asks; the brain
 // or the main process decides and answers.
+// M40: where your words go lives here (D28): each provider's privacy note and fallback, and where action requests go.
 
 import { AutostartControl } from '../AutostartControl';
 import { HotkeysNote } from '../HotkeysNote';
 import type { ActionBrain, Autostart, Hotkey, Provider, Warm } from '../protocol';
-import { ProviderBar } from '../ProviderBar';
+import { ActionBrainNote, ProviderBar } from '../ProviderBar';
 import type { Voice } from '../useVoice';
 import { WarmControl } from '../WarmControl';
 import { SettingRow } from './SettingRow';
@@ -38,6 +39,7 @@ export function SettingsDialog(props: Props) {
             footer={<Button variant="primary" className="font-medium" onClick={onClose}>Done</Button>}>
       <div className="max-h-[calc(100vh-170px)] overflow-y-auto">
         <ProviderBar providers={providers} current={current} disabled={!idle} onSwitch={onSwitch} />
+        <ActionBrainNote actionBrain={actionBrain} provider={provider} />
         {actionBrain && provider?.leaves_laptop && ( // M32: only where action requests go to Claude Code
           <WarmControl warm={warm} warmOn={warmOn} setWarmOn={setWarmOn} />
         )}

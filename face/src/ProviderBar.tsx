@@ -5,7 +5,21 @@
 
 import { Check } from 'lucide-react';
 import { cn } from './lib/cn';
-import type { Provider } from './protocol';
+import type { ActionBrain, Provider } from './protocol';
+
+/** M40: where requests to click, type or tick go (D26), said in Settings now instead of under the question box.
+ *  Shown only where they really go there: private mode never routes to Claude Code (chat.py). */
+export function ActionBrainNote({ actionBrain, provider }: { actionBrain: ActionBrain | null; provider: Provider | undefined }) {
+  if (!actionBrain || !provider?.leaves_laptop) return null;
+  return (
+    <div role="note" aria-label="Where action requests go" className="border-b border-bubble py-3.5">
+      <div className="text-sm font-medium">Clicking, typing and ticking</div>
+      <div className="mt-[3px] text-[12.5px] leading-normal text-muted">
+        These requests go to {actionBrain.name} · {actionBrain.model}, after a billing check. {actionBrain.privacy}
+      </div>
+    </div>
+  );
+}
 
 type Props = { providers: Provider[]; current: string; disabled: boolean; onSwitch: (id: string) => void };
 
@@ -28,7 +42,10 @@ export function ProviderBar({ providers, current, disabled, onSwitch }: Props) {
               <span className="block text-[13.5px] font-medium">
                 {provider.name} · {provider.models[0]} <span className="font-normal text-faint">· {where(provider)}</span>
               </span>
-              <span className="mt-0.5 block text-xs leading-[1.45] text-muted">{provider.privacy}</span>
+              <span className="mt-0.5 block text-xs leading-[1.45] text-muted">
+                {provider.privacy}
+                {provider.models.length > 1 && ` On a rate limit: ${provider.models.slice(1).join(', ')}, never another provider.`}
+              </span>
             </span>
             {chosen && <Check aria-hidden="true" className="mt-0.5 size-4 shrink-0" strokeWidth={2} />}
           </button>
