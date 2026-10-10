@@ -227,11 +227,19 @@ pseudo_brain/           Pseudo's own agent loop (D15, M14), grown from playgroun
   session.py            history as whole turns, one provider per session; trimmed per request to the
                         provider's max_prompt_tokens; memories join a request, never the history (M24);
                         saved to %LOCALAPPDATA%\Pseudo\sessions\ (your messages + final answers only)
+  session_files.py      (M41) a saved chat's title, rename, delete and search. A change only to a file whose
+                        name Pseudo makes, directly inside real Pseudo and sessions folders (no links or
+                        junctions), a plain file with one name that reads as a Pseudo chat; search reads
+                        titles and your messages, never the answers
+  chat_sessions.py      (M41) what a rename or delete means for the open chat: its Session gets the new title;
+                        deleting it starts a new one; a warm session that served it is stopped
   loop.py               SYSTEM_PROMPT + run_turn(): THE LOOP. Never prints: reports events via on_event
   terminal.py           thin interface: prints events, reads input, --continue, --provider, /provider,
                         /new, /quit
   bridge.py             thin interface for the face: JSON lines over stdin/stdout, no port (D18, M18)
   bridge_voice.py       the bridge's voice messages: transcribe in, transcript and speech out (M26)
+  bridge_sessions.py    (M41) the bridge's chat messages: list and search answer at once; rename and delete
+                        are jobs, refused while a question runs
   bridge_warm.py        the bridge's warm-session messages: the face's switch in, the session's state and
                         memory out, a tick every 5 s (M32)
   voice_in.py           push-to-talk recording -> words: 30 s cap, silence gate (-45 dBFS), the provider's
@@ -286,7 +294,9 @@ face/                   Pseudo's own window (M18): Electron + React, display onl
                         components/ (Sidebar, SessionList, TopBar, Conversation, TurnView, BottomArea, MicButton,
                         SettingsDialog, SettingRow, Stopped, CompactBar); (M40) steps.ts: each brain event as one
                         step in plain words (replaces events.ts); components/Activity.tsx: the working word, the
-                        amber approval line and the compact bar's top row
+                        amber approval line and the compact bar's top row; (M41) groups.ts: a chat's day group
+                        from its name; components/SearchChats, ChatRow (the "…" menu and the rename box),
+                        DeleteChat, ProviderPicker; ui/Menu and ui/Popover (Radix, not modal)
 ```
 
 ```
