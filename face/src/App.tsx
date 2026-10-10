@@ -71,7 +71,7 @@ export function App() {
     const text = draft.trim();
     if (!text || !idle) return;
     window.pseudo.send({ type: 'ask', text });
-    dispatch({ type: 'asked', text });
+    dispatch({ type: 'asked', text, at: Date.now() });
     compact.open(); // M38: the bar grows to show this turn's steps, banner and answer
     setDraft('');
   }
@@ -90,7 +90,7 @@ export function App() {
     <Composer draft={draft} setDraft={setDraft} canAsk={idle} onAsk={ask} box={box} row={row}
               mic={<MicButton voice={voice} canTalk={canTalk} why={why} />} chips={<ListeningChip voice={voice} />} />
   );
-  const shared = { status, working: state.working !== null, waiting: state.toolWaiting, stopped: state.phase === 'stopped',
+  const shared = { status, working: state.working !== null, waiting: state.waiting?.name ?? null, stopped: state.phase === 'stopped',
                    onRestart: restart };
 
   if (compact.on) {

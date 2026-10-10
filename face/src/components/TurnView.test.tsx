@@ -32,7 +32,7 @@ describe('TurnView', () => {
   });
 
   it('the question, the answer, and the steps one click away', () => {
-    const html = renderToStaticMarkup(<TurnView turn={{ ...turn(), steps: ['Read the window', 'Answered'] }} />);
+    const html = renderToStaticMarkup(<TurnView turn={{ ...turn(), steps: [{ label: 'Read the window you were on' }, { label: 'Answered', detail: 'groq · big' }] }} />);
     expect(html).toContain('Tick the fake box.');
     expect(html).toContain('Fake answer.');
     expect(html).toContain('2 steps: what Pseudo did');

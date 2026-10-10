@@ -1,18 +1,24 @@
 // M18: everything the window shows, and how each message from the brain changes it.
 // A pure function (reduce), like a Redux reducer: (state, action) -> new state. No logic
 // about providers or sessions lives here; the brain decides, and this only records what it said.
+// M40: steps are plain-language objects (steps.ts); `waiting` says whether the running tool can show the approval
+// popup (the brain's `asks`); a running question keeps when it was asked, for the working line's timer.
 
-import { answerLabel, describeEvent } from './events';
+import { answerLabel, describeStep, type Step, who } from './steps';
 import type { ActionBrain, Autostart, FromBrain, Hotkey, Provider, SavedMessage, SessionItem, Warm } from './protocol';
 
 export type Turn = {
   question: string;
-  steps: string[]; // the loop's events, worded as in the terminal
+  steps: Step[]; // what Pseudo did, in plain words; who answered is the "Answered" step (D28)
   answer?: string;
   label?: string; // who answered: "groq · openai/gpt-oss-120b" (", fallback")
   failed?: string;
   running: boolean;
+  askedAt?: number; // M40: when it was asked (ms), for the timer; only while it runs
 };
+
+/** M40: the tool that is running. asks = it can show the approval popup (unmarked tools count as asking). */
+export type Waiting = { name: string; asks: boolean };
 
 export type State = {
   phase: 'starting' | 'ready' | 'stopped';
@@ -22,9 +28,10 @@ export type State = {
   session: string; // the session's name (when it started)
   turns: Turn[];
   working: string | null; // what Pseudo is doing right now; null = waiting for you
-  toolWaiting: string | null; // a tool that is running (its approval popup may be open); null = none
+  waiting: Waiting | null; // M40: a tool that is running, and whether its popup may be open; null = none
   notice: string; // the last switch or refusal, in plain words
-  sessions: SessionItem[] | null; // the saved-sessions panel; null = closed
+  sessions: SessionItem[] | null; // the saved chats; null = not listed yet
+  suggestions: string[]; // M40: the empty chat's one-click questions, from the brain
   heard: { text: string; n: number } | null; // M26: the latest transcript; n counts them, so each one lands once
   speech: { audio: string; n: number } | null; // M26: the latest spoken answer, for the player
   warm: Warm | null; // M32: what this brain last said about its warm session; null = nothing yet
@@ -40,22 +47,27 @@ const fromMain = (state: State) => ({ autostart: state.autostart, hotkeys: state
 
 export type Action =
   | { type: 'from_brain'; message: FromBrain }
-  | { type: 'asked'; text: string }
+  | { type: 'asked'; text: string; at: number }
   | { type: 'working'; what: string }
-  | { type: 'close_sessions' }
   | { type: 'restarting' };
 
 export const initial: State = {
-  phase: 'starting', providers: [], provider: '', actionBrain: null, session: '', turns: [], working: null, toolWaiting: null, notice: '',
-  sessions: null, heard: null, speech: null, warm: null, autostart: null, hotkeys: null, talk: 0, compact: false,
+  phase: 'starting', providers: [], provider: '', actionBrain: null, session: '', turns: [], working: null, waiting: null,
+  notice: '', sessions: null, suggestions: [], heard: null, speech: null, warm: null, autostart: null, hotkeys: null, talk: 0,
+  compact: false,
 };
 
-/** A saved session's messages -> turns: each question with the answer that followed it. */
+/** A saved session's messages -> turns: each question with the answer that followed it. Who answered is kept
+ *  as the turn's one step, so it stays one click away (D28). */
 export function turnsFrom(messages: SavedMessage[]): Turn[] {
   const turns: Turn[] = [];
   for (const message of messages) {
     if (message.role === 'user') turns.push({ question: message.content, steps: [], running: false });
-    else if (turns.length) Object.assign(turns[turns.length - 1], { answer: message.content, label: message.answered_by ?? '' });
+    else if (turns.length) {
+      const label = message.answered_by ?? '';
+      Object.assign(turns[turns.length - 1], { answer: message.content, label,
+                                               steps: label ? [{ label: 'Answered', detail: who(label) }] : [] });
+    }
   }
   return turns;
 }
@@ -66,38 +78,41 @@ function updateRunning(turns: Turn[], change: (turn: Turn) => Partial<Turn>): Tu
   return last?.running ? [...turns.slice(0, -1), { ...last, ...change(last) }] : turns;
 }
 
+/** A question that is running and has already been taken by the brain (it has steps). */
+function questionRunning(state: State): boolean {
+  const last = state.turns[state.turns.length - 1];
+  return Boolean(last?.running && last.steps.length);
+}
+
 function fromBrain(state: State, message: FromBrain): State {
   switch (message.type) {
     case 'ready':
       return { ...initial, ...fromMain(state), phase: 'ready', // M36: what the main process said is kept
                providers: message.providers, provider: message.provider,
-               actionBrain: message.action_brain ?? null,
+               actionBrain: message.action_brain ?? null, suggestions: message.suggestions ?? [],
                session: message.session.name, turns: turnsFrom(message.session.messages) };
     case 'event': {
       const { kind, data } = message;
       if (kind === 'hands_pid') return state; // M30: for the main process only (foreground.js)
-      const step = describeEvent(kind, data);
+      const step = describeStep(kind, data);
       const turns = updateRunning(state.turns, (turn) => ({
         steps: step ? [...turn.steps, step] : turn.steps,
         ...(kind === 'answer' ? { answer: data.text || '(empty answer)', label: answerLabel(data) } : {}),
         ...(kind === 'failed' ? { failed: data.reason } : {}),
       }));
-      const working = kind === 'tool_call'
-        ? (data.by === 'pseudo' // M24: Pseudo itself offers the answered task to memory
-          ? 'Saving this task to memory: answer the approval popup (no answer means no).'
-          : `Running ${data.name}. If it needs your approval, a popup asks you; nothing happens until you answer.`)
-        : step ?? state.working;
-      const toolWaiting = kind === 'tool_call' ? String(data.name) : kind === 'tool_result' ? null : state.toolWaiting;
-      return { ...state, turns, working, toolWaiting };
+      const waiting = kind === 'tool_call' ? { name: String(data.name), asks: data.asks !== false } // no mark: it asks
+        : kind === 'tool_result' ? null : state.waiting;
+      return { ...state, turns, working: step?.label ?? state.working, waiting };
     }
     case 'turn_done':
-      return { ...state, working: null, toolWaiting: null, turns: updateRunning(state.turns, () => ({ running: false })) };
+      return { ...state, working: null, waiting: null,
+               turns: updateRunning(state.turns, () => ({ running: false, askedAt: undefined })) };
     case 'switched':
       return { ...state, provider: message.provider, session: message.session.name, turns: [], working: null,
-               toolWaiting: null, notice: `Switched to ${message.provider}. This is a new session: a session keeps one provider.` };
+               waiting: null, notice: `Switched to ${message.provider}. This is a new session: a session keeps one provider.` };
     case 'session':
       return { ...state, provider: message.provider, session: message.name, turns: turnsFrom(message.messages),
-               working: null, toolWaiting: null, sessions: null,
+               working: null, waiting: null, sessions: null,
                notice: message.messages.length ? `Continuing a saved session on ${message.provider}.`
                                                : `New session on ${message.provider}.` };
     case 'sessions':
@@ -121,13 +136,15 @@ function fromBrain(state: State, message: FromBrain): State {
     case 'refused': {
       const last = state.turns[state.turns.length - 1];
       if (last?.running && !last.steps.length) { // the question itself was refused: it was never sent
-        return { ...state, working: null, toolWaiting: null,
+        return { ...state, working: null, waiting: null,
                  turns: updateRunning(state.turns, () => ({ failed: `Not sent: ${message.reason}`, running: false })) };
       }
-      return { ...state, working: null, toolWaiting: null, notice: message.reason };
+      // M40: a side request refused while a question runs leaves the question, and its approval wait, alone
+      if (questionRunning(state)) return { ...state, notice: message.reason };
+      return { ...state, working: null, waiting: null, notice: message.reason };
     }
     case 'brain_stopped':
-      return { ...state, phase: 'stopped', working: null, toolWaiting: null,
+      return { ...state, phase: 'stopped', working: null, waiting: null,
                turns: updateRunning(state.turns, () => ({ failed: 'The brain stopped before answering.', running: false })) };
     default: // a message this page doesn't know (a newer main process): ignored. Without this line the state
       return state; // became undefined and the page went blank (M35's prototype, and nearly M36).
@@ -140,11 +157,9 @@ export function reduce(state: State, action: Action): State {
       return fromBrain(state, action.message);
     case 'asked':
       return { ...state, notice: '', working: 'Sending your question',
-               turns: [...state.turns, { question: action.text, steps: [], running: true }] };
+               turns: [...state.turns, { question: action.text, steps: [], running: true, askedAt: action.at }] };
     case 'working':
       return { ...state, notice: '', working: action.what };
-    case 'close_sessions':
-      return { ...state, sessions: null };
     case 'restarting':
       return { ...initial, ...fromMain(state) }; // what the main process said has nothing to do with the brain
   }

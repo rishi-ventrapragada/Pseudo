@@ -2,12 +2,12 @@
 // Your question sits in a bubble on the right; Pseudo's answer is plain text under it, with its steps one click away.
 // M30: an answer still says which brain gave it; M40 moves that into the steps (D28).
 
-import { brainOf } from '../events';
 import { Markdown } from '../Markdown';
 import type { Turn } from '../state';
+import { brainOf, type Step } from '../steps';
 import { Disclosure } from './ui/Disclosure';
 
-function Steps({ steps }: { steps: string[] }) {
+function Steps({ steps }: { steps: Step[] }) {
   return (
     <Disclosure summary={`${steps.length} step${steps.length === 1 ? '' : 's'}: what Pseudo did`}
                 triggerClassName="h-[30px] px-2 -ml-2">
@@ -16,7 +16,7 @@ function Steps({ steps }: { steps: string[] }) {
         {steps.map((step, index) => (
           <li key={index} className="flex items-baseline gap-3">
             <span className="min-w-3.5 font-mono text-xs text-faint">{index + 1}</span>
-            <span>{step}</span>
+            <span>{step.label}{step.detail && <span className="text-faint"> · {step.detail}</span>}</span>
           </li>
         ))}
       </ol>

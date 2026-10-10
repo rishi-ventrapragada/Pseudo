@@ -15,7 +15,7 @@ import { MicButton } from './MicButton';
 const voice: Voice = { listening: false, seconds: 0, speaking: false, speakOn: false, problem: '', toggle() {},
                        setSpeakOn() {}, stopSpeaking() {} };
 const bar = (over: Partial<Compact> = {}): Compact => ({ on: true, grown: false, setOn() {}, open() {}, close() {}, ...over });
-const ANSWERED: Turn = { question: 'What is on the fake form?', steps: ['Read the window'], answer: 'A fake form.', running: false };
+const ANSWERED: Turn = { question: 'What is on the fake form?', steps: [{ label: 'Read the window you were on' }], answer: 'A fake form.', running: false };
 const FAILED: Turn = { question: 'Tick the fake box.', steps: [], failed: 'billing check: NOT CLEAN', running: false };
 
 function show(over: { compact?: Compact; waiting?: string | null; stopped?: boolean; latest?: Turn } = {}) {

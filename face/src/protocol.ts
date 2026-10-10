@@ -18,7 +18,8 @@ export type EventData = Record<string, any>; // each event kind has its own fiel
 
 export type FromBrain =
   | { type: 'ready'; providers: Provider[]; provider: string; session: SessionInfo; tools: string[];
-      action_brain?: ActionBrain | null } // M30: who answers action requests; null = nobody
+      action_brain?: ActionBrain | null; // M30: who answers action requests; null = nobody
+      suggestions?: string[] } // M40: the empty chat's one-click questions (pseudo_brain/suggestions.py)
   | { type: 'event'; kind: string; data: EventData }
   | { type: 'switched'; provider: string; session: SessionInfo }
   | ({ type: 'session' } & SessionInfo)
