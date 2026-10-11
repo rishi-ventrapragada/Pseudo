@@ -78,7 +78,7 @@ Phase 1 builds a mini agent from scratch so the owner understands what Hermes, C
 
 ```
 Pseudo/
-  CLAUDE.md, PRD.md, ARCHITECTURE.md, DECISIONS.md, README.md
+  CLAUDE.md, PRD.md, ARCHITECTURE.md, DECISIONS.md, README.md, LICENSE
   requirements.txt
   .env.example          template, committed
   .env                  real keys, NEVER committed
@@ -99,6 +99,7 @@ Pseudo/
     test_sandbox.py     sandbox escape tests (../, absolute paths, Windows names, links)
   docs/
     learn/              lesson files written by Claude Code, one per milestone
+    images/             the README's two screenshots, from fake data (M45)
   pseudo_hands/         Phase 2: see "Phase 2: pseudo_hands" below
 ```
 
