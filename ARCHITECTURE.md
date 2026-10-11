@@ -270,8 +270,8 @@ face/                   Pseudo's own window (M18): Electron + React, display onl
   reveal.js             (M36, D27) the one way to show the window (tray, second launch, shortcut); starts the
                         brain the first time, once; (M37) hide = give up the keyboard, then hide; toggle;
                         (M38) before a hide the bar lets go of always-on-top
-  tray.js               (M36) the tray icon: click = show, right-click = Show / Quit; drawn in code; made at a
-                        hidden start, or (M37) the first time the window is hidden
+  tray.js               (M36) the tray icon: click = show, right-click = Show / Quit; made at a hidden start, or
+                        (M37) the first time the window is hidden; (M44) its picture is pseudo.ico, the window's own
   hotkeys.js            (M37) two global shortcuts through Windows' RegisterHotKey: Ctrl+Alt+Enter show or hide,
                         Ctrl+Alt+T talk; a taken one is reported and left off; released at quit; NO keyboard hook
   to-brain.js           (M37, moved from main.js) a message from the page is rebuilt from the fields it may have,
@@ -288,8 +288,16 @@ face/                   Pseudo's own window (M18): Electron + React, display onl
   window-store.js       (M38) those sizes, in window-mode.json in the profile folder; unreadable -> defaults
   window-look.js        (M39) always dark, and the title bar blended into the page (titleBarStyle 'hidden' with
                         Electron's overlay buttons); the colours are theme.css's tokens; (M43) the buttons are as tall
-                        as each mode's top row: 44 px in the full window, 30 in the bar (overlayFor)
-  package.mjs           (M34, D27) `npm run package`: builds face/out/Pseudo/Pseudo.exe by hand, no packaging tool
+                        as each mode's top row: 44 px in the full window, 30 in the bar (overlayFor); (M44) ICON, the
+                        window's and the taskbar's icon: pseudo.ico
+  package.mjs           (M34, D27) `npm run package`: builds face/out/Pseudo/Pseudo.exe by hand, no packaging tool;
+                        (M44) copies pseudo.ico in and has stamp-exe.mjs write the icon and the names into the exe
+  stamp-exe.mjs         (M44, build time only) Pseudo's icon and names (FileDescription, ProductName) into the exe,
+                        with resedit; company, copyright and version stay Electron's
+  pseudo.ico            (M44) Pseudo's icon, 16 to 256 px, made by `npm run icon` and committed
+  make-icon.js          (M44) `npm run icon`: each size of src/assets' SVGs drawn on a canvas in a hidden window of
+                        the repo's Electron (the plain drawing up to 24 px), packed into pseudo.ico
+  ico.js                (M44) the .ico format by hand: a header, one entry per size, then each picture as a PNG
   preload.js            the only door between page and main process: window.pseudo.send / onMessage
   foreground.js         before each tool runs, lets ONLY pseudo_hands bring its approval popup to
                         the front (AllowSetForegroundWindow, via koffi); during an action request,
@@ -316,7 +324,9 @@ face/                   Pseudo's own window (M18): Electron + React, display onl
                         components/LookingAtChip, PanelSwitch, MemoryView, StatusPanel; (M43) components/BarTurn.tsx:
                         the grown bar's turn (your question with Hide answer, then the working word, the amber
                         approval box, or the answer and its steps); useCompact.ts measures the grown bar for
-                        window-mode.js; LookingAtChip's short form in the bar's row
+                        window-mode.js; LookingAtChip's short form in the bar's row; (M44) assets/pseudo-icon.svg and
+                        pseudo-icon-small.svg (the icon, detailed and plain); components/Wordmark.tsx: the plain eye,
+                        then "Pseudo", in the sidebar's and the bar's top rows
 ```
 
 ```
@@ -330,8 +340,9 @@ face/                   Pseudo's own window (M18): Electron + React, display onl
 Pseudo.exe (M34, D27): Electron's own folder with our files in it. Built by `npm run package`, gitignored.
 ```
 face/out/Pseudo/
-  Pseudo.exe                    electron.exe, renamed; on assistant_apps.txt, so Pseudo never reads or acts on it
-  resources/app/                main.js and the other main-process files, dist/ (the built page), koffi
+  Pseudo.exe                    electron.exe, renamed; on assistant_apps.txt, so Pseudo never reads or acts on it;
+                                (M44) its icon and its names for Windows are Pseudo's
+  resources/app/                main.js and the other main-process files, pseudo.ico, dist/ (the built page), koffi
   resources/pseudo-home.json    { "repo": "<this repo>" }, written by the build; Python stays in the repo's .venv
   (the rest)                    Electron and Chromium, unchanged
 ```
