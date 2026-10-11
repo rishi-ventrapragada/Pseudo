@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="256" height="256">
+  <!-- M44: Pseudo's icon, chosen by the owner from Claude Design prototypes (round 5, G4).
+       An eye on a dark tile: a fine iris (36 fibres, a thin rim) around a pupil drawn as a camera aperture.
+       Graphite only, the Phase 10 look. Drawn on a 32 x 32 grid; make-icon.js turns it into face/pseudo.ico
+       for 32 px and up, and the page shows it beside the name. Below 32 px see pseudo-icon-small.svg. -->
+  <rect x="1" y="1" width="30" height="30" rx="7.5" fill="#171719" stroke="#3a3a42" stroke-width="1"/>
+  <circle cx="16" cy="16" r="5.6" fill="#ececee"/>
+  <path fill="none" stroke="#8a8a93" stroke-width="0.22" stroke-linecap="round" d="M18.54 16.22L21.03 16.44 M18.46 16.66L20.88 17.31 M18.31 17.08L20.58 18.13 M18.09 17.46L20.14 18.90 M17.80 17.80L19.57 19.57 M17.46 18.09L18.90 20.14 M17.08 18.31L18.13 20.58 M16.66 18.46L17.31 20.88 M16.22 18.54L16.44 21.03 M15.78 18.54L15.56 21.03 M15.34 18.46L14.69 20.88 M14.92 18.31L13.87 20.58 M14.54 18.09L13.10 20.14 M14.20 17.80L12.43 19.57 M13.91 17.46L11.86 18.90 M13.69 17.08L11.42 18.13 M13.54 16.66L11.12 17.31 M13.46 16.22L10.97 16.44 M13.46 15.78L10.97 15.56 M13.54 15.34L11.12 14.69 M13.69 14.92L11.42 13.87 M13.91 14.54L11.86 13.10 M14.20 14.20L12.43 12.43 M14.54 13.91L13.10 11.86 M14.92 13.69L13.87 11.42 M15.34 13.54L14.69 11.12 M15.78 13.46L15.56 10.97 M16.22 13.46L16.44 10.97 M16.66 13.54L17.31 11.12 M17.08 13.69L18.13 11.42 M17.46 13.91L18.90 11.86 M17.80 14.20L19.57 12.43 M18.09 14.54L20.14 13.10 M18.31 14.92L20.58 13.87 M18.46 15.34L20.88 14.69 M18.54 15.78L21.03 15.56"/>
+  <circle cx="16" cy="16" r="5.25" fill="none" stroke="#6b6b74" stroke-width="0.6"/>
+  <circle cx="16" cy="16" r="2.15" fill="#171719"/>
+  <path fill="#050506" d="M16.74 16.43 L16.00 16.85 L15.26 16.43 L15.26 15.57 L16.00 15.15 L16.74 15.57z"/>
+  <path fill="none" stroke="#6b6b74" stroke-width="0.14" stroke-linecap="round" d="M16.74 16.43L15.44 18.08 M16.00 16.85L13.92 16.56 M15.26 16.43L14.48 14.48 M15.26 15.57L16.56 13.92 M16.00 15.15L18.08 15.44 M16.74 15.57L17.52 17.52"/>
+  <circle cx="17.25" cy="14.95" r="0.32" fill="#ececee"/>
+  <path fill="none" stroke="#ececee" stroke-width="2" stroke-linejoin="round" d="M3 16C7 11.5 11.5 10 16 10S25 11.5 29 16C25 20.5 20.5 22 16 22S7 20.5 3 16z"/>
+</svg>

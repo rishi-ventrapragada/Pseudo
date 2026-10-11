@@ -8,6 +8,7 @@
     "build": "tsc --noEmit && vite build",
     "start": "npm run build && electron .",
     "package": "npm run build && node package.mjs",
+    "icon": "electron make-icon.js",
     "test": "vitest run"
   },
   "dependencies": {
