@@ -47,8 +47,9 @@
 
 @layer base {
   /* --controls-width: room kept free at the top right for the window's own minimize, maximize and close buttons,
-     which Electron draws over the page (window-look.js): three buttons, 46 px each. */
-  :root { color-scheme: dark; --controls-width: 138px; }
+     which Electron draws over the page (window-look.js): three buttons, 46 px each. The compact bar can't be
+     maximized, and Electron then draws no maximize button at all (seen live in M43), so the bar keeps room for two. */
+  :root { color-scheme: dark; --controls-width: 138px; --bar-controls-width: 92px; }
   html, body, #root { height: 100%; margin: 0; }
   body { background: var(--color-ground); color: var(--color-ink); font-family: var(--font-sans); font-size: 14px; }
   :focus-visible { outline: 2px solid var(--color-ink-soft); outline-offset: 2px; }

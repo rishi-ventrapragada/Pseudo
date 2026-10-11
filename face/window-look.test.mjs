@@ -34,6 +34,12 @@ describe('the window look', () => {
     expect(theme).toContain('--controls-width: 138px'); // 3 x 46 px
   });
 
+  it('keeps room for two buttons in the compact bar, which shows no maximize button (M43, seen live)', () => {
+    expect(theme).toContain('--bar-controls-width: 92px'); // 2 x 46 px: minimize and close
+    const bar = readFileSync(new URL('./src/components/CompactBar.tsx', import.meta.url), 'utf8');
+    expect(bar).toContain('pr-[var(--bar-controls-width)]');
+  });
+
   it('drag rows let go while a dialog is open, so its buttons always get the click', () => {
     expect(theme).toContain('body:has(dialog[open]) .drag { -webkit-app-region: no-drag; }');
   });

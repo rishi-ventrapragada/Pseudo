@@ -2,7 +2,7 @@
 // M40: the top row says what the full window's conversation says: the amber approval line while a popup may be
 // waiting, the playful word while Pseudo works, or the notice.
 // M43: the approved mockup's bar (Compact.dc.html):
-//   [Pseudo                       the note][Full window] (Windows' minimize, maximize off, close)   30 px, drags
+//   [Pseudo                       the note][Full window] (Windows' minimize and close; no maximize)  30 px, drags
 //   grown, above:  the question · Hide answer, then the working word, the approval box, or the answer and its steps
 //   [mic] [Brave] [Ask about this window                                            ] [Ask]
 // Grown, the bar is as tall as what it shows: useBarFit measures the three parts and the main process sizes the
@@ -32,7 +32,7 @@ export function CompactBar({ compact, notice, waiting, stopped, latest, onRestar
   const fit = useBarFit(compact.grown);
   return (
     <div className="flex h-full flex-col bg-ground text-ink">
-      <div ref={fit.top} className="drag flex h-[30px] shrink-0 items-center gap-2 pr-[var(--controls-width)] pl-3">
+      <div ref={fit.top} className="drag flex h-[30px] shrink-0 items-center gap-2 pr-[var(--bar-controls-width)] pl-3">
         <span className="shrink-0 text-xs font-semibold text-muted">Pseudo</span>
         <BarNote turn={latest} waiting={waiting} notice={notice} grown={compact.grown} />
         <CompactToggle compact={compact} />
