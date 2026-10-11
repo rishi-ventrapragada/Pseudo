@@ -1,9 +1,14 @@
 // M36: the tray icon of a hidden start (tray.js). Electron's Tray, Menu and nativeImage are fakes that
 // record what they were given, so no real icon is ever put in the taskbar.
+// M44: the icon is pseudo.ico, the same file as the window's; M36's drawn "P" and its pixel tests are gone.
+import { existsSync } from 'node:fs';
+import path from 'node:path';
 import { createRequire } from 'node:module';
 import { describe, expect, it } from 'vitest';
 
-const { PIXELS, createTray, iconBitmap, trayMenu } = createRequire(import.meta.url)('./tray.js');
+const require = createRequire(import.meta.url);
+const { createTray, trayMenu } = require('./tray.js');
+const { ICON, WINDOW_LOOK } = require('./window-look.js');
 
 function fakeElectron() {
   const made = { trays: [], images: [] };
@@ -18,43 +23,27 @@ function fakeElectron() {
     on(event, listener) { this.listeners[event] = listener; }
   }
   const Menu = { buildFromTemplate: (template) => template };
-  const nativeImage = { createFromBitmap: (bitmap, options) => { made.images.push({ bitmap, options }); return 'image'; } };
+  const nativeImage = { createFromPath: (file) => { made.images.push(file); return 'image'; } };
   return { Tray, Menu, nativeImage, made };
 }
 
 describe('the icon', () => {
-  it('is a 16 x 16 map of three kinds of pixel', () => {
-    expect(PIXELS).toHaveLength(16);
-    for (const row of PIXELS) expect(row).toMatch(/^[.#P]{16}$/);
-  });
-
-  it('becomes B, G, R, A bytes: see-through corners, a blue square, a white letter', () => {
-    const bitmap = iconBitmap();
-    expect(bitmap).toHaveLength(16 * 16 * 4);
-    const at = (x, y) => [...bitmap.subarray((y * 16 + x) * 4, (y * 16 + x) * 4 + 4)];
-    expect(at(0, 0)).toEqual([0, 0, 0, 0]);
-    expect(at(8, 1)).toEqual([0xd1, 0x56, 0x34, 0xff]);
-    expect(at(4, 3)).toEqual([0xff, 0xff, 0xff, 0xff]);
-  });
-
-  it('at scale 2 every pixel is doubled', () => {
-    const big = iconBitmap(2);
-    expect(big).toHaveLength(32 * 32 * 4);
-    const at = (x, y) => [...big.subarray((y * 32 + x) * 4, (y * 32 + x) * 4 + 4)];
-    for (const [x, y] of [[8, 6], [9, 6], [8, 7], [9, 7]]) expect(at(x, y)).toEqual([0xff, 0xff, 0xff, 0xff]); // pixel (4, 3)
-    expect(at(1, 1)).toEqual([0, 0, 0, 0]);
+  it("M44: is pseudo.ico, beside the main-process files, and the window uses the very same file", () => {
+    expect(path.basename(ICON)).toBe('pseudo.ico');
+    expect(path.dirname(ICON)).toBe(path.dirname(require.resolve('./tray.js')));
+    expect(existsSync(ICON)).toBe(true);
+    expect(WINDOW_LOOK.icon).toBe(ICON);
   });
 });
 
 describe('createTray', () => {
-  it('makes one tray named Pseudo from the 32 x 32 icon', () => {
+  it('makes one tray named Pseudo from pseudo.ico', () => {
     const electron = fakeElectron();
     const tray = createTray(electron, () => {}, () => {});
     expect(electron.made.trays).toEqual([tray]);
     expect(tray.tip).toBe('Pseudo');
     expect(tray.image).toBe('image');
-    expect(electron.made.images[0].options).toEqual({ width: 32, height: 32, scaleFactor: 2 });
-    expect(electron.made.images[0].bitmap).toHaveLength(32 * 32 * 4);
+    expect(electron.made.images).toEqual([ICON]);
   });
 
   it('a click shows Pseudo', () => {

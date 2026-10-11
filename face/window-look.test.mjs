@@ -14,6 +14,12 @@ describe('the window look', () => {
     expect(SYMBOLS).toBe(token('ink-soft'));
   });
 
+  it("M44: gives the window (and so its taskbar button) Pseudo's own icon", () => {
+    expect(WINDOW_LOOK.icon).toMatch(/[\\/]pseudo\.ico$/);
+    expect(lookFor('full').icon).toBe(WINDOW_LOOK.icon);
+    expect(lookFor('compact').icon).toBe(WINDOW_LOOK.icon);
+  });
+
   it('is dark always, and the buttons sit on the same ground as the page', () => {
     expect(WINDOW_LOOK.backgroundColor).toBe(GROUND);
     expect(WINDOW_LOOK.titleBarOverlay).toEqual({ color: GROUND, symbolColor: SYMBOLS, height: 44 });
