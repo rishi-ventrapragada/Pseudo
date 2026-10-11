@@ -863,9 +863,10 @@ Fake windows only while building and measuring. Screenshots show only Pseudo's o
   - **Known limits:** the bar shows only the latest turn; a long steps list scrolls inside the bar once it reaches the cap.
 
 ### M44: Icon and name (build)
-- The owner's image (a square SVG, or a PNG of at least 512 px, transparent) becomes an `.ico` with every Windows size, made with the Electron already in the repo. The window, the taskbar and the tray use it; `tray.js`'s drawn "P" goes; the icon joins `package.mjs`'s file list.
+- The icon comes from prototypes made in Claude Design (fake data only) on the Phase 10 mockup's look; the owner picks one. Its square SVG is kept in the repo and becomes an `.ico` with every Windows size, made with the Electron already in the repo. The window, the taskbar and the tray use that one icon; `tray.js`'s drawn "P" goes; the icon joins `package.mjs`'s files.
+- The owner's chosen wordmark, with the icon, replaces the plain text "Pseudo" in the sidebar's top row and the compact bar's top row.
 - The exe's own icon, product name and description become "Pseudo", written at build time by `package.mjs` with `resedit`. This changes D27's "Electron" limit.
-- **Done when:** tests pass, including the updated `tray.test.mjs`, and new packages are counted. The exe's file icon and its Task Manager name say Pseudo; the taskbar and tray icons are the owner's; the process is still `Pseudo.exe` and a question still reads the fake window, never Pseudo's own; the unsigned exe still starts with no warning 3 of 3; Start with Windows still adds exactly its one entry; the M15 battery scores 12/12.
+- **Done when:** tests pass, including the updated `tray.test.mjs`, and new packages are counted. The exe's file icon and its Task Manager name say Pseudo; the taskbar and tray icons are the owner's; the sidebar and the bar show the icon and wordmark, and the page still makes no network requests; the process is still `Pseudo.exe` and a question still reads the fake window, never Pseudo's own; the unsigned exe still starts with no warning 3 of 3; Start with Windows still adds exactly its one entry; the M15 battery scores 12/12.
 
 ### M45: README for GitHub (docs)
 - The main README rewritten for a visitor: what Pseudo is and its privacy model; screenshots or a GIF made from fake data; setup, an architecture diagram and the safety rules; the learning story, linking the lessons.
