@@ -5,7 +5,8 @@ open and stop it; this file decides when. Every number here was measured in M31,
 
 The rules, for one action request (chat.py sends every one of them here when the face is in use):
   1. The billing check runs before EVERY request and before EVERY session start (D26). Not clean:
-     nothing is sent, and an open session is stopped.
+     nothing is sent, and an open session is stopped. (M46) A session serves one account: a clean line
+     other than the one it opened with (you logged into another listed account) stops it too.
   2. The open session answers the request only if warm sessions are on, one is open and alive, it
      serves THIS conversation, and the request brings no memories. Otherwise the request gets a LAUNCH
      of its own, exactly as in M30, and its steps say why.
@@ -60,6 +61,7 @@ class WarmSessions:
         self.asked = 0  # requests the open session has answered
         self.first_input = 0  # the input of its first request: what the 3-times rule compares with
         self.conversation = ""  # the Pseudo session it serves
+        self.login_line = ""  # (M46) its billing check's line: which of your listed accounts it runs on
         self.used = 0.0  # when it was opened or last answered: the idle clock
         self.ram: float | None = None  # its memory in MB, as last measured by tick()
         self.note = ""  # the last thing that happened to a session, in plain words
@@ -82,11 +84,12 @@ class WarmSessions:
                 if not clean:
                     await self.stop("the billing check wasn't clean")
                     return not_sent(brain, why, on_event)
-                why_launch = self.why_launch(list(memories), conversation)
+                why_launch = self.why_launch(list(memories), conversation, why)
                 if not why_launch:
                     return await self.ask_session(brain, text, on_event)
-                if self.session is not None and (not self.session.alive or conversation != self.conversation):
-                    await self.stop(why_launch)  # it can't answer this conversation; a new one opens below
+                if self.session is not None and (not self.session.alive or conversation != self.conversation
+                                                 or why != self.login_line):
+                    await self.stop(why_launch)  # it can't answer this request; a new one opens below
                 on_event("launch", {"why": why_launch})
                 result = await launch(brain, text, on_event, memories, intro)
                 if result.ok and self.on and self.session is None:  # rule 3
@@ -95,7 +98,7 @@ class WarmSessions:
             finally:
                 self.report()
 
-    def why_launch(self, memories: list[str], conversation: str) -> str:
+    def why_launch(self, memories: list[str], conversation: str, login_line: str) -> str:
         """'' if the open session can answer this request (rule 2); else why it gets a launch."""
         if not self.on:
             return "warm sessions are off"
@@ -105,6 +108,8 @@ class WarmSessions:
             return "the warm session had ended"
         if conversation != self.conversation:
             return "the open session belongs to another conversation"
+        if login_line != self.login_line:  # (M46) a clean line differs only in which listed account
+            return "Claude Code's login, or your account list, changed since the session opened"
         return "this request brings memories, which never enter a warm session" if memories else ""
 
     async def ask_session(self, brain: ActionBrain, text: str, on_event: EventSink) -> TurnResult:
@@ -129,7 +134,7 @@ class WarmSessions:
 
     async def open(self, brain: ActionBrain, on_event: EventSink, conversation: str) -> None:
         """Start a session for the next requests, after its own billing check (rule 1)."""
-        clean, _why = await billing_check(brain, on_event)
+        clean, why = await billing_check(brain, on_event)
         problem = "" if clean else "the billing check wasn't clean"
         if clean:
             try:
@@ -141,6 +146,7 @@ class WarmSessions:
         else:
             self.asked, self.first_input, self.ram = 0, 0, None
             self.conversation, self.used, self.note = conversation, self.clock(), ""
+            self.login_line = why  # the account this session runs on, by its number on your list
         on_event("warm_opened", {"opened": not problem, "why": problem, "of": MAX_REQUESTS})
 
     async def stop(self, why: str, now: bool = False) -> None:

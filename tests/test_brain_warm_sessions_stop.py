@@ -1,5 +1,6 @@
 """M32: the warm session's rules, part 2 (moved here from test_brain_warm_sessions.py in M39, unchanged,
-to keep each file under 200 lines): which requests a session serves, and how it stops.
+to keep each file under 200 lines): which requests a session serves, and how it stops. (M46) A session
+serves one account too.
 
 Claude Code is FAKE, the clock is fake, and the billing check is replaced and counted. Every test ends by
 checking that none of the fake's processes is left running (the `sessions` helper does that).
@@ -10,6 +11,7 @@ import pytest
 from claude_fakes import brain, fakes_running, kinds, recorded
 from test_brain_warm_sessions import LAUNCH, OPENED, WARM, ask, sessions, why, world  # noqa: F401 - world is a fixture
 
+from pseudo_brain import claude_billing
 from pseudo_brain.loop import SYSTEM_PROMPT
 from pseudo_brain.warm_sessions import WarmSessions
 
@@ -40,6 +42,26 @@ async def test_a_session_serves_one_conversation(world: dict) -> None:
         await ask(world, warm, "again in the other", conversation="c2")
         assert kinds(world) == WARM and world["events"][1][1]["request"] == 1
         assert recorded(world)["pid"] != old and recorded(world)["questions"] == ["again in the other"]
+
+
+@pytest.mark.anyio
+async def test_a_session_serves_one_account(world: dict, monkeypatch: pytest.MonkeyPatch) -> None:
+    """(M46) You logged into another of your listed accounts: the next request stops the session and is a launch."""
+    account = {"number": 1}
+    monkeypatch.setattr(claude_billing, "check", lambda _brain: (
+        True, f"billing check: CLEAN | your account: True ({account['number']} of 2 listed)"))
+    async with sessions(world) as warm:
+        await ask(world, warm)
+        await ask(world, warm, "on account 1")
+        assert kinds(world) == WARM
+        old = recorded(world)["pid"]
+        account["number"] = 2
+        await ask(world, warm, "on account 2")
+        assert kinds(world) == LAUNCH + OPENED and old not in fakes_running()
+        assert why(world, "launch") == "Claude Code's login, or your account list, changed since the session opened"
+        await ask(world, warm, "again on account 2")
+        assert kinds(world) == WARM and world["events"][1][1]["request"] == 1
+        assert recorded(world)["pid"] != old and recorded(world)["questions"] == ["again on account 2"]
 
 
 @pytest.mark.anyio
