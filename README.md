@@ -1,111 +1,89 @@
-# Pseudo
+<p align="center">
+  <img src="face/src/assets/pseudo-icon.svg" width="96" alt="">
+</p>
 
-A personal, privacy-first AI desktop assistant for Windows. Screen content will be understood and redacted locally before anything reaches a cloud model.
+<h1 align="center">Pseudo</h1>
 
-## Setup (PowerShell)
+<p align="center">
+  A private AI helper for your Windows laptop.<br>
+  It reads the window you're looking at, hides your personal details,<br>
+  and answers your questions about it.
+</p>
+
+![Pseudo's window: it has summarised a web page, and the testers' names are hidden as "name" chips](docs/images/pseudo-window.png)
+
+<p align="center"><i>Ask "summarise this page" and Pseudo reads the page you were on. The two names on it never left the laptop: they were hidden first and sent as "name".</i></p>
+
+## What is Pseudo?
+
+Pseudo is a helper that lives on your laptop. You can ask it about whatever you're looking at: an email, a web page, a form. It reads that window and answers.
+
+Before anything goes to the AI, Pseudo removes your personal details on your own computer: names, phone numbers, email addresses and more. The AI only ever sees a cleaned-up version. That's where the name comes from: a *pseudonym* hides who you are.
+
+## What it can do
+
+- **Explain the window you're on.** "What does this email want from me?" "Summarise this page."
+- **Keep your details private.** Names, numbers and emails are hidden before anything leaves your laptop. Apps you mark as private are never read at all.
+- **Click and type for you, but only if you say yes.** "Tick *Send me reminders*." Every action shows a popup first, and the answer is *no* unless you click OK.
+- **Remember past tasks, only if you say yes.** After an answer, it asks whether to save it. Saved notes stay on your laptop.
+- **Listen and talk.** Press the mic and speak your question; answers can be read aloud.
+- **Stay out of your way.** A small bar can float on top of your other windows (below). A shortcut, Ctrl+Alt+Enter, shows or hides Pseudo from any app. It can also start with Windows, quietly, as an icon by the clock.
+
+![The compact bar: a small window on top, explaining an email, with the phone number hidden](docs/images/pseudo-bar.png)
+
+<p align="center"><i>The compact bar stays on top while you work. Here it explains an email; the phone number in it was hidden before anything was sent.</i></p>
+
+## How it keeps your information yours
+
+- **Text, never pictures.** Pseudo reads the words on a window the way a screen reader does. It never takes or sends screenshots.
+- **Hidden first.** Personal details are found and replaced on your laptop, before anything is sent.
+- **You approve every action.** Clicking, typing or saving always asks you first in a popup.
+- **It never reads itself,** and never reads apps you've marked private.
+- **It says where your words go.** Questions go to Groq, a free AI service. Requests to click or type go to Claude, on your own Claude subscription. Settings shows this, and every answer's steps say who answered.
+- **Your history stays home.** Chats and saved notes are kept on your laptop only.
+
+## Built to learn
+
+Pseudo is a learning project. It was built step by step, in small milestones (M0 to M45), by [Claude Code](https://claude.com/claude-code), while its owner learned how AI agents work. Each step has a plain-language lesson in [`docs/learn`](docs/learn), starting with [M0: setup](docs/learn/M0-setup.md). It costs nothing to run: free AI tiers only.
+
+---
+
+## For developers
+
+Windows only. You'll need Python 3.11 or newer, Node.js 24 or newer, and a free [Groq](https://console.groq.com) API key. Claude Code is optional; it's used for click-and-type requests.
 
 ```powershell
-# 1. Create the virtual environment (once)
+# The Python side: the brain and the "hands" that read windows
 python -m venv .venv
-
-# 2. Activate it (every new terminal). Your prompt will show (.venv)
 .\.venv\Scripts\Activate.ps1
-
-# 3. Install the pinned dependencies
 pip install -r requirements.txt
+Copy-Item .env.example .env      # then put your Groq key in LLM_API_KEY
 
-# 4. Make your private config file, then open .env and fill in LLM_API_KEY
-Copy-Item .env.example .env
-
-# 5. Check everything is wired up
-python playground/00_check_setup.py
-```
-
-`.env` is gitignored. Never commit it and never paste its contents anywhere.
-
-## Memory (M24)
-
-After each answered question, Pseudo asks in a popup whether to save it to memory (default no).
-A saved task is redacted first and stored as a markdown note in `%LOCALAPPDATA%\Pseudo\memory\tasks`,
-on this laptop only. Later questions get up to 3 relevant past tasks, redacted again.
-To view, edit or delete notes, open the folder `%LOCALAPPDATA%\Pseudo\memory` as a vault in Obsidian.
-
-## Voice (M26)
-
-In the face, click **Start talking** (or hold **Ctrl+Space**) and speak. Click again (or let go) when you
-have finished; recording stops by itself after 30 seconds. What you said appears in the input box: read
-it, fix it if needed, and press Enter. Nothing you say is ever sent as a question by itself.
-
-- Your recording goes to Groq's `whisper-large-v3` (the provider your questions already go to) straight
-  from memory, and is never saved. A silent recording never leaves the laptop. Private mode has no voice input.
-- Answers are read aloud on this laptop with Windows' Ravi voice (English (India)). Untick **Speak answers**
-  to mute (the face remembers it); **Stop speaking** stops the current answer.
-- Needs the English (India) voice pack (Settings > Time & language > Speech > Add voices), and for your real
-  microphone, Windows' microphone access for desktop apps (Settings > Privacy & security > Microphone).
-- Groq keeps API data only in troubleshooting or abuse logs, for up to 30 days. Zero Data Retention, in
-  Groq's console under Data Controls, turns that off.
-
-## Click and type (M28)
-
-Ask Pseudo to act on the window you were on ("tick Send me reminders", "type 'Design review' into Subject"). It works through Windows' accessibility interface, never your mouse or keyboard, and every action asks in the approval popup first (default no). The popup shows the app, window, control and action as Windows reports them, plus the exact text to type. At most 4 action popups every 2 minutes.
-
-- Password fields, disabled controls, blocked apps, assistant apps and Pseudo's own windows are refused before any popup.
-- Text containing a mask like [PERSON] is refused: type that value yourself.
-- The popup shows names as the app reports them. A page can label a delete button "Cancel", so read what the popup says will happen.
-- VS Code's and Obsidian's editors, and Obsidian's file list, can't be acted on yet.
-
-### Who answers an action request (M30)
-
-A request to act ("tick...", "type...", "choose...") goes to Claude Code on your Claude subscription, because no free Groq model passed M29's action questions. Everything else stays on Groq. Every answer in the face says which one answered.
-
-- Set it up once: put your Claude account's email in `.env` as `CLAUDE_CODE_ACCOUNT` (see `.env.example`). It is compared, never printed or sent.
-- Before every action request Pseudo checks that Claude Code will use that subscription login and nothing else (no API key, no other provider). If the check isn't clean, or Claude Code isn't installed, Pseudo says so and does nothing; it never falls back to Groq.
-- Claude Code gets only three of Pseudo's tools (list windows, read the window, act) and none of its own. The privacy rules and the approval popup are the same as for Groq.
-- Redacted screen text for these requests goes to Anthropic. In private mode nothing is routed.
-- It takes about 16 to 19 seconds to reach the popup.
-
-## The face: Pseudo's own window (M18)
-
-Needs Node.js (24 or newer) as well as the Python setup above.
-
-```powershell
+# The window
 cd face
-npm install   # once: Electron, React and the build tools, into face
-ode_modules (about 470 MB)
-npm start     # builds the page, opens the window, and starts pseudo_brain as its child process
+npm install
+npm start                        # builds and opens Pseudo
+npm run package                  # optional: builds face\out\Pseudo\Pseudo.exe
 ```
 
-Close the window to quit: it stops `pseudo_brain`, `pseudo_hands` and private mode's Ollama with it.
-If `npm start` says "Cannot find module 'electron'", your terminal has `ELECTRON_RUN_AS_NODE` set
-(some editors set it): run `Remove-Item Env:ELECTRON_RUN_AS_NODE`, then `npm start` again.
+`.env` holds your keys and is never committed. If `npm start` says it can't find Electron, run `Remove-Item Env:ELECTRON_RUN_AS_NODE` first (some editors set it). `Pseudo.exe` runs from this folder's `.venv`, so build it on the machine you'll use it on.
 
-### Pseudo.exe (M34)
+Tests: `python -m pytest` in the repo, and `npm test` in `face`.
 
-```powershell
-cd face
-npm run package          # builds face\out\Pseudo\Pseudo.exe (370 MB, about a second)
-.\out\Pseudo\Pseudo.exe  # or double-click it; a second launch just shows the first window
+**How it fits together**
+
+```mermaid
+flowchart LR
+  you([You]) --> face["Pseudo's window<br/>(Electron + React)"]
+  face <--> brain["pseudo_brain<br/>the agent loop"]
+  brain <-->|MCP| hands["pseudo_hands<br/>reads windows, hides details,<br/>asks before acting"]
+  hands <--> win[["The window you're on"]]
+  brain -->|cleaned-up text| groq[(Groq)]
+  brain -->|click and type requests| claude[(Claude Code)]
 ```
 
-Pseudo.exe is the window only: it starts the brain from this repo's `.venv`, so the repo has to stay
-where it was when you built. Run `npm run package` again after changing anything in `face`, or after
-moving the repo. Python changes need no rebuild. It keeps its own settings, apart from `npm start`'s.
+More in [ARCHITECTURE.md](ARCHITECTURE.md), the decisions behind it in [DECISIONS.md](DECISIONS.md), and the full plan in [PRD.md](PRD.md).
 
-**Start with Windows (M36).** Tick "Start with Windows" in Pseudo.exe's window. At your next sign-in
-Pseudo starts hidden: no window, a blue "P" icon in the taskbar corner (Windows may keep it under the
-^ arrow), and no brain yet. Click the icon, or start Pseudo.exe again, to open it; the brain starts
-then, in about 8 seconds. Right-click the icon for Quit. The switch shows what Windows says: you can
-also turn it off in Task Manager > Startup apps. It works only from Pseudo.exe, not from `npm start`.
+## License
 
-**Shortcuts (M37).** From any app, **Ctrl+Alt+Enter** shows Pseudo, or hides it if you are in its
-window; **Ctrl+Alt+T** shows it and starts recording, and pressing it again stops (the words go into
-the input box; nothing is sent until you press Enter). A line at the bottom of the window lists both,
-and says so if another program already holds one. Hiding Pseudo puts a blue "P" icon in the taskbar
-corner. Pseudo installs no keyboard hook: Windows tells it about those two combinations and nothing else.
-
-**Compact bar (M38).** Click **Compact** (top right) to turn the window into a small bar that stays on
-top of your other windows: the status line, the mic button, the question box and Ask. When you ask, the
-bar grows upward to show the steps, the approval banner and the answer; **Hide answer** shrinks it
-again, and **Full window** brings everything back. Drag or resize it like any window: each mode's size
-and place are remembered. While a tool is waiting for your approval the bar stops being on top, so the
-popup can't end up under it.
+[MIT](LICENSE). The names list comes from Wikidata (CC0). Pseudo is built on Presidio and spaCy (for hiding details), Electron and React (for the window), the Geist font and lucide icons.
