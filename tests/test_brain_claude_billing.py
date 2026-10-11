@@ -1,8 +1,9 @@
 """M30: the action brain's settings (action_brain.py) and the billing check (claude_billing.py).
 
 Everything is FAKE: the settings come from temporary files, and the check's four sources (the
-program on PATH, the account in .env, the outranking credentials, `claude auth status`) are
+program on PATH, the accounts in .env, the outranking credentials, `claude auth status`) are
 replaced, so no test reads .env, the registry or a real login, and nothing is launched.
+(M46) The accounts are a list; every address here is on fake.invalid.
 """
 
 from pathlib import Path
@@ -30,7 +31,7 @@ def settings(tmp_path: Path, text: str) -> Path:
 @pytest.fixture
 def world(monkeypatch: pytest.MonkeyPatch) -> dict:
     """A machine where the check passes; a test changes one thing and sees it fail."""
-    world = {"status": dict(GOOD), "found": [], "account": FAKE_ACCOUNT, "program": ["fake-claude"], "asked": 0}
+    world = {"status": dict(GOOD), "found": [], "accounts": [FAKE_ACCOUNT], "program": ["fake-claude"], "asked": 0}
 
     def status(command: list[str]) -> dict:
         world["asked"] += 1
@@ -39,7 +40,7 @@ def world(monkeypatch: pytest.MonkeyPatch) -> dict:
         return world["status"]
     monkeypatch.setattr(claude_billing, "auth_status", status)
     monkeypatch.setattr(claude_billing, "outranking", lambda: list(world["found"]))
-    monkeypatch.setattr(claude_billing, "wanted_account", lambda brain: world["account"])
+    monkeypatch.setattr(claude_billing, "wanted_accounts", lambda brain: list(world["accounts"]))
     monkeypatch.setattr(claude_billing, "program", lambda brain: world["program"])
     return world
 
@@ -77,7 +78,7 @@ def test_bad_action_brain_settings_are_refused(tmp_path: Path, change: tuple[str
 
 def test_a_clean_machine_passes_and_the_line_has_no_account_in_it(world: dict) -> None:
     clean, line = claude_billing.check(BRAIN)
-    assert clean and line.startswith("billing check: CLEAN") and "your account: True" in line
+    assert clean and line.startswith("billing check: CLEAN") and line.endswith("your account: True (1 of 1 listed)")
     assert "@" not in line and FAKE_ACCOUNT not in line
 
 
@@ -98,7 +99,7 @@ def test_an_outranking_credential_is_not_clean_and_is_named(world: dict) -> None
 
 
 def test_an_empty_account_is_refused_before_anything_is_asked(world: dict) -> None:
-    world["account"] = ""
+    world["accounts"] = []
     clean, line = claude_billing.check(BRAIN)
     assert not clean and "FAKE_ACCOUNT_VAR isn't filled in" in line and world["asked"] == 0
 
@@ -119,6 +120,49 @@ def test_a_check_that_fails_is_not_clean(world: dict, error: Exception) -> None:
 def test_the_account_is_compared_without_caring_about_case(world: dict) -> None:
     world["status"]["email"] = "Owner@Fake.Invalid"
     assert claude_billing.check(BRAIN)[0]
+
+
+# ---------- (M46) a list of accounts ----------
+
+THREE = ["first@fake.invalid", FAKE_ACCOUNT, "third@fake.invalid"]
+
+
+def test_any_listed_account_passes_and_is_named_by_its_number_only(world: dict) -> None:
+    world["accounts"] = THREE
+    clean, line = claude_billing.check(BRAIN)
+    assert clean and line.endswith("your account: True (2 of 3 listed)") and "@" not in line
+
+
+def test_a_login_on_none_of_the_listed_accounts_is_not_clean(world: dict) -> None:
+    world["accounts"] = THREE
+    world["status"]["email"] = "fourth@fake.invalid"
+    clean, line = claude_billing.check(BRAIN)
+    assert not clean and line.endswith("your account: False (3 listed)") and "@" not in line
+
+
+@pytest.mark.parametrize("text, accounts", [
+    ("", []), ("  ", []), (",, ,", []),
+    ("Owner@Fake.Invalid", [FAKE_ACCOUNT]),
+    (" first@fake.invalid ,owner@fake.invalid,, ", ["first@fake.invalid", FAKE_ACCOUNT]),
+    ("owner@fake.invalid, OWNER@fake.invalid, first@fake.invalid", [FAKE_ACCOUNT, "first@fake.invalid"]),
+])
+def test_accounts_from_one_env_value(text: str, accounts: list[str]) -> None:
+    assert claude_billing.accounts_from(text) == accounts
+
+
+@pytest.mark.parametrize("text, number", [
+    ("first@fake.invalid; owner@fake.invalid", 1),  # a semicolon instead of a comma
+    ("owner@fake.invalid, first@fake.invalid third@fake.invalid", 2),  # a missing comma
+    ('owner@fake.invalid, "first@fake.invalid"', 2),  # quotes
+    ("owner@fake.invalid, <first@fake.invalid>", 2),
+    ("owner@fake.invalid, nobody", 2), ("owner@fake.invalid, a@b@fake.invalid", 2), ("@fake.invalid", 1),
+])
+def test_an_entry_that_isnt_one_email_is_refused_by_its_number_before_anything_is_asked(
+        world: dict, text: str, number: int) -> None:
+    world["accounts"] = claude_billing.accounts_from(text)
+    clean, line = claude_billing.check(BRAIN)
+    assert not clean and line == f"FAKE_ACCOUNT_VAR: entry {number} isn't one email address (separate accounts with commas)"
+    assert world["asked"] == 0 and not any(entry in line for entry in world["accounts"])
 
 
 def test_claude_code_starts_without_any_claude_or_anthropic_variable(monkeypatch: pytest.MonkeyPatch) -> None:

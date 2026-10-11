@@ -8,13 +8,16 @@ somewhere D16 doesn't allow, or bill it per token (D3: zero budget). So the chec
   1. none of the variables that outrank the login is set (this process, or stored in Windows);
   2. no Claude Code settings file names a key helper or sets one of those variables;
   3. `claude auth status` says: logged in, through claude.ai, first party;
-  4. the logged-in account is the one named in .env (its "Help improve Claude" setting is
-     the one D16 relies on). The account is COMPARED here, never printed, logged or returned.
-The result is a line of names and booleans only. Measured in M15 and M29 (108 launches).
+  4. the logged-in account is one of the accounts listed in .env (M46: you may have several, and
+     you switch between them yourself with `claude auth login`). Each listed account's "Help
+     improve Claude" setting is the one D16 relies on. Accounts are COMPARED here, never printed,
+     logged or returned: the line names the account by its number on your list.
+The result is a line of names, numbers and booleans only. Measured in M15 and M29 (108 launches).
 """
 
 import json
 import os
+import re
 import shutil
 import subprocess
 import winreg
@@ -34,6 +37,9 @@ SETTINGS = (Path.home() / ".claude" / "settings.json", Path.home() / ".claude" /
 WINDOWS_ENV = ((winreg.HKEY_CURRENT_USER, "Environment"),
                (winreg.HKEY_LOCAL_MACHINE, r"SYSTEM\CurrentControlSet\Control\Session Manager\Environment"))
 NO_WINDOW = subprocess.CREATE_NO_WINDOW  # a console window flashing up would land in front of your work
+# (M46) One plain email: exactly one @, something on both sides, and nothing that could join two
+# entries (spaces, commas, semicolons) or wrap one (quotes, <>). Anything else is refused, not guessed at.
+PLAIN_EMAIL = re.compile(r"[^@\s,;\"'<>]+@[^@\s,;\"'<>]+")
 
 
 def child_env() -> dict[str, str]:
@@ -81,29 +87,47 @@ def auth_status(command: list[str]) -> dict:
     return json.loads(done.stdout)
 
 
-def wanted_account(brain: ActionBrain) -> str:
-    """Your account, from the .env variable providers.toml names. '' if it isn't filled in."""
+def accounts_from(text: str) -> list[str]:
+    """(M46) The accounts in one .env value, separated by commas: trimmed, lower case, no empty or repeated ones.
+
+    Plain text in, list out, so tests can check it without ever touching .env."""
+    pieces = [piece.strip().lower() for piece in text.split(",")]
+    return list(dict.fromkeys(piece for piece in pieces if piece))  # a dict keeps the first of each, in order
+
+
+def wanted_accounts(brain: ActionBrain) -> list[str]:
+    """Your accounts, from the .env variable providers.toml names. [] if it isn't filled in."""
     load_dotenv(ENV_PATH)
-    return (os.getenv(brain.account_env) or "").strip().lower()
+    return accounts_from(os.getenv(brain.account_env) or "")
+
+
+def not_an_email(accounts: list[str]) -> int:
+    """(M46) The number (from 1) of the first entry that isn't one plain email; 0 if they all are."""
+    return next((number for number, account in enumerate(accounts, 1) if not PLAIN_EMAIL.fullmatch(account)), 0)
 
 
 def check(brain: ActionBrain) -> tuple[bool, str]:
-    """(clean, why). clean only if Claude Code will use your subscription login, on your account.
+    """(clean, why). clean only if Claude Code will use your subscription login, on one of your accounts.
 
     Any error while checking counts as not clean: nothing is launched on a guess."""
     try:
         command = program(brain)
         if command is None:
             return False, f"{brain.name} isn't installed (no '{brain.command[0]}' on PATH)"
-        account = wanted_account(brain)
-        if not account:
+        accounts = wanted_accounts(brain)
+        if not accounts:
             return False, f"{brain.account_env} isn't filled in in .env (see .env.example)"
+        bad = not_an_email(accounts)
+        if bad:  # its number only: the entry itself is never shown
+            return False, f"{brain.account_env}: entry {bad} isn't one email address (separate accounts with commas)"
         found = outranking()
         status = auth_status(command)
     except (OSError, ValueError, subprocess.SubprocessError) as error:
         return False, f"the billing check itself failed ({type(error).__name__})"
     login = (status.get("loggedIn"), status.get("authMethod"), status.get("apiProvider"))
-    yours = str(status.get("email") or "").strip().lower() == account
-    clean = not found and login == (True, "claude.ai", "firstParty") and yours
+    email = str(status.get("email") or "").strip().lower()
+    number = accounts.index(email) + 1 if email in accounts else 0  # its place on your list; 0 = not on it
+    clean = not found and login == (True, "claude.ai", "firstParty") and number > 0
+    yours = f"True ({number} of {len(accounts)} listed)" if number else f"False ({len(accounts)} listed)"
     return clean, (f"billing check: {'CLEAN' if clean else 'NOT CLEAN'} | outranking credentials set: "
                    f"{', '.join(found) or 'none'} | login: {login[1]} / {login[2]} | your account: {yours}")
