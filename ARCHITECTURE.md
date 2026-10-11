@@ -278,13 +278,17 @@ face/                   Pseudo's own window (M18): Electron + React, display onl
                         or dropped, before it reaches the brain
   serve-file.js         (M38, moved from main.js) app://pseudo/<path> -> that file inside face/dist, and nothing else
   window-bounds.js      (M38) plain arithmetic: each mode's default and minimum size; a saved place that is
-                        off-screen is corrected; the bar grows upward with its bottom edge kept
-  window-mode.js        (M38) two modes on ONE window: full, or a compact always-on-top bar (never click-through).
-                        The bar gives up always-on-top while a tool waits and before it is hidden;
-                        only sizes YOU set are remembered
+                        off-screen is corrected; the bar grows upward with its bottom edge kept; (M43) the bar is
+                        480 x 84 (at least 360 x 84); grown, as tall as the page asks, up to your cap (else 440), at least 160
+  window-mode.js        (M38) two modes on ONE window: full, or a compact always-on-top bar (never click-through);
+                        only sizes YOU set are remembered. (M43) In the bar, Windows' buttons are 30 px and there is
+                        no maximize; grown, the bar takes the height the page measured, never saved
+  window-top.js         (M43, moved out of window-mode.js unchanged) the bar gives up always-on-top while a tool waits
+                        and before it is hidden
   window-store.js       (M38) those sizes, in window-mode.json in the profile folder; unreadable -> defaults
   window-look.js        (M39) always dark, and the title bar blended into the page (titleBarStyle 'hidden' with
-                        Electron's overlay buttons); the colours are theme.css's tokens
+                        Electron's overlay buttons); the colours are theme.css's tokens; (M43) the buttons are as tall
+                        as each mode's top row: 44 px in the full window, 30 in the bar (overlayFor)
   package.mjs           (M34, D27) `npm run package`: builds face/out/Pseudo/Pseudo.exe by hand, no packaging tool
   preload.js            the only door between page and main process: window.pseudo.send / onMessage
   foreground.js         before each tool runs, lets ONLY pseudo_hands bring its approval popup to
@@ -309,7 +313,10 @@ face/                   Pseudo's own window (M18): Electron + React, display onl
                         from its name; components/SearchChats, ChatRow (the "…" menu and the rename box),
                         DeleteChat, ProviderPicker; ui/Menu and ui/Popover (Radix, not modal); (M42) sees.ts:
                         the chip, the memory browser and the Status numbers; useLookingAt.ts;
-                        components/LookingAtChip, PanelSwitch, MemoryView, StatusPanel
+                        components/LookingAtChip, PanelSwitch, MemoryView, StatusPanel; (M43) components/BarTurn.tsx:
+                        the grown bar's turn (your question with Hide answer, then the working word, the amber
+                        approval box, or the answer and its steps); useCompact.ts measures the grown bar for
+                        window-mode.js; LookingAtChip's short form in the bar's row
 ```
 
 ```
