@@ -11,6 +11,10 @@
 // the repo's path into resources/pseudo-home.json (read by brain-home.js). Move or rename the
 // repo and you run `npm run package` again.
 //
+// (M44) The renamed exe still SAYS "Electron" inside: its icon and its name for Task Manager are
+// resources in the file. stamp-exe.mjs rewrites them to Pseudo's (D27), and pseudo.ico goes in too,
+// for the window and the tray.
+//
 // Output: face/out/Pseudo/Pseudo.exe (gitignored). The only folder ever deleted is face/out/Pseudo.
 import fs from 'node:fs';
 import path from 'node:path';
@@ -27,6 +31,7 @@ export const FILES = ['main.js', 'preload.js', 'autostart.js', 'brain-home.js', 
                       'permissions.js', 'reveal.js', 'serve-file.js', 'single-instance.js', 'taskbar-flash.js', 'to-brain.js', 'tray.js',
                       'window-bounds.js', 'window-look.js', 'window-mode.js', 'window-store.js', 'window-top.js'];
 export const MODULES = ['koffi', '@koromix/koffi-win32-x64']; // koffi, and its binary for 64-bit Windows
+export const ASSETS = ['pseudo.ico']; // (M44) files that aren't code: the icon (window-look.js, tray.js)
 
 function stop(message) {
   console.error(`package: ${message}`);
@@ -39,6 +44,7 @@ function checkInputs() {
   if (!fs.existsSync(python)) stop(`no Python at ${python}. Create the .venv first (README).`);
   if (!fs.existsSync(path.join(ELECTRON, 'electron.exe'))) stop('Electron is not installed. Run `npm install` first.');
   if (!fs.existsSync(path.join(FACE, 'dist', 'index.html'))) stop('the page is not built. Use `npm run package`.');
+  for (const name of ASSETS) if (!fs.existsSync(path.join(FACE, name))) stop(`${name} is missing. Run \`npm run icon\`.`);
   for (const name of MODULES) {
     if (!fs.existsSync(path.join(FACE, 'node_modules', name))) stop(`node_modules/${name} is missing. Run \`npm install\`.`);
   }
@@ -55,7 +61,7 @@ function removeOldOutput() {
   }
 }
 
-function build() {
+async function build() {
   const started = Date.now();
   checkInputs();
   removeOldOutput();
@@ -63,9 +69,12 @@ function build() {
   fs.cpSync(ELECTRON, OUT, { recursive: true });
   fs.renameSync(path.join(OUT, 'electron.exe'), path.join(OUT, 'Pseudo.exe'));
   fs.rmSync(path.join(OUT, 'resources', 'default_app.asar')); // Electron's demo app: never ours
+  // (M44) Loaded only here, so a test that imports this file's lists doesn't load resedit.
+  const { stampExe } = await import('./stamp-exe.mjs');
+  stampExe(path.join(OUT, 'Pseudo.exe'), path.join(FACE, 'pseudo.ico'));
 
   fs.mkdirSync(APP, { recursive: true });
-  for (const file of FILES) fs.copyFileSync(path.join(FACE, file), path.join(APP, file));
+  for (const file of [...FILES, ...ASSETS]) fs.copyFileSync(path.join(FACE, file), path.join(APP, file));
   fs.cpSync(path.join(FACE, 'dist'), path.join(APP, 'dist'), { recursive: true });
   for (const name of MODULES) {
     fs.cpSync(path.join(FACE, 'node_modules', name), path.join(APP, 'node_modules', name), { recursive: true });
@@ -85,9 +94,9 @@ function build() {
   for (const entry of fs.readdirSync(OUT, { recursive: true, withFileTypes: true })) {
     if (entry.isFile()) bytes += fs.statSync(path.join(entry.parentPath, entry.name)).size;
   }
-  console.log(`package: built ${path.join(OUT, 'Pseudo.exe')}`);
+  console.log(`package: built ${path.join(OUT, 'Pseudo.exe')}, with Pseudo's icon and name in it`);
   console.log(`package: ${(bytes / 1048576).toFixed(0)} MB in ${((Date.now() - started) / 1000).toFixed(1)} s; the brain runs from ${REPO}`);
 }
 
 // Only when run as a script (`node package.mjs`), not when the test imports the lists.
-if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) build();
+if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) build().catch((error) => stop(error.message));

@@ -4,7 +4,7 @@
 // that everything it requires is listed too. Importing package.mjs builds nothing.
 import { existsSync, readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
-import { FILES, MODULES } from './package.mjs';
+import { ASSETS, FILES, MODULES } from './package.mjs';
 
 const read = (name) => readFileSync(new URL(name, import.meta.url), 'utf8');
 const required = (name) => [...read(`./${name}`).matchAll(/require\('([^']+)'\)/g)].map((match) => match[1]);
@@ -25,6 +25,13 @@ describe('the files that go into Pseudo.exe', () => {
       .filter((name) => !name.startsWith('.') && !name.startsWith('node:') && name !== 'electron');
     expect(packages).toContain('koffi');
     for (const name of packages) expect(MODULES, name).toContain(name);
+  });
+
+  it("M44: the icon goes in, and every file that names it beside itself is listed", () => {
+    expect(ASSETS).toEqual(['pseudo.ico']);
+    for (const name of ASSETS) expect(existsSync(new URL(`./${name}`, import.meta.url)), name).toBe(true);
+    const naming = FILES.filter((file) => read(`./${file}`).includes("'pseudo.ico'"));
+    expect(naming).toEqual(['window-look.js']); // tray.js takes ICON from window-look.js: one place
   });
 
   it('npm run package builds the page first', () => {
