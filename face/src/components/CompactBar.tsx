@@ -17,6 +17,7 @@ import { type Compact, useBarFit } from '../useCompact';
 import { BarNote } from './Activity';
 import { BarTurn } from './BarTurn';
 import { Stopped } from './Stopped';
+import { Wordmark } from './Wordmark';
 
 type Props = {
   compact: Compact;
@@ -33,7 +34,7 @@ export function CompactBar({ compact, notice, waiting, stopped, latest, onRestar
   return (
     <div className="flex h-full flex-col bg-ground text-ink">
       <div ref={fit.top} className="drag flex h-[30px] shrink-0 items-center gap-2 pr-[var(--bar-controls-width)] pl-3">
-        <span className="shrink-0 text-xs font-semibold text-muted">Pseudo</span>
+        <Wordmark where="bar" />
         <BarNote turn={latest} waiting={waiting} notice={notice} grown={compact.grown} />
         <CompactToggle compact={compact} />
       </div>

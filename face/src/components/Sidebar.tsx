@@ -14,6 +14,7 @@ import { SearchChats } from './SearchChats';
 import { SessionList } from './SessionList';
 import { Button } from './ui/Button';
 import { Tip } from './ui/Tip';
+import { Wordmark } from './Wordmark';
 
 const SEARCH_PAUSE_MS = 250; // ask the brain once typing pauses, not for every key
 
@@ -64,7 +65,7 @@ export function Sidebar(props: Props) {
             <PanelLeft aria-hidden="true" className="size-[18px]" />
           </Button>
         </Tip>
-        <span className="text-[15px] font-semibold tracking-tight">Pseudo</span>
+        <Wordmark where="sidebar" />
       </div>
       <div className="px-2.5 pt-1 pb-2">
         <Button variant="outline" className="w-full justify-start bg-raised px-2.5" disabled={!idle} onClick={onNewChat}>
