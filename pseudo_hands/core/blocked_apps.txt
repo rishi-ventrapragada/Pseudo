@@ -1,4 +1,4 @@
-# Apps whose windows Pseudo never describes to a model (DECISIONS.md D6).
+# Apps whose windows Pseudo never describes to a model (decision D6).
 # Their window title AND app name come back as "[restricted app]".
 #
 # One process name per line, as shown in Task Manager > Details (e.g. KeePass.exe).

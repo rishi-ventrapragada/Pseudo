@@ -27,3 +27,6 @@ face/dist/
 
 # M34: Pseudo.exe, rebuilt by `npm run package` (370 MB, and it holds this laptop's repo path).
 face/out/
+
+# The working docs: plan, architecture, decisions and lessons, kept on the owner's laptop only.
+DOCS.md

@@ -1,6 +1,6 @@
 # CLAUDE.md: Rules for Claude Code in the Pseudo repo
 
-Read this file, PRD.md, ARCHITECTURE.md, and DECISIONS.md fully before doing anything.
+Read this file and DOCS.md Parts 1 to 3 (requirements, architecture, decisions) fully before doing anything. DOCS.md is kept on the owner's laptop only: it is in .gitignore and is never committed. Its Part 4 holds the lessons; read them when needed.
 
 ## 1. Your role: builder AND teacher
 
@@ -15,12 +15,12 @@ That means:
 
 1. **Plan Mode first.** Before writing files, present a plan: files to create, what each does, commands you will run, how "done" will be verified. Wait for approval.
 2. **Build in small steps.** One file at a time where possible. Run it after writing it.
-3. **Verify.** Run the milestone's "Done when" check from PRD.md. Show the actual output.
-4. **Write the lesson file** `docs/learn/MX-<name>.md` (template in section 5).
+3. **Verify.** Run the milestone's "Done when" check from DOCS.md Part 1. Show the actual output.
+4. **Write the lesson** at the end of DOCS.md Part 4 (template in section 5).
 5. **Commit** with explicit paths (see section 4).
 6. **Stop.** Summarize in under 10 lines and wait for Rishi to say "next". Never start the next milestone on your own.
 
-Work only on the current milestone listed in PRD.md (the current phase's scope section). Do not jump ahead, do not "prepare" later phases, do not add features not in the PRD.
+Work only on the current milestone listed in DOCS.md Part 1 (the current phase's scope section). Do not jump ahead, do not "prepare" later phases, do not add features not in the PRD.
 
 ## 3. Code rules
 
@@ -33,7 +33,7 @@ Work only on the current milestone listed in PRD.md (the current phase's scope s
 - Model names come from `.env` (`LLM_MODEL`), not hardcoded. Before M1, check the provider's current docs for a free model that supports tool calling, and put the recommendation in `.env.example` with a comment.
 - Every learning script prints its steps clearly (e.g. `--- SENDING TO MODEL ---`, `--- MODEL WANTS TO CALL TOOL ---`) so the flow is visible when run.
 
-### Flexibility rules (DECISIONS.md D11)
+### Flexibility rules (D11)
 - Keep logic in plain Python functions; wrappers (MCP, CLI, UI) stay thin and contain no business logic.
 - Never couple Pseudo code to a specific agent harness (e.g. Hermes) or a specific model provider. Use standard interfaces only: MCP for tools, OpenAI-compatible API for chat, `.env` for provider config. Exception (D26): `pseudo_brain` may launch Claude Code for action requests.
 - Safety checks (sandboxing, approvals, and later redaction) live next to the tool functions, not in the agent loop, so they hold for any brain.
@@ -46,20 +46,21 @@ Work only on the current milestone listed in PRD.md (the current phase's scope s
 - If a commit message has special characters, use a message file (`git commit -F msg.txt`) because PowerShell quoting breaks.
 - Never force-push. Never rewrite history.
 - Never chain tests and a commit in one command. Run the tests, confirm they pass, then commit as a separate step.
+- Never stage, commit or push DOCS.md.
 
-## 5. Lesson file template (`docs/learn/MX-<name>.md`)
+## 5. Lesson template (DOCS.md Part 4)
 
 ```
-# MX: <Name>
+## MX: <Name>
 
-## The concept in one paragraph
-## Web-dev analogy
-## What was built (file by file)
-## Walkthrough of the key code (quote the important lines and explain them)
-## What happens when you run it (annotated real output)
-## Try this (3 small experiments that break or change something)
-## Check yourself (4-5 questions, answers in a collapsed <details> block)
-## How this connects to Pseudo's final architecture
+### The concept in one paragraph
+### Web-dev analogy
+### What was built (file by file)
+### Walkthrough of the key code (quote the important lines and explain them)
+### What happens when you run it (annotated real output)
+### Try this (3 small experiments that break or change something)
+### Check yourself (4-5 questions, answers in a collapsed <details> block)
+### How this connects to Pseudo's final architecture
 ```
 
 Keep each lesson under 200 lines. Plain language. Explain every new term the first time it appears.
@@ -74,7 +75,7 @@ Keep each lesson under 200 lines. Plain language. Explain every new term the fir
 
 ## 7. Governance
 
-- Do not edit CLAUDE.md, PRD.md, ARCHITECTURE.md, or DECISIONS.md on your own. If you think one needs a change, propose the exact edit and wait.
+- Do not edit CLAUDE.md or DOCS.md Parts 1 to 3 on your own. If you think one needs a change, propose the exact edit and wait.
 - Do not turn a one-time instruction into a standing rule without asking.
 - If something in these docs is wrong or outdated (e.g. a library API changed), say so and propose a fix instead of silently working around it.
 - If a milestone turns out harder than expected, stop and explain; do not cut scope silently.
