@@ -44,7 +44,7 @@ Before anything goes to the AI, Pseudo removes your personal details on your own
 
 ## Built to learn
 
-Pseudo is a learning project. It was built step by step, in small milestones (M0 to M45), by [Claude Code](https://claude.com/claude-code), while its owner learned how AI agents work. Each step has a plain-language lesson in [`docs/learn`](docs/learn), starting with [M0: setup](docs/learn/M0-setup.md). It costs nothing to run: free AI tiers only.
+Pseudo is a learning project. It was built step by step, in small milestones (M0 to M46), by [Claude Code](https://claude.com/claude-code), while its owner learned how AI agents work. It costs nothing to run: free AI tiers only.
 
 ---
 
@@ -82,7 +82,7 @@ flowchart LR
   brain -->|click and type requests| claude[(Claude Code)]
 ```
 
-More in [ARCHITECTURE.md](ARCHITECTURE.md), the decisions behind it in [DECISIONS.md](DECISIONS.md), and the full plan in [PRD.md](PRD.md).
+Each Python part has a short README: [`pseudo_hands`](pseudo_hands/README.md) and [`pseudo_brain`](pseudo_brain/README.md).
 
 ## License
 

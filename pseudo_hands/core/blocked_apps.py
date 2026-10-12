@@ -4,7 +4,7 @@ What it demonstrates: the privacy rule lives next to the tool, inside Pseudo's
 core, not in the MCP wrapper or in the brain (D11). Whoever calls
 list_open_windows() gets windows that were already masked here.
 
-The rules, all "fail closed" (when unsure, mask; DECISIONS.md D6):
+The rules, all "fail closed" (when unsure, mask; decision D6):
   1. An app is judged by its process name (e.g. "KeePass.exe"), never by its
      window title. A title is whatever the app chooses to show; the process
      name says which program it really is.

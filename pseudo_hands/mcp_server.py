@@ -1,6 +1,6 @@
 """M5: the MCP wrapper. Publishes Pseudo's core tools to any MCP brain.
 
-What it demonstrates: a wrapper with no logic (DECISIONS.md D11). This file
+What it demonstrates: a wrapper with no logic (decision D11). This file
 defines no functions at all. It hands the core function itself to the MCP
 SDK, which reads its type hints to build the tool's input and output schemas
 and handles the protocol (handshake, tools/list, tools/call). Every privacy

@@ -1,4 +1,4 @@
-"""M10: the approval gate (DECISIONS.md D13). Every action asks here first, and the
+"""M10: the approval gate (decision D13). Every action asks here first, and the
 answer is NO unless a person clicks OK in time.
 
 What it demonstrates: consent enforced by the tool itself, not by the brain. A brain

@@ -1,7 +1,7 @@
 """M3: the agent's hands. Sandboxed file tools, locked inside playground/sandbox/.
 
 What it demonstrates: tools are plain Python functions, and the safety rules
-live HERE, inside the tools, not in the agent loop (DECISIONS.md D11). So they
+live HERE, inside the tools, not in the agent loop (decision D11). So they
 hold no matter which "brain" calls them: our loop, a future MCP server, anything.
 
 The safety layers, checked before anything touches the disk:

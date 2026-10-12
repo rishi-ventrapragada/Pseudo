@@ -6,7 +6,7 @@ elements). We walk that list, keep the ones a person would actually see, and
 return plain data a model can read. No MCP and no agent code here (D11): the
 M5 MCP server will call list_open_windows() unchanged.
 
-Privacy is applied HERE, before anything is returned (DECISIONS.md D6):
+Privacy is applied HERE, before anything is returned (decision D6):
   1. windows of blocked apps come back as "[restricted app]" (blocked_apps.py, M4)
   2. every other title goes through the local redactor (redactor.py, M8), and
      a title the redactor can't process comes back as "[title withheld]", never raw.

@@ -9,6 +9,7 @@ used to decide anything in M27 to M30.
 from pathlib import Path
 
 import brain_action_cases as m29
+import pytest
 from action_cases import BENIGN_QUESTIONS, CONTROL_QUESTIONS
 from brain_action_cases import ACTION_TYPES
 from route_cases import ACTION, OTHER
@@ -71,7 +72,10 @@ def test_no_control_and_action_pair_was_in_m29s_held_out_set() -> None:
 
 
 def test_criteria_are_the_ones_fixed_in_prd() -> None:
-    prd = (REPO / "PRD.md").read_text(encoding="utf-8")
+    docs = REPO / "DOCS.md"  # the PRD is Part 1 of DOCS.md, which lives on the owner's laptop only (not in git)
+    if not docs.exists():
+        pytest.skip("DOCS.md is kept on the owner's laptop only, so a clone has no PRD to compare with")
+    prd = docs.read_text(encoding="utf-8")
     section = prd[prd.index("### M31:"):prd.index("### M32:")]  # M31's section ends where M32's starts
     assert CRITERIA == {"W_S_median_seconds_to_popup_max": 15.0, "W_U_usable_min_of_18": 17,
                         "W_R_own_read_before_acting_min_of_18": 18, "W_T_input_times_the_sessions_first_max": 3.0,

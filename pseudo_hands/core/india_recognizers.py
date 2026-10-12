@@ -4,7 +4,7 @@ What it demonstrates: a Presidio "recognizer" can be as simple as a named regex.
 Presidio ships PAN and Aadhaar recognizers, but they only fire on numbers that
 pass a checksum or sit near words like "aadhaar". For privacy that's backwards:
 a real number with one typo is still someone's number. These match the shape
-alone, so anything that LOOKS like an ID is masked (DECISIONS.md D6).
+alone, so anything that LOOKS like an ID is masked (decision D6).
 
 Each regex is written out below with what it matches, so you can test it by eye.
 """
