@@ -70,6 +70,7 @@ async def test_deleting_the_open_chat_starts_a_new_one(world: dict) -> None:
     async def delete_open(face: Face) -> None:
         await face.say({"type": "ask", "text": "hello"})
         await face.wait_for("turn_done")
+        await face.wait_for("speech")  # the answer is spoken in the background: let it land before deleting
         await face.say({"type": "delete_session", "name": face.replies("ready")[0]["session"]["name"]})
         await face.wait_for("deleted")
     _, face = await run(delete_open)
