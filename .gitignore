@@ -30,3 +30,6 @@ face/out/
 
 # The working docs: plan, architecture, decisions and lessons, kept on the owner's laptop only.
 DOCS.md
+
+# The handoff document, kept on the owner's laptop only.
+PseudoHandoff.md
